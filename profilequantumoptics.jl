@@ -1,4 +1,4 @@
-include("quantumoptics.jl")
+#include("quantumoptics.jl")
 #include("ode.jl")
 
 using quantumoptics
@@ -8,14 +8,14 @@ using quantumoptics
 function profile_basis()
 	basis0 = GenericBasis([4,5])
 	basis1 = GenericBasis([3,7])
-	basis = compose(basis0, basis1)
+	basis = bases.compose(basis0, basis1)
 	#basis = basis0
 
-	println(multiplicable(basis, basis))
+	println(bases.multiplicable(basis, basis))
 	function f(N)
 		for i=1:N
 			#basis==basis
-			multiplicable(basis, basis)
+			bases.multiplicable(basis, basis)
 		end
 	end
 	f(1)
@@ -31,11 +31,11 @@ function profile_mul()
 	@time tmp = op1*op2
 	println(tmp)
 
-	mul!(op1, op2, tmp)
+	inplacearithmetic.mul!(op1, op2, tmp)
 	println(tmp)
-	@time mul!(op1, op2, tmp)
-	mul!(op1.data, op2.data, tmp.data)
-	@time mul!(op1.data, op2.data, tmp.data)
+	@time inplacearithmetic.mul!(op1, op2, tmp)
+	inplacearithmetic.mul!(op1.data, op2.data, tmp.data)
+	@time inplacearithmetic.mul!(op1.data, op2.data, tmp.data)
 end
 
 function profile_add()
@@ -52,9 +52,10 @@ function profile_add()
 
 	op1 = destroy(basis)
 	op2 = create(basis)
+	result = Operator(basis)
 	function f2(N)
 		for i=1:N
-			add!(op1,op2)
+			inplacearithmetic.add!(op1,op2,result)
 		end
 	end
 	f2(1)
@@ -63,10 +64,10 @@ end
 
 
 function profile_dmaster()
-	basis_cavity = FockBasis(2^11)
+	basis_cavity = FockBasis(2^6)
 	a = destroy(basis_cavity)
-	x0 = basis_ket(basis_cavity, 3)
-	rho0 = tensor(x0, dagger(x0))
+ 	x0 = basis_ket(basis_cavity, 3)
+ 	rho0 = tensor(x0, dagger(x0))
 	H = 1*(a + dagger(a))
 	J = [a]
     Jdagger = [dagger(j) for j=J]
@@ -76,12 +77,12 @@ function profile_dmaster()
 
     function f(N)
         for i=1:N
-            quantumoptics.dmaster(rho0, H, J)
+            quantumoptics.timeevolution_simple.dmaster(rho0, H, J)
         end
     end
     function f2(N)
         for i=1:N
-            quantumoptics.dmaster2(rho0, H, J, Jdagger, drho, tmp1, tmp2)
+            quantumoptics.timeevolution.dmaster(rho0, H, J, Jdagger, drho, tmp1, tmp2)
         end
     end
     f(1)
@@ -90,36 +91,30 @@ function profile_dmaster()
     @time f2(10)
 end
 
-function profile_ode()
-	f(t::Number, y::Vector{Complex{Float64}}) = y
-	y0 = zeros(Complex128, 10)
-	T = [0,10]
-	f(0, y0)
-	@time f(0, y0)
-	ode.ode45(f, y0, T)
-	@time ode.ode45(f, y0, T)
-end
 
 function profile_master()
-	basis_cavity = FockBasis(2^8)
+	basis_cavity = FockBasis(3)
 	a = destroy(basis_cavity)
 	x0 = basis_ket(basis_cavity, 3)
 	rho0 = tensor(x0, dagger(x0))
 	H = 1*(a + dagger(a))
 	J = [a]
 	T = [0,1]
-	tout, xout = quantumoptics.master(T, rho0, H, J)
+	tout, xout = quantumoptics.timeevolution_simple.master(T, rho0, H, J)
 	#println("T: ", tout)
-	@time quantumoptics.master(T, rho0, H, J)
-	tout2, xout2 = quantumoptics.master2(T, rho0, H, J)
+	@time quantumoptics.timeevolution_simple.master(T, rho0, H, J)
+	tout2, xout2 = quantumoptics.timeevolution.master(T, rho0, H, J)
 	#println("T: ", tout)
-	@time quantumoptics.master2(T, rho0, H, J)
+	@time quantumoptics.timeevolution.master(T, rho0, H, J)
+	#println(norm(xout2[end]-xout[end], Inf))
+	#println(xout2[end])
 end
 
 #profile_basis()
 #profile_mul()
 #profile_add()
+#println(methods(operators.zero!))
 #profile_dmaster()
-#profile_ode()
 profile_master()
+
 0

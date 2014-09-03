@@ -1,6 +1,11 @@
-module quantumbases
+module bases
 
-export Basis, GenericBasis, FockBasis, CompositeBasis, compose, multiplicable
+export Basis, GenericBasis, CompositeBasis, FockBasis,
+       compose,
+       equal_shape, equal_bases, multiplicable,
+       IncompatibleBases,
+       check_equal, check_multiplicable
+
 
 abstract Basis
 
@@ -74,5 +79,11 @@ function multiplicable(b1::CompositeBasis, b2::CompositeBasis)
     end
     return true
 end
+
+type IncompatibleBases <: Exception end
+
+check_equal(b1::Basis, b2::Basis) = (b1==b2 ? true : throw(IncompatibleBases()))
+check_multiplicable(b1::Basis, b2::Basis) = (multiplicable(b1, b2) ? true : throw(IncompatibleBases()))
+
 
 end
