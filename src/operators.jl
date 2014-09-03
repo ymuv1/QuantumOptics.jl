@@ -1,8 +1,8 @@
 module operators
 
-using bases, states
+using ..bases, ..states
 
-importall states, inplacearithmetic
+importall ..states, ..inplacearithmetic
 
 export AbstractOperator, Operator,
 	   tensor, dagger, expect,
@@ -43,8 +43,8 @@ dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
 Base.norm(op::Operator, p) = norm(op.data, p)
 Base.trace(op::Operator) = trace(op.data)
 
-expect(op::AbstractOperator, state::AbstractOperator) = trace(op*state)
-expect{T<:AbstractOperator}(op::Operator, states::Vector{T}) = [expect(op, state) for state=states]
+expect(op::AbstractOperator, state::Operator) = trace(op*state)
+expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
 identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
 number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
 destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))

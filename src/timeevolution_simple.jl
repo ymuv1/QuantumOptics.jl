@@ -1,6 +1,6 @@
 module timeevolution_simple
 
-using operators
+using ..operators
 using ODE
 
 export master

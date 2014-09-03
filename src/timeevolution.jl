@@ -1,6 +1,6 @@
 module timeevolution
 
-using operators
+using ..operators
 
 export master
 
@@ -22,7 +22,7 @@ function oderkf(F, x0, tspan, p, a, bs, bp; reltol = 1.0e-5, abstol = 1.0e-8)
     iadd!(x, x0)
     tout = t            # first output time
     xout = Array(typeof(x0), 1)
-    xout[1] = x         # first output solution
+    xout[1] = 1*x      # first output solution
 
     #k = Array(typeof(x0), length(c))
     #k[1] = F(t,x) # first stage
@@ -87,7 +87,7 @@ function oderkf(F, x0, tspan, p, a, bs, bp; reltol = 1.0e-5, abstol = 1.0e-8)
             x, xp = xp, x
 
             tout = [tout; t]
-            #push!(xout, x)
+            push!(xout, x*1)
 
             # Compute the slopes by computing the k[:,j+1]'th column based on the previous k[:,1:j] columns
             # notes: k needs to end up as an Nxs, a is 7x6, which is s by (s-1),

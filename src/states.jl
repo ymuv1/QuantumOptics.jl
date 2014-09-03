@@ -1,9 +1,9 @@
 module states
 
-using bases
+using ..bases
 
 export StateVector, Bra, Ket,
-       tensor, dagger,
+       tensor, dagger, ⊗,
        basis_bra, basis_ket,
        zero!
 
@@ -38,7 +38,7 @@ check = check_multiplicable
 
 
 tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b.data))
-
+⊗(a,b) = tensor(a,b)
 
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
