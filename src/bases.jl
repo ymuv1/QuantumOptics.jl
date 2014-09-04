@@ -16,22 +16,23 @@ end
 type CompositeBasis <: Basis
     shape::Vector{Int}
     bases::Vector{Basis}
+    CompositeBasis(bases::Basis...) = new([prod(b.shape) for b=bases], [bases...])
 end
+
 
 type FockBasis <: Basis
     shape::Vector{Int} 
     N0::Int
     N1::Int
-    FockBasis(N0::Int, N1::Int) = N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionError())
+    FockBasis(N0::Int, N1::Int) = 0 < N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionError())
 end
 
 FockBasis(N::Int) = FockBasis(1,N)
 
-
-compose(b1::Basis, b2::Basis) = CompositeBasis([prod(b1.shape), prod(b2.shape)], [b1, b2])
-compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis([b1.shape, b2.shape], [b1.bases, b2.bases])
-compose(b1::CompositeBasis, b2::Basis) = CompositeBasis([b1.shape, prod(b2.shape)], [b1.bases, b2])
-compose(b1::Basis, b2::CompositeBasis) = CompositeBasis([prod(b1.shape), b2.shape], [b1, b2.bases])
+compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
+compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases, b2.bases)
+compose(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
+compose(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
 
 Base.length(b::Basis) = prod(b.shape)
 
@@ -54,7 +55,7 @@ function equal_bases(a::Vector{Basis}, b::Vector{Basis})
     if a===b
         return true
     end
-    for i=1:length(a.shape)
+    for i=1:length(a)
         if a[i]!=b[i]
             return false
         end
