@@ -5,7 +5,7 @@ using ..operators
 export master
 
 
-function oderkf(F, x0, tspan, p, a, bs, bp; reltol = 1.0e-5, abstol = 1.0e-8)
+function oderkf(F, x0, tspan, p, a, bs, bp; reltol = 1.0e-5, abstol = 1.0e-8, tmps=[])
     # see p.91 in the Ascher & Petzold reference for more infomation.
     pow = 1/p   # use the higher order to estimate the next step size
     c = float(sum(a, 2))   # consistency condition
@@ -24,15 +24,22 @@ function oderkf(F, x0, tspan, p, a, bs, bp; reltol = 1.0e-5, abstol = 1.0e-8)
     xout = Array(typeof(x0), 1)
     xout[1] = 1*x      # first output solution
 
+    for i=length(tmps):(4+length(c))
+        push!(tmps, Operator(x0.basis_l, x0.basis_r))
+    end
+    xs, xp, dx, tmp = tmps[1:4]
+
     #k = Array(typeof(x0), length(c))
     #k[1] = F(t,x) # first stage
-    k = [Operator(x0.basis_l, x0.basis_r) for i=1:length(c)]
+    #k = [Operator(x0.basis_l, x0.basis_r) for i=1:length(c)]
+    k = tmps[5:5+length(c)]
     set!(k[1], F(t,x))
 
-    xs = Operator(x0.basis_l, x0.basis_r)
-    xp = Operator(x0.basis_l, x0.basis_r)
-    dx = Operator(x0.basis_l, x0.basis_r)
-    tmp = Operator(x0.basis_l, x0.basis_r)
+
+    # xs = Operator(x0.basis_l, x0.basis_r)
+    # xp = Operator(x0.basis_l, x0.basis_r)
+    # dx = Operator(x0.basis_l, x0.basis_r)
+    # tmp = Operator(x0.basis_l, x0.basis_r)
 
     while abs(t) != abs(tfinal) && abs(h) >= hmin
         if abs(h) > abs(tfinal-t)
@@ -131,7 +138,8 @@ const dp_coefficients = (5,
                          )
 ode45(F, x0, tspan; kwargs...) = oderkf(F, x0, tspan, dp_coefficients...; kwargs...)
 
-function dmaster(rho::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector, drho::Operator, tmp1::Operator, tmp2::Operator)
+function dmaster(rho::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector, tmps::Vector{Operator})
+    drho, tmp1, tmp2 = tmps
     zero!(drho)
     mul!(H, rho, tmp1)
     mul!(rho, H, tmp2)
@@ -156,13 +164,54 @@ function dmaster(rho::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector,
 end
 
 
-function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector)
-    Jdagger = [dagger(j) for j=J]
-    tmp1 = Operator(rho0.basis_l, rho0.basis_r)
-    tmp2 = Operator(rho0.basis_l, rho0.basis_r)
-    drho = Operator(rho0.basis_l, rho0.basis_l)
-    f(t::Float64,rho::Operator) = dmaster(rho, H, J, Jdagger, drho, tmp1, tmp2)
-    tout, rho_t = ode45(f, rho0, float(T))
+function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
+                Jdagger=map(dagger,J), tmps::Vector{Operator}=[])
+    for i=length(tmps):3
+        push!(tmps, Operator(rho0.basis_l, rho0.basis_r))
+    end
+    f(t::Float64,rho::Operator) = dmaster(rho, H, J, Jdagger, tmps[1:3])#drho, tmp1, tmp2)
+    tout, rho_t = ode45(f, rho0, float(T), tmps=tmps[4:end])
+    return tout, rho_t
+end
+
+
+function dmaster_nondiag(rho::Operator, H::AbstractOperator, gamma::Matrix,
+                         J::Vector, Jdagger::Vector,
+                         tmps::Vector{Operator})
+    drho, tmp1, tmp2 = tmps
+    zero!(drho)
+    mul!(H, rho, tmp1)
+    mul!(rho, H, tmp2)
+    iadd!(drho, isub!(tmp1, tmp2))
+    imul!(drho, Complex(0, -1.))
+    for m = 1:length(J), n=1:length(J)
+        mul!(J[m], rho, tmp1)
+        mul!(tmp1, Jdagger[n], tmp2)
+        imul!(tmp2, gamma[m,n])
+        iadd!(drho, tmp2)
+
+        mul!(J[m], rho, tmp1)
+        mul!(Jdagger[n], tmp1, tmp2)
+        imul!(tmp2, Complex(-0.5)*gamma[m,n])
+        iadd!(drho, tmp2)
+
+        mul!(rho, Jdagger[n], tmp1)
+        mul!(tmp1, J[m], tmp2)
+        imul!(tmp2, Complex(-0.5)*gamma[m,n])
+        iadd!(drho, tmp2)
+    end
+    return drho
+end
+
+
+function master_nondiag(T::Vector, rho0::Operator, H::AbstractOperator, gamma::Matrix,
+                        J::Vector;
+                        Jdagger::Vector=map(dagger,J), tmps::Vector{Operator}=[])
+    for i=length(tmps):3
+        push!(tmps, Operator(rho0.basis_l, rho0.basis_r))
+    end
+    f(t::Float64,rho::Operator) = dmaster_nondiag(rho, H, gamma, J, Jdagger, tmps[1:3])#drho, tmp1, tmp2)
+    tout, rho_t = ode45(f, rho0, float(T), tmps=tmps[4:end])
     return tout, rho_t
 end
 
