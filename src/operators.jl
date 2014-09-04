@@ -41,6 +41,7 @@ tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compo
 tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(a.data, b.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
+Base.full(x::Operator) = x
 
 Base.norm(op::Operator, p) = norm(op.data, p)
 Base.trace(op::Operator) = trace(op.data)
@@ -48,6 +49,7 @@ Base.trace(op::Operator) = trace(op.data)
 expect(op::AbstractOperator, state::Operator) = trace(op*state)
 expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
 identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
+identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
 number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
 destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))
 create(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),-1))
