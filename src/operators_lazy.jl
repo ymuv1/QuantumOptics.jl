@@ -42,13 +42,64 @@ function Base.full(x::LazyTensor)
     op_list = Operator[]
     for i=1:length(x.basis_l.bases)
         if i in x.indices
-            push!(op_list, full(x.operators[i]))
+            push!(op_list, full(x.operators[first(find(x.indices.==i))]))
         else
             push!(op_list, identity(x.basis_l.bases[i], x.basis_r.bases[i]))
         end
     end
     return reduce(tensor, op_list)
 end
+
+
+function mul_suboperator(a::AbstractOperator, b::Ket, index::Int)
+    @assert(issubtype(typeof(b.basis), CompositeBasis))
+    N = length(b.basis.bases)
+    @assert(0<index<=N)
+    @assert(bases.multiplicable(a.basis_r, b.basis.bases[index]))
+    uninvolved_indices = [1:index-1, index+1:N]
+    uninvolved_shapes = b.basis.shape[uninvolved_indices]
+    # println("operator: ", a.data)
+    # println("|b>: ", b)
+    # println("uninvolved_indices: ", uninvolved_indices)
+    # println("uninvolved shapes: ", uninvolved_shapes)
+    b_data = reshape(b.data, reverse(b.basis.shape)...)
+    result_basis = CompositeBasis([b.basis.bases[1:index-1], a.basis_l, b.basis.bases[index+1:end]]...)
+    result = Ket(result_basis)
+    result_data = reshape(result.data, reverse(result.basis.shape)...)
+    broad_index_result = {(1:n) for n=result.basis.shape}
+    broad_index_b = {(1:n) for n=b.basis.shape}
+    for uninvolved_index in Iterators.product([1:n for n = uninvolved_shapes]...)
+        # println("uninvolved index: ", uninvolved_index)
+        broad_index_result[uninvolved_indices] = [uninvolved_index...]
+        broad_index_b[uninvolved_indices] = [uninvolved_index...]
+        # println("broad_index_result: ", broad_index_result)
+        # println("broad_index_b: ", broad_index_b)
+        b_splice = Ket(b.basis.bases[index], vec(b_data[reverse(broad_index_b)...]))
+        # println("bsplice: ", b_splice)
+        # println("a*bsplice", a*b_splice)
+        result_data[reverse(broad_index_result)...] = (a*b_splice).data
+    end
+    return Ket(result_basis, vec(result_data))
+end
+
+function *(a::LazyTensor, b::Ket)
+    check_multiplicable(a.basis_r, b.basis)
+    for (op, operator_index) = zip(a.operators, a.indices)
+        b = mul_suboperator(op, b, operator_index)
+    end
+    return b
+end
+
+function *(a::LazyTensor, b::Operator)
+    check_multiplicable(a.basis_r, b.basis_l)
+    x = Operator(a.basis_l, b.basis_r)
+    for j=1:length(b.basis_r)
+        b_j = Ket(b.basis_l, b.data[:,j])
+        x.data[:,j] = (a*b_j).data
+    end
+    return x
+end
+
 
 # type EmbeddedOperator <: AbstractOperator
 #     basis_l::CompositeBasis
@@ -74,42 +125,6 @@ end
 #         new(basis_l, basis_r, indices_l, indices_r, operator)
 #     end
 # end
-
-
-function mul_suboperator(a::AbstractOperator, b::Ket, index::Int)
-    @assert(issubtype(typeof(b.basis), CompositeBasis))
-    N = length(b.basis.bases)
-    @assert(0<index<=N)
-    @assert(bases.multiplicable(a.basis_r, b.basis.bases[index]))
-    uninvolved_indices = [1:index-1, index+1:N]
-    uninvolved_shapes = b.basis.shape[uninvolved_indices]
-    b_data = reshape(b.data, b.basis.shape...)
-    result_basis = CompositeBasis([b.basis.bases[1:index-1], a.basis_l, b.basis.bases[index+1:end]]...)
-    result = Ket(result_basis)
-    result_data = reshape(result.data, result.basis.shape...)
-    broad_index_result = {(1:n) for n=result.basis.shape}
-    broad_index_b = {(1:n) for n=b.basis.shape}
-    for uninvolved_index in Iterators.product([1:n for n = uninvolved_shapes]...)
-        broad_index_result[uninvolved_indices] = [uninvolved_index...]
-        broad_index_b[uninvolved_indices] = [uninvolved_index...]
-        b_splice = Ket(b.basis.bases[index], b_data[broad_index_b...])
-        result_data[broad_index_result...] = (a*b_splice).data
-    end
-    return Ket(result_basis, vec(result_data))
-end
-
-function *(a::LazyTensor, b::Operator)
-    check_multiplicable(a.basis_r, b.basis_l)
-    x = Operator(a.basis_l, b.basis_r)
-    for j=1:length(b.basis_r)
-        b_j = Ket(b.basis_l, b.data[:,j])
-        for (op, operator_index) = zip(a.operators, a.indices)
-            b_j = mul_suboperator(op, b_j, operator_index)
-        end
-        x.data[:,j] = b_j.data
-    end
-    return x
-end
 
 # function *(a::EmbeddedOperator, b::Ket)
 #     check_multiplicable(a.basis_r, b.basis)
