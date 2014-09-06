@@ -1,14 +1,14 @@
 module operators
 
 using ..bases, ..states
+using Base.LinAlg.BLAS
 
-importall ..states, ..inplacearithmetic
+importall ..states
 
 export AbstractOperator, Operator,
 	   tensor, dagger, expect,
 	   identity, number, destroy, create,
-	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
-	   mul!, add!, sub!, imul!, iadd!, isub!, set!, zero!
+	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis
 
 
 abstract AbstractOperator
@@ -63,27 +63,12 @@ const sigmam = Operator(spinbasis, [0 1;0 0])
 
 check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
 
+set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data); a)
+zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
+
+gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{T}) = BLAS.gemm!('N', 'N', alpha, a, b, beta, result)
 gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
 
-function mul!(a::Operator, b::Operator, result::Operator)
-	check_multiplicable(a.basis_r, b.basis_l)
-	check_equal(a.basis_l, result.basis_l)
-	check_equal(b.basis_r, result.basis_r)
-	mul!(a.data, b.data, result.data)
-	result
-end
-mul!(a::Operator, b::Number, result::Operator) = (check_equal_bases(a, result); mul!(a.data, complex(b), result.data); result)
-mul!(a::Number, b::Operator, result::Operator) = mul!(b,a,result)
-imul!(a::Operator, b::Number) = imul!(a.data, complex(b))
-
-add!(a::Operator, b::Operator, result::Operator) = (check_equal_bases(a, b); check_equal_bases(a, result); add!(a.data, b.data, result.data); result)
-iadd!(a::Operator, b::Operator) = (check_equal_bases(a, b); iadd!(a.data, b.data); a)
-
-sub!(a::Operator, b::Operator, result::Operator) = (check_equal_bases(a, b); check_equal_bases(a, result); sub!(a.data, b.data, result.data); result)
-isub!(a::Operator, b::Operator) = (check_equal_bases(a, b); isub!(a.data, b.data); a)
-
-set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data); a)
-zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 
 end

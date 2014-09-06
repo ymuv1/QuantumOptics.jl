@@ -9,7 +9,6 @@ export bases, Basis, GenericBasis, CompositeBasis, FockBasis,
         inplacearithmetic
 
 include("bases.jl")
-include("inplacearithmetic.jl")
 include("states.jl")
 include("operators.jl")
 include("timeevolution_simple.jl")
