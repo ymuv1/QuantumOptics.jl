@@ -2,8 +2,10 @@ module inplacearithmetic
 
 using Base.LinAlg.BLAS
 
-export mul!, add!, sub!, imul!, iadd!, isub!, set!
+export mul!, add!, sub!, imul!, iadd!, isub!, set!, gemm!
 
+
+gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{T}) = BLAS.gemm!('N', 'N', alpha, a, b, beta, result)
 
 function mul!(a::Matrix, b::Matrix, result::Matrix)
     BLAS.gemm!('N', 'N', one(eltype(a)), a, b, zero(eltype(a)), result)

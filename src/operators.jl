@@ -63,6 +63,9 @@ const sigmam = Operator(spinbasis, [0 1;0 0])
 
 check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
 
+gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
+gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
+
 function mul!(a::Operator, b::Operator, result::Operator)
 	check_multiplicable(a.basis_r, b.basis_l)
 	check_equal(a.basis_l, result.basis_l)
