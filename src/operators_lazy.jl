@@ -5,6 +5,7 @@ using Base.Cartesian
 using ..bases, ..states
 
 importall ..operators
+import ..operators.gemm!
 
 export LazyTensor, LazySum
 
@@ -72,26 +73,28 @@ function Base.full(x::LazyTensor)
 end
 
 
-@ngenerate N nothing function mul_suboperator{N}(a::Array{Complex128, 2}, b::Array{Complex128, N}, index::Int, result::Array{Complex128, N})
+@ngenerate N Int64 function mul_suboperator_l{N}(a::Array{Complex128, 2}, b::Array{Complex128, N}, index::Int, result::Array{Complex128, N})
     for m=1:size(a,2)
         @nloops N i d->(1:size(b,N+1-d)) d->(if d==index && i_d!=m continue end) begin
+            #println("a")
             for n=1:size(a,1)
-                @inbounds (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[n,m] * (@nref N b d->(i_{N+1-d}))
+                (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[n,m] * (@nref N b d->(i_{N+1-d}))
+                #@inbounds (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[n,m] * (@nref N b d->(i_{N+1-d}))
             end
         end
     end
-    return nothing
+    return 0
 end
 
-@ngenerate N nothing function mul_suboperator{N}(a::Array{Complex128, N}, b::Array{Complex128, 2}, index::Int, result::Array{Complex128, N})
-    for m=1:size(b,1)
-        @nloops N i d->(1:size(a,N+1-d)) d->(if d==index && i_d!=m continue end) begin
-            for n=1:size(b,2)
-                @inbounds (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[m,n] * (@nref N b d->(i_{N+1-d}))
+@ngenerate N Int64 function mul_suboperator_r{N}(a::Array{Complex128, N}, b::Array{Complex128, 2}, index::Int, result::Array{Complex128, N})
+    for n=1:size(b,1)
+        @nloops N i d->(1:size(a,N+1-d)) d->(if d==index && i_d!=n continue end) begin
+            for m=1:size(b,2)
+                @inbounds (@nref N result d->(N+1-d==index ? m : i_{N+1-d})) += (@nref N a d->(i_{N+1-d})) * b[n,m]
             end
         end
     end
-    return nothing
+    return 0
 end
 
 
@@ -103,23 +106,25 @@ function *(a::LazyTensor, b::Ket)
     for (op, operator_index) = zip(a.operators, a.indices)
         # TODO: Doesnt work like this if basis_l != basis_r
         tmp1 = zeros(eltype(b_data), b_shape...)
-        mul_suboperator(op.data, b_data, operator_index, tmp1)
+        mul_suboperator_l(op.data, b_data, operator_index, tmp1)
         b_data = tmp1
     end
     return Ket(a.basis_l, vec(b_data))
 end
 
-function *(a::Ket, b::LazyTensor)
+function *(a::Bra, b::LazyTensor)
     check_multiplicable(a.basis, b.basis_l)
     a_shape = reverse(a.basis.shape)
     a_data = reshape(a.data, a_shape...)
     for (op, operator_index) = zip(b.operators, b.indices)
         # TODO: Doesnt work like this if basis_l != basis_r
         tmp1 = zeros(eltype(a_data), a_shape...)
-        mul_suboperator(a_data, op.data, operator_index, tmp1)
+        mul_suboperator_r(a_data, op.data, operator_index, tmp1)
         a_data = tmp1
+        #mul_suboperator_l(op.data', a_data', operator_index, tmp1)
+        #a_data = tmp1'
     end
-    return Ket(b.basis_r, vec(a_data))
+    return Bra(b.basis_r, vec(a_data))
 end
 
 # function *(a::LazyTensor, b::Ket)
@@ -145,10 +150,95 @@ function *(a::Operator, b::LazyTensor)
     check_multiplicable(a.basis_r, b.basis_l)
     x = Operator(a.basis_l, b.basis_r)
     for j=1:length(a.basis_l)
-        a_j = Ket(a.basis_l, a.data[j,:])
+        a_j = Bra(a.basis_l, vec(a.data[j,:]))
         x.data[j,:] = (a_j*b).data
     end
     return x
+end
+
+# @ngenerate N nothing function gemm_suboperator!{T<:Complex,N}(alpha::T, a::Array{T, 2}, b::Array{T, N}, index::Int, beta::T, result::Array{T, N})
+#     for m=1:size(a,2)
+#         @nloops N i d->(1:size(b,N+1-d)) d->(if d==index && i_d!=m continue end) begin
+#             for n=1:size(a,1)
+#                 @inbounds (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[n,m] * (@nref N b d->(i_{N+1-d}))
+#             end
+#         end
+#     end
+#     return nothing
+# end
+
+function gemm!{T<:Complex}(alpha::T, a::LazyTensor, b::Ket, beta::T, result::Vector{T})
+    check_multiplicable(a.basis_r, b.basis)
+    b_shape = reverse(b.basis.shape)
+    b_data = reshape(b.data, b_shape...)
+    for (op, operator_index) = zip(a.operators, a.indices)
+        # TODO: Doesnt work like this if basis_l != basis_r
+        tmp1 = zeros(eltype(b_data), b_shape...)
+        #gemm_suboperator!(alpha, op.data, b_data, operator_index, beta, tmp1)
+        mul_suboperator_l(op.data, b_data, operator_index, tmp1)
+        b_data = tmp1
+    end
+    result[:] = beta*result[:] + alpha*vec(b_data)[:]
+    #return Ket(a.basis_l, vec(b_data))
+end
+
+function gemm!{T<:Complex}(alpha::T, a::Bra, b::LazyTensor, beta::T, result::Vector{T})
+    check_multiplicable(a.basis, b.basis_l)
+    a_shape = reverse(a.basis.shape)
+    a_data = reshape(a.data, a_shape...)
+    for (op, operator_index) = zip(b.operators, b.indices)
+        # TODO: Doesnt work like this if basis_l != basis_r
+        tmp1 = zeros(eltype(a_data), a_shape...)
+        mul_suboperator_r(a_data, op.data, operator_index, tmp1)
+        a_data = tmp1
+    end
+    result[:] = beta*result[:] + alpha*vec(a_data)[:]
+    #return Ket(a.basis_l, vec(b_data))
+end
+
+
+function gemm!{T<:Complex}(alpha::T, a::LazyTensor, b::Matrix{T}, beta::T, result::Matrix{T})
+#    result[:,:] = alpha*(a*Operator(a.basis_l, b)).data[:,:] + beta*result[:,:]
+    tmp1 = zeros(eltype(result), size(result,2))
+    for j=1:length(a.basis_l)
+        b_j = Ket(a.basis_l, vec(b[:,j]))
+        #gemm!(alpha, a, b_j, beta, result[:,j])
+        tmp1[:] = result[:,j]
+        gemm!(alpha, a, b_j, beta, tmp1)
+        result[:,j] = tmp1[:]
+    end
+end
+
+function gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::LazyTensor, beta::T, result::Matrix{T})
+    # result[:,:] = alpha*(Operator(b.basis_l,a)*b).data[:,:] + beta*result[:,:]
+    tmp1 = zeros(eltype(result), size(result,2))
+    for j=1:length(b.basis_r)
+        a_j = Bra(b.basis_l, vec(a[j,:]))
+        #x.data[j,:] = gemm!(alpha, a, b_j).data
+        tmp1[:] = result[j,:]
+        gemm!(alpha, a_j, b, beta, tmp1)
+        result[j,:] = tmp1[:]
+    end
+end
+
+function gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::LazySum, beta::T, result::Matrix{T})
+    #result[:,:] = alpha*(Operator(b.basis_l,a)*b).data[:,:] + beta*result[:,:]
+    tmp = zeros(T, size(a)...)
+    result[:] = beta*result[:]
+    for op=b.operators
+        gemm!(complex(1.), a, op, complex(0.), tmp)
+        result[:] = result[:] + alpha*tmp[:]
+    end
+end
+
+function gemm!{T<:Complex}(alpha::T, a::LazySum, b::Matrix{T}, beta::T, result::Matrix{T})
+    #result[:,:] = alpha*(a*Operator(a.basis_l, b)).data[:,:] + beta*result[:,:]
+    tmp = zeros(T, size(b)...)
+    result[:] = beta*result[:]
+    for op=a.operators
+        gemm!(complex(1.), op, b, complex(0.), tmp)
+        result[:] = result[:] + alpha*tmp[:]
+    end
 end
 
 function mul!(a::LazyTensor, b::Operator, result::Operator)
@@ -164,8 +254,9 @@ function mul!(a::LazySum, b::Operator, result::Operator)
     check_multiplicable(a.basis_r, b.basis_l)
     tmp = Operator(result.basis_l, result.basis_r)
     for op=a.operators
-        mul!(op, b, tmp)
-        operators.iadd!(result, tmp)
+        result += op*b
+        # mul!(op, b, tmp)
+        # operators.iadd!(result, tmp)
     end
     return result
 end
