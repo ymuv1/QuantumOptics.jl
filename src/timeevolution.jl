@@ -72,7 +72,7 @@ function oderk{T}(F, tspan, x0::Matrix{T}, p, a, bs, bp; reltol = 1.0e-5, abstol
         if abs(h) > abs(tfinal-t)
             h = tfinal - t
         end
-        delta = oderk_step(F, complex(t), complex(h), x, a, bs, bp, c, xs, xp, dx, tmp, k)
+        delta = oderk_step(F, complex(float(t)), complex(h), x, a, bs, bp, c, xs, xp, dx, tmp, k)
         tau = max(reltol*norm(x,Inf),abstol) # allowable error
 
         # Update the solution only if the error is acceptable
@@ -184,9 +184,9 @@ function dmaster_h{T<:Complex}(rho::Matrix{T}, H,
     return drho
 end
 
-function integrate{T}(dmaster::Function, tspan, rho0::T; fout=nothing, tmps_ode=T[])
-    for i=length(tmps_ode):11
-        push!(tmps_ode, (rho0*0).data)
+function integrate(dmaster::Function, tspan, rho0::Operator; fout=nothing, tmps_ode=nothing)
+    if tmps_ode==nothing
+        tmps_ode = Matrix{Complex128}[(rho0*0).data for i=1:11]
     end
     if fout==nothing
         tout = Float64[]
@@ -208,6 +208,7 @@ function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma=[Complex(1.) for i=1:length(J)],
                 Jdagger::Vector=map(dagger, J),
                 fout=nothing, tmp::Operator=rho0*0, kwargs...)
+    Gamma = complex(Gamma)
     f(t, rho, drho) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp.data)
     return integrate(f, tspan, rho0; fout=fout, kwargs...)
 end
@@ -217,6 +218,7 @@ function master_nh(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Hdagger::AbstractOperator=dagger(H),
                 Jdagger::Vector=map(dagger, J),
                 fout=nothing, tmp::Operator=rho0*0, kwargs...)
+    Gamma = complex(Gamma)
     f(t, rho, drho) = dmaster_nh(rho, H, Hdagger, Gamma, J, Jdagger, drho, tmp.data)
     return integrate(f, tspan, rho0; fout=fout, kwargs...)
 end
