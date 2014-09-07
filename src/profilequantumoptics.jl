@@ -105,7 +105,7 @@ function profile_dmaster()
     end
     function f5(N)
         for i=1:N
-            quantumoptics.timeevolution.dmaster_Heff(rho0_data, Heff, Heff_dagger, J, Jdagger, drho_data, tmp_data)
+            quantumoptics.timeevolution.dmaster_nh(rho0_data, Heff.data, Heff_dagger.data, J, Jdagger, drho_data, tmp_data)
         end
     end
     drho = quantumoptics.timeevolution_simple.dmaster(rho0, H, J, Jdagger)
@@ -134,16 +134,19 @@ end
 
 
 function profile_master()
-	basis_cavity = FockBasis(2^5)
+	basis_cavity = FockBasis(2^6)
 	a = destroy(basis_cavity)
 	x0 = basis_ket(basis_cavity, 3)
 	rho0 = tensor(x0, dagger(x0))
-	H = 1*(a + dagger(a))
-	J = [a]
-	Jdagger = [dagger(a)]
+	H = 0.5*(a + dagger(a)) + a*a + dagger(a)*dagger(a)
+    #H = H + 0.1*Operator(basis_cavity, rand(2^5,2^5))
+    H = H+H'
+    J = [a]
+	#J = [0.01*(a+0.01*Operator(basis_cavity, rand(2^5,2^5)))]
+	Jdagger = [dagger(J[1])]
 	T = [0.,1.]
 
-    H_eff = -1im*H -0.5*dagger(a)*a
+    H_eff = H -1im*0.5*Jdagger[1]*J[1]
     H_eff_dagger = dagger(H_eff)
     tmpop = Operator(rho0.basis_l, rho0.basis_r)
     tmp = tmpop.data
@@ -153,23 +156,27 @@ function profile_master()
     for i=length(tmps):11
         push!(tmps, Operator(rho0.basis_l, rho0.basis_r).data)
     end
+    tmps = [H_eff.data*1 for i=1:11]
     tmps_op = Operator[]
     for i=1:14
         push!(tmps_op, Operator(rho0.basis_l, rho0.basis_r))
     end
     
+    @profile 1
     @time 1
 
 	tout, xout = quantumoptics.timeevolution_simple.master(T, rho0, H, J)
 	@time quantumoptics.timeevolution_simple.master(T, rho0, H, J)
 
-	#tout2, xout2 = quantumoptics.timeevolution.master5(T, rho0, H, J, Jdagger, tmps_op)
-	#@time quantumoptics.timeevolution.master5(T, rho0, H, J, Jdagger, tmps_op)
+	t, x0 = quantumoptics.timeevolution.master(T, rho0, H, J, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
+    @time quantumoptics.timeevolution.master(T, rho0, H, J, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
 
-    t, x = quantumoptics.timeevolution.master_nh(T, rho0, H_eff, J, Hdagger=H_eff_dagger, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
+    t, x1 = quantumoptics.timeevolution.master_nh(T, rho0, H_eff, J, Hdagger=H_eff_dagger, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
     @time quantumoptics.timeevolution.master_nh(T, rho0, H_eff, J, Hdagger=H_eff_dagger, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
-    #@profile quantumoptics.timeevolution.master2(T, rho0, H_eff, H_eff_dagger, J, Jdagger, tmp, tmps)
-	println(norm(x[end]-xout[end], Inf))
+    #@profile quantumoptics.timeevolution.master_nh(T, rho0, H_eff, J, Hdagger=H_eff_dagger, Jdagger=Jdagger, tmp=tmpop, tmps_ode=tmps)
+    println(norm(x1[end]-x0[end], Inf))
+	println(norm(x1[end]-xout[end], Inf))
+    println(norm(x0[end]-xout[end], Inf))
 	#println(xout2[end])
 end
 
