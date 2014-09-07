@@ -23,7 +23,7 @@ end
 function dmaster_nondiag(rho::Operator, H::AbstractOperator, gamma::Matrix, J::Vector, Jdagger::Vector)
 	drho = -1im * (H*rho - rho*H)
 	for m=1:length(J), n=1:length(J)
-		drho += gamma[m,n]*(J[m]*rho*dagger(J[n]) - Jdagger[n]*(J[m]*rho)/Complex(2) - rho*Jdagger[n]*J[m]/Complex(2))
+		drho += gamma[m,n]*(J[m]*rho*Jdagger[n] - Jdagger[n]*(J[m]*rho)/Complex(2) - rho*Jdagger[n]*J[m]/Complex(2))
 	end
 	return drho
 end
