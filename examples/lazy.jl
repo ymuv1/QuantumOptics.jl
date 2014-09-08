@@ -2,9 +2,11 @@ require("../src/quantumoptics.jl")
 
 using quantumoptics
 
+srand(0)
+
 N1 = 2
-N2 = 2
-N3 = 2^3
+N2 = 1
+N3 = 2^1
 N = N1*N2*N3
 
 b1 = GenericBasis([N1])
@@ -33,6 +35,7 @@ l3 = operators_lazy.LazyTensor(basis_total, basis_total, [1,2], [op1,op2])
 # println(vecnorm(vec((l3*psi-full(l3)*psi).data)))
 
 operators_lazy.gemm!(Complex(1.), psi.data, l3, Complex(0.), psi2.data)
+@time operators_lazy.gemm!(Complex(1.), psi.data, l3, Complex(0.), psi2.data)
 println(vecnorm(vec((psi2-psi*full(l3)).data)))
 println(vecnorm(vec((psi*l3-psi*full(l3)).data)))
 
