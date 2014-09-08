@@ -183,60 +183,29 @@ function gemm!{T<:Complex}(alpha::T, a::LazyTensor, b::Ket, beta::T, result::Vec
     #return Ket(a.basis_l, vec(b_data))
 end
 
-@ngenerate N Int64 function gemm_r!{N}(alpha, a::Array{Complex128, N}, b::Array{Complex128, 2},
-                                        index::Int, beta, result::Array{Complex128, N})
-    for n=1:size(b,1)
-        @nloops N i d->(1:size(a,N+1-d)) d->(if d==index && i_d!=n continue end) begin
-            for m=1:size(b,2)
-                (@nref N result d->(N+1-d==index ? m : i_{N+1-d})) += (@nref N a d->(i_{N+1-d})) * b[n,m]
-            end
-        end
-    end
-    return 0
-end
-
-function gemm_old!{T<:Complex}(alpha::T, a::Bra, b::LazyTensor, beta::T, result)
-    check_multiplicable(a.basis, b.basis_l)
-    a_shape = reverse(a.basis.shape)
-    a_data = reshape(a.data, a_shape...)
+function gemm_r!(b::LazyTensor, tmp1, tmp2)
     for (op, operator_index) = zip(b.operators, b.indices)
-        # TODO: Doesnt work like this if basis_l != basis_r
-        tmp1 = zeros(eltype(a_data), a_shape...)
-        mul_suboperator_r(a_data, op.data, operator_index, tmp1)
-        a_data = tmp1
+        mul_suboperator_r(tmp1, op.data, operator_index, tmp2)
+        tmp1, tmp2 = tmp2, tmp1
     end
-    for i=1:size(a.data,1)
-        result[i] = beta*result[i] + alpha*a_data[i]
-    end
-    #return Ket(a.basis_l, vec(b_data))
-end
-
-function gemm!{T<:Complex}(alpha::T, a::Bra, b::LazyTensor, beta::T, result)
-    check_multiplicable(a.basis, b.basis_l)
-    a_shape = reverse(a.basis.shape)
-    a_data = reshape(a.data, a_shape...)
-    v = view(result, a_shape...)
-    for (op, operator_index) = zip(b.operators, b.indices)
-        # TODO: Doesnt work like this if basis_l != basis_r
-        tmp1 = zeros(eltype(a_data), a_shape...)
-        mul_suboperator_r(a_data, op.data, operator_index, tmp1)
-        a_data = tmp1
-    end
-    for i=1:size(a.data,1)
-        result[i] = beta*result[i] + alpha*a_data[i]
-    end
-    #return Ket(a.basis_l, vec(b_data))
 end
 
 function gemm!{T<:Complex}(alpha::T, a::LazyTensor, b::Matrix{T}, beta::T, result::Matrix{T})
 #    result[:,:] = alpha*(a*Operator(a.basis_l, b)).data[:,:] + beta*result[:,:]
-    tmp1 = zeros(eltype(result), size(result,2))
-    for j=1:length(a.basis_l)
-        b_j = Ket(a.basis_l, vec(b[:,j]))
-        #gemm!(alpha, a, b_j, beta, result[:,j])
-        tmp1[:] = result[:,j]
-        gemm!(alpha, a, b_j, beta, tmp1)
-        result[:,j] = tmp1[:]
+    tmp1 = zeros(eltype(b), size(b)...)
+    tmp2 = zeros(eltype(b), size(b)...)
+    for j=1:size(b,2)
+        for i=1:size(b,1)
+            tmp1[i] = b[i,j]
+            tmp2[i] = 0
+        end
+        for (op, operator_index) = zip(a.operators, a.indices)
+            mul_suboperator_l(op.data, tmp1, operator_index, tmp2)
+            tmp1, tmp2 = tmp2, tmp1
+        end
+        for i=1:size(b,1)
+            result[i,j] = beta*result[i,j] + alpha*tmp1[i]
+        end
     end
 end
 
