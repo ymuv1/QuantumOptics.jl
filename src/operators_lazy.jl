@@ -1,9 +1,7 @@
 module operators_lazy
 
-using Iterators
 using Base.Cartesian
 using ..bases, ..states
-using ArrayViews
 
 importall ..operators
 import ..operators.gemm!
@@ -94,6 +92,48 @@ end
                 @inbounds (@nref N result d->(N+1-d==index ? m : i_{N+1-d})) += (@nref N a d->(i_{N+1-d})) * b[n,m]
             end
         end
+    end
+    return nothing
+end
+
+@ngenerate RANK Nothing function mul_suboperator_l2{RANK}(x::Type{Type{RANK}},
+                                    uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
+                                    a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
+    M = size(a,1)
+    N = size(a,2)
+    @inbounds @nloops RANK i (d->0:uninvolved_shape[d]-1)  begin
+        for m =1:M
+            for n=1:M
+                #I_n = (n-1)*involved_stride + 1
+                #I_m = (m-1)*involved_stride + 1
+                I = 1
+                @nexprs RANK (d->(I += i_d*uninvolved_strides[d];))
+                I_n = (n-1)*involved_stride + I
+                I_m = (m-1)*involved_stride + I
+                result[I_m] += a[m,n]*b[I_n]
+            end
+        end        
+    end
+    return nothing
+end
+
+@ngenerate RANK Nothing function mul_suboperator_r2{RANK}(x::Type{Type{RANK}},
+                                    uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
+                                    a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
+    M = size(a,1)
+    N = size(a,2)
+    @inbounds @nloops RANK i (d->0:uninvolved_shape[d]-1)  begin
+        for m =1:M
+            for n=1:M
+                #I_n = (n-1)*involved_stride + 1
+                #I_m = (m-1)*involved_stride + 1
+                I = 1
+                @nexprs RANK (d->(I += i_d*uninvolved_strides[d];))
+                I_n = (n-1)*involved_stride + I
+                I_m = (m-1)*involved_stride + I
+                result[I_m] += b[I_n]*a[n,m]
+            end
+        end        
     end
     return nothing
 end
@@ -205,6 +245,50 @@ function setto_l(j::Int, tmp::Array{Complex128}, x::Matrix{Complex128})
     return nothing
 end
 
+function strides(shape::Vector{Int}, indices::Vector{Int})
+    N = length(shape)
+    S = zeros(Int, N)
+    S[N] = 1
+    for i=N-1:-1:1
+        S[i] = S[i+1]*shape[i+1]
+    end
+    return S, [[S[1:i-1], S[i+1:end]] for i=indices]
+end
+
+function shapes(shape::Vector{Int}, indices::Vector{Int})
+    return [[shape[1:i-1], shape[i+1:end]] for i=indices]
+end
+
+function applyoperators_l2{RANK}(uninvolved_rank::Type{Type{RANK}}, uninvolved_shapes::Vector{Vector{Int}}, uninvolved_strides::Vector{Vector{Int}}, S::Vector{Int}, lazy_op::LazyTensor, tmp1::Vector{Complex128}, tmp2::Vector{Complex128})
+    for m = 1:length(lazy_op.operators)
+        fill!(tmp2, Complex128(0., 0.))
+        op_index = lazy_op.indices[m]
+        a = lazy_op.operators[m].data
+        u_shape = uninvolved_shapes[m]
+        u_strides = uninvolved_strides[m]
+        mul_suboperator_l2(uninvolved_rank, u_shape, u_strides, S[op_index], a, tmp1, tmp2)
+        tmp1, tmp2 = tmp2, tmp1
+    end
+    return nothing
+end
+
+function gemm!{T<:Complex}(alpha::T, lazy_op::LazyTensor, x::Matrix{T}, beta::T, result::Matrix{T})
+    tmp1 = zeros(eltype(x), size(x,1))
+    tmp2 = zeros(eltype(x), size(x,1))
+    S, uninvolved_strides = strides(lazy_op.basis_r.shape, lazy_op.indices)
+    uninvolved_shapes = shapes(lazy_op.basis_r.shape, lazy_op.indices)
+    uninvolved_rank = Type{length(lazy_op.basis_r.shape)-1}
+    for j=1:size(x,2)
+        setto_l(j, tmp1, x)
+        applyoperators_l2(uninvolved_rank, uninvolved_shapes, uninvolved_strides, S, lazy_op, tmp1, tmp2)
+        if length(lazy_op.operators)%2==1
+            addtoresult_l(j, alpha, beta, tmp2, result)
+        else
+            addtoresult_l(j, alpha, beta, tmp1, result)
+        end
+    end
+end
+
 function applyoperators_l(lazy_op::LazyTensor, tmp1::Array{Complex128}, tmp2::Array{Complex128})
     for m = 1:length(lazy_op.operators)
         fill!(tmp2, Complex128(0., 0.))
@@ -214,7 +298,7 @@ function applyoperators_l(lazy_op::LazyTensor, tmp1::Array{Complex128}, tmp2::Ar
     return nothing
 end
 
-function gemm!{T<:Complex}(alpha::T, lazy_op::LazyTensor, x::Matrix{T}, beta::T, result::Matrix{T})
+function gemm2!{T<:Complex}(alpha::T, lazy_op::LazyTensor, x::Matrix{T}, beta::T, result::Matrix{T})
     tmp1 = zeros(eltype(x), reverse(lazy_op.basis_l.shape)...)
     tmp2 = zeros(eltype(x), reverse(lazy_op.basis_l.shape)...)
     for j=1:size(x,2)
@@ -251,7 +335,37 @@ function applyoperators_r(lazy_op::LazyTensor, tmp1::Array{Complex128}, tmp2::Ar
     return nothing
 end
 
+function applyoperators_r2(uninvolved_rank, uninvolved_shapes, uninvolved_strides, S, lazy_op::LazyTensor, tmp1::Vector{Complex128}, tmp2::Vector{Complex128})
+    for m = 1:length(lazy_op.operators)
+        fill!(tmp2, Complex128(0., 0.))
+        op_index = lazy_op.indices[m]
+        a = lazy_op.operators[m].data
+        u_shape = uninvolved_shapes[m]
+        u_strides = uninvolved_strides[m]
+        mul_suboperator_r2(uninvolved_rank, u_shape, u_strides, S[op_index], a, tmp1, tmp2)
+        tmp1, tmp2 = tmp2, tmp1
+    end
+    return nothing
+end
+
 function gemm!{T<:Complex}(alpha::T, x::Matrix{T}, lazy_op::LazyTensor, beta::T, result::Matrix{T})
+    tmp1 = zeros(eltype(x), size(x,1))
+    tmp2 = zeros(eltype(x), size(x,1))
+    S, uninvolved_strides = strides(lazy_op.basis_r.shape, lazy_op.indices)
+    uninvolved_shapes = shapes(lazy_op.basis_r.shape, lazy_op.indices)
+    uninvolved_rank = Type{length(lazy_op.basis_r.shape)-1}
+    for j=1:size(x,2)
+        setto_r(j, tmp1, x)
+        applyoperators_r2(uninvolved_rank, uninvolved_shapes, uninvolved_strides, S, lazy_op, tmp1, tmp2)
+        if length(lazy_op.operators)%2==1
+            addtoresult_r(j, alpha, beta, tmp2, result)
+        else
+            addtoresult_r(j, alpha, beta, tmp1, result)
+        end
+    end
+end
+
+function gemm2!{T<:Complex}(alpha::T, x::Matrix{T}, lazy_op::LazyTensor, beta::T, result::Matrix{T})
     tmp1 = zeros(eltype(x), reverse(lazy_op.basis_l.shape)...)
     tmp2 = zeros(eltype(x), reverse(lazy_op.basis_l.shape)...)
     for j=1:size(x,2)

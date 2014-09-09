@@ -64,13 +64,10 @@ Index(i::Int) = Index(Array{Int,i})
     @nloops RANK i (d->1:shape[d])  begin
         for m =1:index_N
             for n=1:index_N
-                #println(I_0, " ", I_1, " ", I_2, " ", m, " ", n)#, " ", N_0, " ", N_m, " ", a[m,n], " ", b[N_m])
                 N_n = (n-1)*stride_index + 1
                 N_m = (m-1)*stride_index + 1
                 @nexprs RANK (d->(s = (i_d-1)*strides[d]; N_n+=s; N_m+=s))
-                #println(i_1, " ", i_2, " ", m, " ", n, " ", N_n, " ", N_m)
                 result[N_m] += a[m,n]*b[N_n]
-               #N_m += stride_index
             end
         end        
     end
