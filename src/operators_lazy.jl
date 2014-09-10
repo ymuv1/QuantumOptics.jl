@@ -97,7 +97,7 @@ end
 end
 
 
-@ngenerate RANK Nothing function mul_suboperator_l2{RANK}(x::Type{Type{RANK}},
+@ngenerate RANK Nothing function mul_suboperator_l2{RANK}(uninvolved_rank::Array{Int,RANK},
                                     uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
                                     a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
     M = size(a,1)
@@ -116,7 +116,7 @@ end
     return nothing
 end
 
-@ngenerate RANK Nothing function mul_suboperator_r2{RANK}(x::Type{Type{RANK}},
+@ngenerate RANK Nothing function mul_suboperator_r2{RANK}(uninvolved_rank::Array{Int,RANK},
                                     uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
                                     a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
     M = size(a,1)
@@ -235,9 +235,20 @@ function strides(shape::Vector{Int}, indices::Vector{Int})
     N = length(shape)
     S = zeros(Int, N)
     S[N] = 1
-    for i=N-1:-1:1
-        S[i] = S[i+1]*shape[i+1]
+    for m=N-1:-1:1
+        S[m] = S[m+1]*shape[m+1]
     end
+    # S_ = [zeros(Int, N-1) for i=indices]
+    # for i=1:length(indices)
+    #     counter = 1
+    #     for m=1:N
+    #         if m!=indices[i]
+    #             S_[i][counter] = S[m]
+    #             counter += 1
+    #         end
+    #     end
+    # end
+    # return S, S_#[[S[1:i-1], S[i+1:end]] for i=indices]
     return S, [[S[1:i-1], S[i+1:end]] for i=indices]
 end
 
@@ -245,7 +256,7 @@ function shapes(shape::Vector{Int}, indices::Vector{Int})
     return [[shape[1:i-1], shape[i+1:end]] for i=indices]
 end
 
-function applyoperators_l2{RANK}(uninvolved_rank::Type{Type{RANK}}, uninvolved_shapes::Vector{Vector{Int}}, uninvolved_strides::Vector{Vector{Int}}, S::Vector{Int}, lazy_op::LazyTensor, tmp1::Vector{Complex128}, tmp2::Vector{Complex128})
+function applyoperators_l2{RANK}(uninvolved_rank::Array{Int,RANK}, uninvolved_shapes::Vector{Vector{Int}}, uninvolved_strides::Vector{Vector{Int}}, S::Vector{Int}, lazy_op::LazyTensor, tmp1::Vector{Complex128}, tmp2::Vector{Complex128})
     for m = 1:length(lazy_op.operators)
         fill!(tmp2, Complex128(0., 0.))
         op_index = lazy_op.indices[m]
@@ -263,7 +274,8 @@ function gemm!{T<:Complex}(alpha::T, lazy_op::LazyTensor, x::Matrix{T}, beta::T,
     tmp2 = zeros(eltype(x), size(x,1))
     S, uninvolved_strides = strides(lazy_op.basis_r.shape, lazy_op.indices)
     uninvolved_shapes = shapes(lazy_op.basis_r.shape, lazy_op.indices)
-    uninvolved_rank = Type{length(lazy_op.basis_r.shape)-1}
+    N = length(lazy_op.basis_r.shape)-1
+    uninvolved_rank = zeros(Int,[0 for i=1:N]...)
     for j=1:size(x,2)
         setto_l(j, tmp1, x)
         applyoperators_l2(uninvolved_rank, uninvolved_shapes, uninvolved_strides, S, lazy_op, tmp1, tmp2)
@@ -339,7 +351,8 @@ function gemm!{T<:Complex}(alpha::T, x::Matrix{T}, lazy_op::LazyTensor, beta::T,
     tmp2 = zeros(eltype(x), size(x,1))
     S, uninvolved_strides = strides(lazy_op.basis_r.shape, lazy_op.indices)
     uninvolved_shapes = shapes(lazy_op.basis_r.shape, lazy_op.indices)
-    uninvolved_rank = Type{length(lazy_op.basis_r.shape)-1}
+    N = length(lazy_op.basis_r.shape)-1
+    uninvolved_rank = zeros(Int,[0 for i=1:N]...)
     for j=1:size(x,2)
         setto_r(j, tmp1, x)
         applyoperators_r2(uninvolved_rank, uninvolved_shapes, uninvolved_strides, S, lazy_op, tmp1, tmp2)
