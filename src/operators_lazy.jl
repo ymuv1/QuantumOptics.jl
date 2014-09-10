@@ -1,6 +1,6 @@
 module operators_lazy
 
-using Base.Cartesian
+using Cartesian
 using ..bases, ..states
 
 importall ..operators
@@ -96,22 +96,21 @@ end
     return nothing
 end
 
+
 @ngenerate RANK Nothing function mul_suboperator_l2{RANK}(x::Type{Type{RANK}},
                                     uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
                                     a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
     M = size(a,1)
-    N = size(a,2)
-    @inbounds @nloops RANK i (d->0:uninvolved_shape[d]-1)  begin
-        for m =1:M
-            for n=1:M
-                #I_n = (n-1)*involved_stride + 1
-                #I_m = (m-1)*involved_stride + 1
-                I = 1
-                @nexprs RANK (d->(I += i_d*uninvolved_strides[d];))
-                I_n = (n-1)*involved_stride + I
-                I_m = (m-1)*involved_stride + I
+    @nexprs 1 (d->(I_{RANK}=1))
+    @inbounds @nloops RANK i (d->1:uninvolved_shape[d]) (d->(I_{d-1}=I_d)) (d->(I_d+=uninvolved_strides[d])) begin
+        I_n = I_0
+        for n=1:M
+            I_m = I_0 
+            for m=1:M
                 result[I_m] += a[m,n]*b[I_n]
+                I_m += involved_stride
             end
+            I_n += involved_stride
         end        
     end
     return nothing
@@ -121,33 +120,20 @@ end
                                     uninvolved_shape::Vector{Int}, uninvolved_strides::Vector{Int}, involved_stride::Int,
                                     a::Matrix{Complex128}, b::Vector{Complex128}, result::Vector{Complex128})
     M = size(a,1)
-    N = size(a,2)
-    @inbounds @nloops RANK i (d->0:uninvolved_shape[d]-1)  begin
-        for m =1:M
-            for n=1:M
-                #I_n = (n-1)*involved_stride + 1
-                #I_m = (m-1)*involved_stride + 1
-                I = 1
-                @nexprs RANK (d->(I += i_d*uninvolved_strides[d];))
-                I_n = (n-1)*involved_stride + I
-                I_m = (m-1)*involved_stride + I
-                result[I_m] += b[I_n]*a[n,m]
+    @nexprs 1 (d->(I_{RANK}=1))
+    @inbounds @nloops RANK i (d->1:uninvolved_shape[d]) (d->(I_{d-1}=I_d)) (d->(I_d+=uninvolved_strides[d])) begin
+        I_n = I_0
+        for n=1:M
+            I_m = I_0 
+            for m=1:M
+                result[I_n] += a[m,n]*b[I_m]
+                I_m += involved_stride
             end
+            I_n += involved_stride
         end        
     end
     return nothing
 end
-
-# @ngenerate N nothing function gemm_suboperator!{T<:Complex,N}(alpha::T, a::Array{T, 2}, b::Array{T, N}, index::Int, beta::T, result::Array{T, N})
-#     for m=1:size(a,2)
-#         @nloops N i d->(1:size(b,N+1-d)) d->(if d==index && i_d!=m continue end) begin
-#             for n=1:size(a,1)
-#                 @inbounds (@nref N result d->(N+1-d==index ? n : i_{N+1-d})) += a[n,m] * (@nref N b d->(i_{N+1-d}))
-#             end
-#         end
-#     end
-#     return nothing
-# end
 
 
 function *(a::LazyTensor, b::Ket)
@@ -455,93 +441,5 @@ end
 
 +(a::LazySum, b::AbstractOperator) = LazySum([a.operators, b])
 +(a::AbstractOperator, b::LazySum) = LazySum([a, b.operators])
-
-
-# function mul_suboperator(a::AbstractOperator, b::Ket, index::Int)
-#     @assert(issubtype(typeof(b.basis), CompositeBasis))
-#     N = length(b.basis.bases)
-#     @assert(0<index<=N)
-#     @assert(bases.multiplicable(a.basis_r, b.basis.bases[index]))
-
-#     uninvolved_indices = [1:index-1, index+1:N]
-#     uninvolved_shapes = b.basis.shape[uninvolved_indices]
-#     # println("operator: ", a.data)
-#     # println("|b>: ", b)
-#     # println("uninvolved_indices: ", uninvolved_indices)
-#     # println("uninvolved shapes: ", uninvolved_shapes)
-#     b_data = reshape(b.data, reverse(b.basis.shape)...)
-#     result_basis = CompositeBasis([b.basis.bases[1:index-1], a.basis_l, b.basis.bases[index+1:end]]...)
-#     result = Ket(result_basis)
-#     result_data = reshape(result.data, reverse(result.basis.shape)...)
-#     broad_index_result = {(1:n) for n=result.basis.shape}
-#     broad_index_b = {(1:n) for n=b.basis.shape}
-#     for uninvolved_index in Iterators.product([1:n for n = uninvolved_shapes]...)
-#         # println("uninvolved index: ", uninvolved_index)
-#         broad_index_result[uninvolved_indices] = [uninvolved_index...]
-#         broad_index_b[uninvolved_indices] = [uninvolved_index...]
-#         # println("broad_index_result: ", broad_index_result)
-#         # println("broad_index_b: ", broad_index_b)
-#         b_splice = Ket(b.basis.bases[index], vec(b_data[reverse(broad_index_b)...]))
-#         # println("bsplice: ", b_splice)
-#         # println("a*bsplice", a*b_splice)
-#         result_data[reverse(broad_index_result)...] = (a*b_splice).data
-#     end
-#     return Ket(result_basis, vec(result_data))
-# end
-
-# type EmbeddedOperator <: AbstractOperator
-#     basis_l::CompositeBasis
-#     basis_r::CompositeBasis
-#     indices_l::Array{Int}
-#     indices_r::Array{Int}
-#     operator::AbstractOperator
-
-#     function EmbeddedOperator(basis_l::CompositeBasis, basis_r::CompositeBasis, indices_l::Array{Int}, indices_r::Array{Int}, operator::AbstractOperator)
-#         if length(indices_l)==1
-#             @assert(operator.basis_l==basis_l.bases[indices_l[1]])
-#         else
-#             @assert(operator.basis_l.bases==basis_l.bases[indices_l])
-#         end
-#         if length(indices_r)==1
-#             @assert(operator.basis_r==basis_r.bases[indices_r[1]])
-#         else
-#             @assert(operator.basis_r.bases==basis_r.bases[indices_r])
-#         end
-#         compl_indices_l = complementary_indices(length(basis_l.shape), indices_l)
-#         compl_indices_r = complementary_indices(length(basis_r.shape), indices_r)
-#         @assert(basis_l.bases[compl_indices_l]==basis_r.bases[compl_indices_r])
-#         new(basis_l, basis_r, indices_l, indices_r, operator)
-#     end
-# end
-
-# function *(a::EmbeddedOperator, b::Ket)
-#     check_multiplicable(a.basis_r, b.basis)
-#     uninvolved_indices_l = complementary_indices(length(a.basis_l.shape), a.indices_l)
-#     uninvolved_indices_r = complementary_indices(length(a.basis_r.shape), a.indices_r)
-#     uninvolved_shape = a.basis_l.shape[uninvolved_indices_l]
-#     x = Ket(a.basis_l)
-#     data_x = reshape(x.data, x.basis.shape...)
-#     broad_index_l = {(1:n) for n=a.basis_l.shape}
-#     broad_index_r = {(1:n) for n=a.basis_r.shape}
-#     #broad_index_l = zeros(Int, length(a.basis_l.shape))
-#     #broad_index_r = zeros(Int, length(a.basis_r.shape))
-#     for uninvolved_index in Iterators.product([1:n for n = uninvolved_shape]...)
-#         # println("Uninvolved Index: ", uninvolved_index)
-#         # println("Uninvolved Indices L: ", uninvolved_indices_l)
-#         # println("Uninvolved Indices R: ", uninvolved_indices_r)
-#         broad_index_l[uninvolved_indices_l] = [uninvolved_index...]
-#         broad_index_r[uninvolved_indices_r] = [uninvolved_index...]
-#         # println("Broad Index L: ", broad_index_l)
-#         # println("Broad Index R: ", broad_index_r)
-#         subdata_b = reshape(reshape(b.data, b.basis.shape...)[broad_index_r...], prod(a.operator.basis_r.shape))
-#         sub_b = Ket(a.operator.basis_r, subdata_b)
-#         sub_x = a.operator*sub_b
-#         data_x[broad_index_l...] = reshape(sub_x.data, sub_x.basis.shape...)
-#         # println("subdata_x: ", data_x[broad_index_l])
-#         # println("x.data", x.data)
-#     end
-#     return x
-# end
-
 
 end
