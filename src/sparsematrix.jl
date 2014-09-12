@@ -37,9 +37,9 @@ function gemm!{T}(alpha::T, M::SparseMatrix{T}, B::Matrix{T}, beta::T, result::M
     end
 end
 
-function _fBM{T}(j::Int, index_l::Vector{Int}, index_r::Vector{Int}, values::Vector{T}, alpha::T, B::Matrix{T}, result::Matrix{T})
-    @inbounds for i=1:length(values)
-        result[j, index_r[i]] += alpha * values[i] * B[j, index_l[i]]
+function _fBM{T}(index_l::Int, index_r::Int, value::T, alpha::T, B::Matrix{T}, result::Matrix{T})
+    @inbounds for j=1:size(B,1)
+        result[j, index_r] += alpha * value * B[j, index_l]
     end
 end
 
@@ -47,8 +47,8 @@ function gemm!{T}(alpha::T, B::Matrix{T}, M::SparseMatrix{T}, beta::T, result::M
     for j=1:size(result,2), i=1:size(result,1)
         result[i,j] *= beta
     end
-    @inbounds for j=1:size(B,1)
-        _fBM(j, M.index_l, M.index_r, M.values, alpha, B, result)
+    @inbounds for i=1:length(M.index_l)
+        _fBM(M.index_l[i], M.index_r[i], M.values[i], alpha, B, result)
     end
 end
 
