@@ -1,3 +1,4 @@
+
 function substep{T}(a::Matrix{T}, beta::T, b::Matrix{T}, result::Matrix{T})
     for j=1:size(a,2)
         @simd for i=1:size(b,1)
@@ -8,7 +9,7 @@ end
 
 function scale{T}(alpha::T, a::Matrix{T}, result::Matrix{T})
     for j=1:size(a,2)
-        @simd for i=1:size(a,1)
+        for i=1:size(a,1)
             @inbounds result[i,j] = alpha*a[i,j]
         end
     end
@@ -64,9 +65,32 @@ const a4 = Float64[44/45, -56/15, 32/9]
 const a5 = Float64[19372/6561, -25360/2187, 64448/6561, -212/729]
 const a6 = Float64[9017/3168, -355/33, 46732/5247, 49/176, -5103/18656]
 const a7 = Float64[35/384, 0., 500/1113, 125/192, -2187/6784, 11/84]
+const a = {Float64[] a2 a3 a4 a5 a6 a7}
 const bp = a7
 const bs = Float64[5179/57600, 0., 7571/16695, 393/640, -92097/339200, 187/2100, 1/40]
 const c = Float64[0., 1/5, 3/10, 4/5, 8/9, 1., 1.]
+
+function substep2{T}(x::Vector{T}, x0::Vector{T}, h::Float64, coeffs::Vector{Float64}, k::Vector{Vector{T}})
+    @inbounds for m=1:length(x0)
+        dx::T = 0.
+        @inbounds for i=1:length(coeffs)
+            dx += coeffs[i]::Float64*k[i][m]
+        end
+        x[m] = x0[m] + h*dx
+    end
+    return nothing
+end
+
+function dopri_step3{T}(F::Function, t::Float64, h::Float64,
+                x0::Vector{T}, xp::Vector{T}, xs::Vector{T}, k::Vector{Vector{T}})
+    for i=2:length(c)
+        substep2(xp, x0, h, a[i], k)
+        F(t + h*c[i], xp, k[i])
+    end
+    substep2(xs, x0, h, bs, k)
+    return nothing
+end
+
 
 
 function step1{T}(xp::Vector{T}, x::Vector{T}, h::Float64, k1::Vector{T})
@@ -210,6 +234,10 @@ function dopri_step2{T}(F::Function, t::Float64, h::Float64,
             max_value = v
         end
     end
+    # println("DiffValue: ", sqrt(max_difference))
+    # println("MValue: ", sqrt(max_value))
+    # println("|xp|", norm(xp,Inf))
+    # println("|x|", norm(x,Inf))
     return sqrt(max_value), sqrt(max_difference)
 end
 
@@ -220,7 +248,7 @@ function f(t::Float64, x::Vector{Complex128}, result::Vector{Complex128})
     end
 end
 
-const N = 1000
+const N = 800
 srand(0)
 const x0 = complex(rand(N^2))#Complex128[1., 0., 0. ,0.]
 const x = zeros(Complex128, N^2)
@@ -264,9 +292,31 @@ function profile_optimized(runs)
     h = 0.1
     f(t,x0,k1)
     for i=1:runs
-        dopri_step2(f, t, h,
+        dopri_step(f, t, h,
                     x0, xp,
                     k1, k2, k3, k4, k5, k6, k7)
+        #println("regular |xp|: ", norm(xp,Inf))
+        t += h
+    end
+end
+
+k = Vector{Complex128}[]
+push!(k, k1)
+push!(k, k2)
+push!(k, k3)
+push!(k, k4)
+push!(k, k5)
+push!(k, k6)
+push!(k, k7)
+
+function profile_optimized2(runs)
+    t = 1.
+    h = 0.1
+    f(t,x0,k1)
+    for i=1:runs
+        dopri_step3(f, t, h,
+                    x0, xp, xs,
+                    k)
         #println("regular |xp|: ", norm(xp,Inf))
         t += h
     end
@@ -287,13 +337,17 @@ function profile(runs)
     return nothing
 end
 
-const runs = 100
+const runs = 1
 
-# println("=======Regular========")
+println("=======Regular========")
 @time profile(1)
 @time profile(runs)
 
 println("=======Optimized========")
+@time profile_optimized2(1)
+@time profile_optimized2(runs)
+
+# println("=======Optimized2========")
 # @time profile_optimized(1)
 # @time profile_optimized(runs)
 

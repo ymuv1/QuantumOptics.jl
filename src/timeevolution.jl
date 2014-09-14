@@ -1,6 +1,7 @@
 module timeevolution
 
 using ..operators
+using ..ode_dopri
 
 export master
 
@@ -204,6 +205,23 @@ function integrate(dmaster::Function, tspan, rho0::Operator; fout=nothing, tmps_
     end
 end
 
+function integrate_dopri(dmaster::Function, tspan, rho0; fout=nothing, tmps_ode=nothing)
+    if fout==nothing
+        tout = Float64[]
+        xout = Vector{Complex128}[]
+        function f(t, x)
+            push!(tout, t)
+            push!(xout, 1.*x)
+            nothing
+        end
+        ode_dopri.ode(dmaster, float(tspan), rho0, fout=f)
+        return tout, xout
+    else
+        ode45(dmaster, float(tspan), rho0.data, fout=fout, tmps=tmps_ode)
+        return nothing
+    end
+end
+
 function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma=[Complex(1.) for i=1:length(J)],
                 Jdagger::Vector=map(dagger, J),
@@ -223,5 +241,16 @@ function master_nh(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     return integrate(f, tspan, rho0; fout=fout, kwargs...)
 end
 
+function master_nh_dopri(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
+                Gamma=[Complex(1.) for i=1:length(J)],
+                Hdagger::AbstractOperator=dagger(H),
+                Jdagger::Vector=map(dagger, J),
+                fout=nothing, tmp::Operator=rho0*0, kwargs...)
+    Gamma = complex(Gamma)
+    n = size(rho0.data, 1)
+    N = n^2
+    f(t, rho, drho) = dmaster_nh(reshape(rho, n, n), H, Hdagger, Gamma, J, Jdagger, reshape(drho,n,n), tmp.data)
+    return integrate_dopri(f, tspan, reshape(rho0.data, N); fout=fout, kwargs...)
+end
 
 end

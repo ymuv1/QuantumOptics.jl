@@ -12,9 +12,10 @@ export bases, Basis, GenericBasis, CompositeBasis, FockBasis,
 include("bases.jl")
 include("states.jl")
 include("operators.jl")
-include("operators_lazy.jl")
+#include("operators_lazy.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
+include("ode_dopri.jl")
 include("timeevolution_simple.jl")
 include("timeevolution.jl")
 
