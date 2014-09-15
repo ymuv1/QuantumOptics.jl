@@ -106,7 +106,9 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     h0::Float64 = 0.,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
+                    points::String = "dense",
                     fout::Function = (t,x)->nothing,)
+    dense_output = (points == "dense")
     t, tfinal = tspan[1], tspan[end]
     fout(t, x0)
     x = 1*x0
@@ -127,20 +129,25 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
             hnew = tfinal - t - h
         end
         if err>1
-            println("Reject: h = ", h)
             h = hnew
             was_rejected = true
             continue
         end
-        println("Accept: h = ", h, "   t->", t+h)
         was_rejected = false
-
+        if dense_output
+            for tout=tspan
+                if t<tout<=t+h && tout!=tfinal
+                    interpolate(t, x, h, k, tout, xs)
+                    fout(tout, xs)
+                end
+            end
+        end
         xp, x = x, xp
         k[1], k[end] = k[end], k[1]
         t = t + h
         h = hnew
-        fout(t, x)
     end
+    fout(t, x) # Write last step
     return nothing
 end
 

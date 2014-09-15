@@ -208,13 +208,14 @@ end
 function integrate_dopri(dmaster::Function, tspan, rho0; fout=nothing, tmps_ode=nothing)
     if fout==nothing
         tout = Float64[]
-        xout = Vector{Complex128}[]
+        xout = Operator[]
+        n = size(rho0.data, 1)
         function f(t, x)
             push!(tout, t)
-            push!(xout, 1.*x)
+            push!(xout, Operator(rho0.basis_l, reshape(1.*x,n,n)))
             nothing
         end
-        ode_dopri.ode(dmaster, float(tspan), rho0, fout=f)
+        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=f)
         return tout, xout
     else
         ode45(dmaster, float(tspan), rho0.data, fout=fout, tmps=tmps_ode)
@@ -250,7 +251,7 @@ function master_nh_dopri(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     n = size(rho0.data, 1)
     N = n^2
     f(t, rho, drho) = dmaster_nh(reshape(rho, n, n), H, Hdagger, Gamma, J, Jdagger, reshape(drho,n,n), tmp.data)
-    return integrate_dopri(f, tspan, reshape(rho0.data, N); fout=fout, kwargs...)
+    return integrate_dopri(f, tspan, rho0; fout=fout, kwargs...)
 end
 
 end
