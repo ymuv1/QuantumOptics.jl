@@ -100,54 +100,57 @@ function initial_stepsize(F, t, x, k, abstol, reltol, tmp1, tmp2)
     return min(100*h0, h1)
 end
 
+function stepsize_strategy(err, laststepaccepted, h, hmin, hmax, t, tfinal)
+    accept_step = err<1
+    facmin = (laststepaccepted ? 5. : 1.)
+    hnew = h*min(facmin, max(0.2, 0.9*(1./err)^(1./order)))
+    hnew = min(hmax, hnew)
+    if hnew<hmin
+        error("Stepsize below hmin.")
+    end
+    if t+h+hnew>tfinal
+        hnew = tfinal - t - h
+    end
+    return hnew, accept_step
+end
+
+function display_steps{T}(fout::Function, tspan::Vector{Float64}, t::Float64, x::Vector{T}, h::Float64, k::Vector{Vector{T}}, xs::Vector{T})
+    for tout=tspan
+        if t<tout<=t+h
+            interpolate(t, x, h, k, tout, xs)
+            fout(tout, xs)
+        end
+    end
+end
+
 function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     reltol::Float64 = 1.0e-5,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = 0.,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
-                    points::String = "dense",
+                    display_intermediatesteps=false,
                     fout::Function = (t,x)->nothing,)
-    dense_output = (points == "dense")
     t, tfinal = tspan[1], tspan[end]
     fout(t, x0)
     x = 1*x0
     xp, xs, k = allocate_memory(x0)
     F(t,x,k[1])
     h = (h0==0. ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
-    was_rejected = false
+    accept_step = true
     while t < tfinal
         step(F, t, h, x, xp, xs, k)
         err = error_estimate(xp, xs, abstol, reltol)
-        facmin = (was_rejected ? 1. : 5.)
-        hnew = h*min(facmin, max(0.2, 0.9*(1./err)^(1./order)))
-        hnew = min(hmax, hnew)
-        if hnew<hmin
-            error("Stepsize below hmin.")
+        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax, t, tfinal)
+        if accept_step
+            display_steps(fout, tspan, t, xp, h, k, xs)
+            display_intermediatesteps && fout(t, x)
+            xp, x = x, xp
+            k[1], k[end] = k[end], k[1]
+            t = t + h
         end
-        if t+h+hnew>tfinal
-            hnew = tfinal - t - h
-        end
-        if err>1
-            h = hnew
-            was_rejected = true
-            continue
-        end
-        was_rejected = false
-        if dense_output
-            for tout=tspan
-                if t<tout<=t+h && tout!=tfinal
-                    interpolate(t, x, h, k, tout, xs)
-                    fout(tout, xs)
-                end
-            end
-        end
-        xp, x = x, xp
-        k[1], k[end] = k[end], k[1]
-        t = t + h
         h = hnew
     end
-    fout(t, x) # Write last step
     return nothing
 end
 
