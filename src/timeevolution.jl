@@ -266,10 +266,10 @@ function integrate_dopri_mcwf(dmaster::Function, jumpfun::Function, tspan, psi0;
             push!(xout, Ket(psi0.basis, 1.*x))
             nothing
         end
-        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f, kwargs...)
+        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f; kwargs...)
         return tout, xout
     else
-        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout, kwargs...)
+        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout; kwargs...)
         return nothing
     end
 end
@@ -296,7 +296,7 @@ function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
                 fout=nothing, kwargs...)
     f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
     j(rng, t, psi, psi_new) = jump(rng, t, psi, J, psi_new)
-    return integrate_dopri_mcwf(f, j, tspan, psi0; fout=fout, kwargs...)
+    return integrate_dopri_mcwf(f, j, tspan, psi0, fout=fout; kwargs...)
 end
 
 end

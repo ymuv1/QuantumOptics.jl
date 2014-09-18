@@ -110,9 +110,6 @@ function stepsize_strategy(err, laststepaccepted, h, hmin, hmax, t, tfinal)
     if hnew<hmin
         error("Stepsize below hmin.")
     end
-    if t+h+hnew>tfinal
-        hnew = tfinal - t - h
-    end
     return hnew, accept_step
 end
 
@@ -166,9 +163,9 @@ function ode_mcwf{T}(F::Function, jump::Function,
                     display_intermediatesteps=false,
                     display_beforejump=true,
                     display_afterjump=true,
-                    seed::Uint64 = rand(Uint64),
+                    seed = rand(Uint64),
                     fout::Function = (t,x)->nothing,)
-    rng = MersenneTwister(seed)
+    rng = MersenneTwister(convert(Uint, seed))
     jump_norm = rand(rng)
     t, tfinal = tspan[1], tspan[end]
     fout(t, x0)
@@ -178,13 +175,15 @@ function ode_mcwf{T}(F::Function, jump::Function,
     h = (h0==0. ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
     accept_step = true
     while t < tfinal
+        if t+h > tfinal
+            h = tfinal - t
+        end
         step(F, t, h, x, xp, xs, k)
         err = error_estimate(xp, xs, abstol, reltol)
         hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax, t, tfinal)
         if accept_step
             if vecnorm(xp)<jump_norm
                 tjump = fzero(y->(interpolate(t, x, h, k, y, xs); vecnorm(xs)-jump_norm), t, t+h)
-                println(tjump)
                 display_steps(fout, tspan, t, xs, h, k, xp)
                 display_beforejump && fout(prevfloat(tjump), xs)
                 jump(rng, tjump, xs, xp)
@@ -200,7 +199,9 @@ function ode_mcwf{T}(F::Function, jump::Function,
                 xp, x = x, xp
                 k[1], k[end] = k[end], k[1]
                 t = t + h
-                display_intermediatesteps && fout(t, x)
+                if t<=tfinal
+                    display_intermediatesteps && fout(t, x)
+                end
             end
         end
         h = hnew
