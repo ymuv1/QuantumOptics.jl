@@ -67,6 +67,9 @@ end
 function operators.gemm!{T<:Complex}(alpha::T, a::Matrix{T}, M::SparseOperator, beta::T, result::Matrix{T})
     sparse.gemm!(alpha, a, M.data, beta, result)
 end
+function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Vector{T}, beta::T, result::Vector{T})
+    sparse.gemv!(alpha, M.data, b, beta, result)
+end
 #gemm!{T<:Complex}(alpha::T, a::SparseOperator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
 #gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::SparseOperator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
 

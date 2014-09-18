@@ -48,6 +48,8 @@ Base.trace(op::Operator) = trace(op.data)
 
 expect(op::AbstractOperator, state::Operator) = trace(op*state)
 expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
+expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
+
 identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
 identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
 number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
@@ -69,6 +71,6 @@ zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{T}) = BLAS.gemm!('N', 'N', alpha, a, b, beta, result)
 gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
-
+gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b.data, beta, result)
 
 end

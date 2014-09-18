@@ -1,6 +1,7 @@
 module timeevolution
 
 using ..operators
+using ..states
 using ..ode_dopri
 
 export master
@@ -205,20 +206,20 @@ function integrate(dmaster::Function, tspan, rho0::Operator; fout=nothing, tmps_
     end
 end
 
-function integrate_dopri(dmaster::Function, tspan, rho0; fout=nothing, tmps_ode=nothing)
+function integrate_dopri(dmaster::Function, tspan, rho0; fout=nothing, kwargs...)
+    n = size(rho0.data, 1)
     if fout==nothing
         tout = Float64[]
         xout = Operator[]
-        n = size(rho0.data, 1)
         function f(t, x)
             push!(tout, t)
             push!(xout, Operator(rho0.basis_l, reshape(1.*x,n,n)))
             nothing
         end
-        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=f)
+        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=f, kwargs...)
         return tout, xout
     else
-        ode45(dmaster, float(tspan), rho0.data, fout=fout, tmps=tmps_ode)
+        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=fout, kwargs...)
         return nothing
     end
 end
@@ -252,6 +253,50 @@ function master_nh_dopri(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     N = n^2
     f(t, rho, drho) = dmaster_nh(reshape(rho, n, n), H, Hdagger, Gamma, J, Jdagger, reshape(drho,n,n), tmp.data)
     return integrate_dopri(f, tspan, rho0; fout=fout, kwargs...)
+end
+
+
+
+function integrate_dopri_mcwf(dmaster::Function, jumpfun::Function, tspan, psi0; fout=nothing, kwargs...)
+    if fout==nothing
+        tout = Float64[]
+        xout = Ket[]
+        function f(t, x)
+            push!(tout, t)
+            push!(xout, Ket(psi0.basis, 1.*x))
+            nothing
+        end
+        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f, kwargs...)
+        return tout, xout
+    else
+        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout, kwargs...)
+        return nothing
+    end
+end
+
+function jump{T<:Complex}(rng, t::Float64, psi::Vector{T}, J::Vector, psi_new::Vector{T})
+    probs = zeros(Float64, length(J))
+    for i=1:length(J)
+        operators.gemv!(complex(1.), J[i], psi, complex(0.), psi_new)
+        probs[i] = vecnorm(psi_new)
+    end
+    cumprobs = cumsum(probs./sum(probs))
+    r = rand(rng)
+    i = findfirst(cumprobs.>r)
+    operators.gemv!(complex(1.)/probs[i], J[i], psi, complex(0.), psi_new)
+    return nothing
+end
+
+function dmcwf_nh{T<:Complex}(psi::Vector{T}, Hnh, dpsi::Vector{T})
+    operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)
+    return psi
+end
+
+function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
+                fout=nothing, kwargs...)
+    f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
+    j(rng, t, psi, psi_new) = jump(rng, t, psi, J, psi_new)
+    return integrate_dopri_mcwf(f, j, tspan, psi0; fout=fout, kwargs...)
 end
 
 end

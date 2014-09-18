@@ -52,5 +52,17 @@ function gemm!{T}(alpha::T, B::Matrix{T}, M::SparseMatrix{T}, beta::T, result::M
     end
 end
 
+function _fMv{T}(index_l::Vector{Int}, index_r::Vector{Int}, values::Vector{T}, alpha::T, v::Vector{T}, result::Vector{T})
+    for i=1:length(values)
+        result[index_l[i]] += alpha * values[i] * v[index_r[i]]
+    end
+end
+
+function gemv!{T}(alpha::T, M::SparseMatrix{T}, v::Vector{T}, beta::T, result::Vector{T})
+    for i=1:length(result)
+        result[i] *= beta
+    end
+    _fMv(M.index_l, M.index_r, M.values, alpha, v, result)
+end
 
 end

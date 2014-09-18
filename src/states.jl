@@ -55,4 +55,5 @@ basis_ket(b::Basis, index::Array{Int}) = Ket(b, basis_vector(b.shape, index))
 basis_ket(b::Basis, index::Int) = basis_ket(b, [index])
 
 zero!(a::StateVector) = fill!(a.data, zero(eltype(a.data)))
+
 end
