@@ -216,10 +216,10 @@ function integrate_dopri(dmaster::Function, tspan, rho0; fout=nothing, kwargs...
             push!(xout, Operator(rho0.basis_l, reshape(1.*x,n,n)))
             nothing
         end
-        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=f, kwargs...)
+        ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=f, kwargs...)
         return tout, xout
     else
-        ode_dopri.ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=fout, kwargs...)
+        ode(dmaster, float(tspan), reshape(rho0.data,n*n), fout=fout, kwargs...)
         return nothing
     end
 end
@@ -266,13 +266,31 @@ function integrate_dopri_mcwf(dmaster::Function, jumpfun::Function, tspan, psi0;
             push!(xout, Ket(psi0.basis, 1.*x))
             nothing
         end
-        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f; kwargs...)
+        ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f; kwargs...)
         return tout, xout
     else
-        ode_dopri.ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout; kwargs...)
+        ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout; kwargs...)
         return nothing
     end
 end
+
+function integrate_dopri_mcwf2(dmaster::Function, jumpfun::Function, tspan, psi0; fout=nothing, kwargs...)
+    if fout==nothing
+        tout = Float64[]
+        xout = Ket[]
+        function f(t, x)
+            push!(tout, t)
+            push!(xout, Ket(psi0.basis, 1.*x))
+            nothing
+        end
+        ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=f; kwargs...)
+        return tout, xout
+    else
+        ode_mcwf(dmaster, jumpfun, float(tspan), psi0.data, fout=fout; kwargs...)
+        return nothing
+    end
+end
+
 
 function jump{T<:Complex}(rng, t::Float64, psi::Vector{T}, J::Vector, psi_new::Vector{T})
     probs = zeros(Float64, length(J))

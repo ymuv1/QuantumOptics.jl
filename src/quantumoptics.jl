@@ -16,6 +16,7 @@ include("operators.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
 include("ode_dopri.jl")
+include("ode_dopri2.jl")
 include("timeevolution_simple.jl")
 include("timeevolution.jl")
 

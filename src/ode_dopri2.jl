@@ -1,4 +1,4 @@
-module ode_dopri
+module ode_dopri2
 
 export ode, ode_mcwf
 
@@ -21,13 +21,6 @@ b3(θ) = θ^2*(3-2*θ)*a7[3] + θ^2*(θ-1)^2 * 100*(882725551 - 15701508*θ)/327
 b4(θ) = θ^2*(3-2*θ)*a7[4] - θ^2*(θ-1)^2 * 25*(443332067 - 31403016*θ)/1880347072
 b5(θ) = θ^2*(3-2*θ)*a7[5] + θ^2*(θ-1)^2 * 32805*(23143187 - 3489224*θ)/199316789632
 b6(θ) = θ^2*(3-2*θ)*a7[6] - θ^2*(θ-1)^2 * 55*(29972135 - 7076736*θ)/822651844
-
-# b7_(θ) = (θ*(1-θ)*(8293050*θ^2 - 82437520*θ + 44764047)/29380423)
-# b1_(θ) = (157015080*θ^4 - 13107642775*θ^3 + 34969693132*θ^2 - 32272833064*θ + 11282082432)/11282082432
-# b3_(θ) = -100*θ*(15701508*θ^3 - 914128567*θ^2 + 2074956840*θ - 1323431896)/32700410799
-# b4_(θ) = 25*θ*(94209048*θ^3 - 1518414297*θ^2 + 2460397220*θ - 889289856)/5641041216
-# b5_(θ) = -2187*θ*(52338360*θ^3 - 451824525*θ^2 + 687873124*θ - 259006536)/199316789632
-# b6_(θ) =  11*θ*(106151040*θ^3 - 661884105*θ^2 + 946554244*θ - 361440756)/2467955532
 
 function substep{T}(x::Vector{T}, x0::Vector{T}, h::Float64, coeffs::Vector{Float64}, k::Vector{Vector{T}})
     @inbounds for m=1:length(x0)
@@ -104,7 +97,7 @@ function initial_stepsize(F, t, x, k, abstol, reltol, tmp1, tmp2)
     return min(100*h0, h1)
 end
 
-function stepsize_strategy(err, laststepaccepted, h, hmin, hmax, t, tfinal)
+function stepsize_strategy(err, laststepaccepted, h, hmin, hmax)
     accept_step = err<1
     facmin = (laststepaccepted ? 5. : 1.)
     hnew = h*min(facmin, max(0.2, 0.9*(1./err)^(1./order)))
@@ -127,29 +120,61 @@ end
 function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     reltol::Float64 = 1.0e-5,
                     abstol::Float64 = 1.0e-8,
-                    h0::Float64 = 0.,
+                    h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
-                    display_intermediatesteps=false,
-                    fout::Function = (t,x)->nothing,)
+                    display_initialvalue = true,
+                    display_finalvalue = true,
+                    display_intermediatesteps = false,
+                    display_beforeevent = false,
+                    display_afterevent = false,
+                    fout::Function = (t,x)->nothing,
+                    event_locator::Function = (t,x)->1.,
+                    event_callback::Function = (t,x)->"continue",
+                    )
     t, tfinal = tspan[1], tspan[end]
-    fout(t, x0)
-    x = 1*x0
+    display_initialvalue && fout(t, x0)
+    x = deepcopy(x0)
     xp, xs, k = allocate_memory(x0)
     F(t,x,k[1])
-    h = (h0==0. ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
+    h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
     accept_step = true
     while t < tfinal
         #println("t: ", t, " h: ", h)
         step(F, t, h, x, xp, xs, k)
         err = error_estimate(xp, xs, abstol, reltol)
-        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax, t, tfinal)
+        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
         if accept_step
-            display_steps(fout, tspan, t, xp, h, k, xs)
-            display_intermediatesteps && fout(t, x)
-            xp, x = x, xp
-            k[1], k[end] = k[end], k[1]
-            t = t + h
+            if sign(event_locator(t,x))!=sign(event_locator(t+h,xp))
+                t_event = fzero(t_->(interpolate(t, x, h, k, t_, xs); event_locator(t_, xs)), t, t+h)
+                display_steps(fout, tspan[tspan.<t_event], t, xp, h, k, xs)
+                display_beforeevent && fout(t_event, xs)
+                cmd = event_callback(t_event, xs)
+                display_afterevent && fout(t_event, xs)
+                if cmd == "stop"
+                    return nothing
+                elseif cmd == "jump"
+                    F(t,x,k[1])
+                    h = 0.9*hnew
+                    xs, x = x, xs
+                    t = tevent
+                    continue
+                elseif cmd=="continue"
+                    display_steps(fout, tspan[tspan.>t_event], t, xp, h, k, xs)
+                    display_intermediatesteps && fout(t, xp)
+                    xp, x = x, xp
+                    k[1], k[end] = k[end], k[1]
+                    t = t + h
+                else
+                    error("Unrecognized event command.")
+                end
+            else
+                display_steps(fout, tspan, t, xp, h, k, xs)
+                display_intermediatesteps && fout(t, xp)
+                xp, x = x, xp
+                k[1], k[end] = k[end], k[1]
+                t = t + h
+            end
         end
         h = hnew
     end
@@ -183,7 +208,7 @@ function ode_mcwf{T}(F::Function, jump::Function,
         end
         step(F, t, h, x, xp, xs, k)
         err = error_estimate(xp, xs, abstol, reltol)
-        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax, t, tfinal)
+        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
         if accept_step
             if vecnorm(xp)<jump_norm
                 tjump = fzero(y->(interpolate(t, x, h, k, y, xs); vecnorm(xs)-jump_norm), t, t+h)
