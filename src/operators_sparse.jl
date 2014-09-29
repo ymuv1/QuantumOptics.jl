@@ -61,11 +61,11 @@ SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, Sp
 # set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data); a)
 # zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 
-function operators.gemm!{T<:Complex}(alpha::T, M::SparseOperator, b::Matrix{T}, beta::T, result::Matrix{T})
-    sparse.gemm!(alpha, M.data, b, beta, result)
+function operators.gemm!{T<:Complex}(alpha::T, M::SparseOperator, b::Operator, beta::T, result::Operator)
+    sparse.gemm!(alpha, M.data, b.data, beta, result.data)
 end
-function operators.gemm!{T<:Complex}(alpha::T, a::Matrix{T}, M::SparseOperator, beta::T, result::Matrix{T})
-    sparse.gemm!(alpha, a, M.data, beta, result)
+function operators.gemm!{T<:Complex}(alpha::T, a::Operator, M::SparseOperator, beta::T, result::Operator)
+    sparse.gemm!(alpha, a.data, M.data, beta, result.data)
 end
 function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Vector{T}, beta::T, result::Vector{T})
     sparse.gemv!(alpha, M.data, b, beta, result)

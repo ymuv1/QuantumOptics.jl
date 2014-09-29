@@ -140,7 +140,6 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
     h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
     accept_step = true
     while t < tfinal
-        #println("t: ", t, " h: ", h)
         step(F, t, h, x, xp, xs, k)
         err = error_estimate(xp, xs, abstol, reltol)
         hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
@@ -169,67 +168,13 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     error("Unrecognized event command.")
                 end
             else
-                display_steps(fout, tspan, t, xp, h, k, xs)
-                display_intermediatesteps && fout(t, xp)
-                xp, x = x, xp
-                k[1], k[end] = k[end], k[1]
-                t = t + h
-            end
-        end
-        h = hnew
-    end
-    return nothing
-end
-
-function ode_mcwf{T}(F::Function, jump::Function,
-                    tspan::Vector{Float64}, x0::Vector{T};
-                    reltol::Float64 = 1.0e-5,
-                    abstol::Float64 = 1.0e-8,
-                    h0::Float64 = 0.,
-                    hmin::Float64 = (tspan[end]-tspan[1])/1e9,
-                    hmax::Float64 = (tspan[end]-tspan[1]),
-                    display_intermediatesteps=false,
-                    display_beforejump=true,
-                    display_afterjump=true,
-                    seed = rand(Uint64),
-                    fout::Function = (t,x)->nothing,)
-    rng = MersenneTwister(convert(Uint, seed))
-    jump_norm = rand(rng)
-    t, tfinal = tspan[1], tspan[end]
-    fout(t, x0)
-    x = 1*x0
-    xp, xs, k = allocate_memory(x0)
-    F(t, x, k[1])
-    h = (h0==0. ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
-    accept_step = true
-    while t < tfinal
-        if t+h > tfinal
-            h = tfinal - t
-        end
-        step(F, t, h, x, xp, xs, k)
-        err = error_estimate(xp, xs, abstol, reltol)
-        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
-        if accept_step
-            if vecnorm(xp)<jump_norm
-                tjump = fzero(y->(interpolate(t, x, h, k, y, xs); vecnorm(xs)-jump_norm), t, t+h)
-                display_steps(fout, tspan, t, xs, h, k, xp)
-                display_beforejump && fout(prevfloat(tjump), xs)
-                jump(rng, tjump, xs, xp)
-                display_afterjump && fout(prevfloat(tjump), xp)
-                h = tjump - t
-                t = tjump
-                hnew = 0.8*hnew
-                jump_norm = rand(rng)
-                F(tjump, xp, k[1])
-                xp, x = x, xp
-            else
-                display_steps(fout, tspan, t, xp, h, k, xs)
-                xp, x = x, xp
-                k[1], k[end] = k[end], k[1]
-                t = t + h
-                if t<=tfinal
-                    display_intermediatesteps && fout(t, x)
+                display_steps(fout, tspan, t, x, h, k, xs)
+                if t+h<tfinal
+                    display_intermediatesteps && fout(t, xp)
                 end
+                xp, x = x, xp
+                k[1], k[end] = k[end], k[1]
+                t = t + h
             end
         end
         h = hnew

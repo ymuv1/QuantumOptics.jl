@@ -15,10 +15,10 @@ include("operators.jl")
 #include("operators_lazy.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
-include("ode_dopri.jl")
+#include("ode_dopri.jl")
 include("ode_dopri2.jl")
 include("timeevolution_simple.jl")
-include("timeevolution.jl")
+include("timeevolution2.jl")
 
 using .bases
 using .states
