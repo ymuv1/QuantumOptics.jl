@@ -170,7 +170,7 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
             else
                 display_steps(fout, tspan, t, x, h, k, xs)
                 if t+h<tfinal
-                    display_intermediatesteps && fout(t, xp)
+                    display_intermediatesteps && fout(t+h, xp)
                 end
                 xp, x = x, xp
                 k[1], k[end] = k[end], k[1]
