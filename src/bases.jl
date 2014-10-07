@@ -1,7 +1,7 @@
 module bases
 
 export Basis, GenericBasis, CompositeBasis, FockBasis,
-       compose,
+       compose, ptrace,
        equal_shape, equal_bases, multiplicable,
        IncompatibleBases,
        check_equal, check_multiplicable
@@ -85,6 +85,22 @@ type IncompatibleBases <: Exception end
 
 check_equal(b1::Basis, b2::Basis) = (b1==b2 ? true : throw(IncompatibleBases()))
 check_multiplicable(b1::Basis, b2::Basis) = (multiplicable(b1, b2) ? true : throw(IncompatibleBases()))
+
+function ptrace(b::CompositeBasis, indices::Vector{Int})
+    reduced_basis = Basis[]
+    for (i, subbasis) in enumerate(b.bases)
+        if !(i in indices)
+            push!(reduced_basis, subbasis)
+        end
+    end
+    if length(reduced_basis)==0
+        error("Nothing left.")
+    elseif length(reduced_basis)==1
+        return reduced_basis[1]
+    else
+        return CompositeBasis(subbasis...)
+    end
+end
 
 
 end

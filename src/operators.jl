@@ -2,13 +2,16 @@ module operators
 
 using ..bases, ..states
 using Base.LinAlg.BLAS
+using Base.Cartesian
 
 importall ..states
+importall ..bases
 
 export AbstractOperator, Operator,
-	   tensor, dagger, expect,
+	   tensor, dagger, expect, ptrace,
 	   identity, number, destroy, create,
-	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis
+	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
+       qfunc
 
 
 abstract AbstractOperator
@@ -72,5 +75,58 @@ gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{
 gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
 gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b.data, beta, result)
+
+
+function strides(shape::Vector{Int})
+    N = length(shape)
+    S = zeros(Int, N)
+    S[N] = 1
+    for m=N-1:-1:1
+        S[m] = S[m+1]*shape[m+1]
+    end
+    return S
+end
+
+@ngenerate RANK Nothing function _ptrace{RANK}(rank::Array{Int,RANK},
+    a::Matrix{Complex128}, shape_l::Vector{Int}, shape_r::Vector{Int}, indices::Vector{Int})
+    a_strides_l = strides(shape_l)
+    result_shape_l = deepcopy(shape_l)
+    result_shape_l[indices] = 1
+    result_strides_l = strides(result_shape_l)
+    a_strides_r = strides(shape_r)
+    result_shape_r = deepcopy(shape_r)
+    result_shape_r[indices] = 1
+    result_strides_r = strides(result_shape_r)
+    N_result_l = prod(result_shape_l)
+    N_result_r = prod(result_shape_r)
+    result = zeros(Complex128, N_result_l, N_result_r)
+    @nexprs 1 (d->(Jr_{RANK}=1;Ir_{RANK}=1))
+    @nloops RANK ir (d->1:shape_r[d]) (d->(Ir_{d-1}=Ir_d; Jr_{d-1}=Jr_d)) (d->(Ir_d+=a_strides_r[d]; if !(d in indices) Jr_d+=result_strides_r[d] end)) begin
+        @nexprs 1 (d->(Jl_{RANK}=1;Il_{RANK}=1))
+        @nloops RANK il (k->1:shape_l[k]) (k->(Il_{k-1}=Il_k; Jl_{k-1}=Jl_k; if (k in indices && il_k!=ir_k) Il_k+=a_strides_l[k]; continue end)) (k->(Il_k+=a_strides_l[k]; if !(k in indices) Jl_k+=result_strides_l[k] end)) begin
+            #println("Jl_0: ", Jl_0, "; Jr_0: ", Jr_0, "; Il_0: ", Il_0, "; Ir_0: ", Ir_0)
+            result[Jl_0, Jr_0] += a[Il_0, Ir_0]
+        end
+    end
+    return result
+end
+
+function ptrace(a::Operator, indices::Vector{Int})
+    rank = zeros(Int, [0 for i=1:length(a.basis_l.shape)]...)
+    result = _ptrace(rank, a.data, a.basis_l.shape, a.basis_r.shape, indices)
+    return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
+end
+
+
+function qfunc(rho::AbstractOperator, X::Vector{Float64}, Y::Vector{Float64})
+    M = zeros(Float64, length(X), length(Y))
+    @assert rho.basis_l == rho.basis_r
+    for (i,x)=enumerate(X), (j,y)=enumerate(Y)
+        z = complex(x,y)
+        coh = coherent_state(rho.basis_l, z)
+        M[i,j] = real(dagger(coh)*rho*coh)
+    end
+    return M
+end
 
 end
