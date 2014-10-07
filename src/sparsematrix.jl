@@ -1,6 +1,6 @@
 module sparse
 
-export SparseMatrix
+export SparseMatrix, sparse_eye
 
 type SparseMatrix{T}
     shape::Vector{Int}
@@ -24,6 +24,9 @@ function SparseMatrix{T}(a::Matrix{T})
 end
 
 Base.size(a::SparseMatrix, i::Int) = a.shape[i]
+
+sparse_eye(T, N::Int) = SparseMatrix(Int[N,N], Int[1:N], Int[1:N], T[one(T) for i=1:N])
+sparse_eye(T, N1::Int, N2::Int) = (N = min(N1,N2); SparseMatrix(Int[N1,N2], Int[1:N], Int[1:N], T[one(T) for i=1:N]))
 
 function add_element!{T}(a::SparseMatrix{T}, i::Int, j::Int, value::T)
     index = find((a.index_l.==i) & (a.index_r.==j))

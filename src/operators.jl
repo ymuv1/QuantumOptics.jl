@@ -77,6 +77,18 @@ gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T
 gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b.data, beta, result)
 
 
+function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{Operator})
+    op_total = (1 in indices ? operators[findfirst(indices, 1)] : identity(basis.bases[1]))
+    for i=2:length(basis.bases)
+        op = (i in indices ? operators[findfirst(indices, i)] : identity(basis.bases[i]))
+        op_total = tensor(op_total, op)
+    end
+    return op_total
+end
+
+embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
+
+
 function strides(shape::Vector{Int})
     N = length(shape)
     S = zeros(Int, N)

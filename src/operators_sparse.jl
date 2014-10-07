@@ -4,7 +4,7 @@ using ..bases, ..states, ..sparse
 
 importall ..operators
 
-export SparseOperator
+export SparseOperator, sparse_identity
 
 
 type SparseOperator <: AbstractOperator
@@ -44,8 +44,8 @@ Base.full(x::SparseOperator) = Operator(x.basis_l, x.basis_r, full(x.data))
 # Base.norm(op::SparseOperator, p) = norm(op.data, p)
 # Base.trace(op::SparseOperator) = trace(op.data)
 
-# spidentity(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
-# spidentity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex128, length(b1), length(b2)))
+sparse_identity(b::Basis) = SparseOperator(b, b, sparse_eye(Complex128, length(b)))
+sparse_identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, sparse_eye(Complex128, length(b1), length(b2)))
 # number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
 # destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))
 # create(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),-1))
@@ -72,5 +72,13 @@ function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Vector{T}, 
     sparse.gemv!(alpha, M.data, b, beta, result)
 end
 
+function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
+    op_total = (1 in indices ? operators[findfirst(indices, 1)] : sparse_identity(basis.bases[1]))
+    for i=2:length(basis.bases)
+        op = (i in indices ? operators[findfirst(indices, i)] : sparse_identity(basis.bases[i]))
+        op_total = tensor(op_total, op)
+    end
+    return op_total
+end
 
 end
