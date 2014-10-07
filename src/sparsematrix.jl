@@ -3,6 +3,7 @@ module sparse
 export SparseMatrix
 
 type SparseMatrix{T}
+    shape::Vector{Int}
     index_l::Vector{Int}
     index_r::Vector{Int}
     values::Vector{T}
@@ -19,8 +20,116 @@ function SparseMatrix{T}(a::Matrix{T})
             push!(values, a[i,j])
         end
     end
-    return SparseMatrix(index_l, index_r, values)
+    return SparseMatrix([size(a)...], index_l, index_r, values)
 end
+
+Base.size(a::SparseMatrix, i::Int) = a.shape[i]
+
+function add_element!{T}(a::SparseMatrix{T}, i::Int, j::Int, value::T)
+    index = find((a.index_l.==i) & (a.index_r.==j))
+    if length(index)==0
+        push!(a.index_l, i)
+        push!(a.index_r, j)
+        push!(a.values, value)
+    elseif length(index)==1
+        a.values[index[1]] += value
+    else
+        error("Index not unique.")
+    end
+end
+
+function Base.full{T}(a::SparseMatrix{T})
+    result = zeros(T, a.shape...)
+    for i=1:length(a.values)
+        result[a.index_l[i], a.index_r[i]] = a.values[i]
+    end
+    return result
+end
+
+Base.ctranspose{T}(a::SparseMatrix{T}) = SparseMatrix(reverse(a.shape), deepcopy(a.indices_r), deepcopy(a.indices_l), a.values')
+
+function Base.kron{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
+    shape = [a.shape[1]*b.shape[1], a.shape[2]*b.shape[2]]
+    result = SparseMatrix(shape, Int[], Int[], promote_type(T1,T2)[])
+    for i=1:length(a.values), j=1:length(b.values)
+        add_element!(result, (a.index_l[i]-1)*a.shape[1] + b.index_l[j], (a.index_r[i]-1)*a.shape[2] + b.index_r[j], a.values[i]*b.values[j])
+    end
+    return result
+end
+
+function +{T}(a::SparseMatrix{T}, b::SparseMatrix{T})
+    @assert a.shape == b.shape
+    result = deepcopy(a)
+    for i=1:length(b.values)
+        add_element!(result, b.index_l[i], b.index_r[i], b.values[i])
+    end
+    return result
+end
+
+function -{T}(a::SparseMatrix{T}, b::SparseMatrix{T})
+    @assert a.shape == b.shape
+    result = deepcopy(a)
+    for i=1:length(b.values)
+        add_element!(result, b.index_l[i], b.index_r[i], -b.values[i])
+    end
+    return result
+end
+
+function *{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
+    @assert size(a,2)==size(b,1)
+    T = promote_type(T1, T2)
+    index_l = Int[]
+    index_r = Int[]
+    values = T[]
+    result = SparseMatrix([a.shape[1], b.shape[2]], index_l, index_r, values)
+    for i=1:length(a.values), j=1:length(b.values)
+        if a.index_r[i]==b.index_l[j]
+            x = a.values[i]*b.values[j]
+            add_element!(result, a.index_l[i], b.index_r[j], x)
+        end
+    end
+    return result
+end
+
+function *{T}(a, b::SparseMatrix{T})
+    a = convert(T, a)
+    result = deepcopy(b)
+    for i=1:length(b.values)
+        b.values[i] *= a
+    end
+    return result
+end
+
+function *{T1, T2}(a::SparseMatrix{T1}, b::Matrix{T2})
+    @assert size(a,2) == size(b,1)
+    T = promote_type(T1, T2)
+    result = zeros(T, size(a,1), size(b,2))
+    for s=1:length(a.values)
+        i = a.index_l[s]
+        j = a.index_r[s]
+        for k=1:size(b,2)
+            result[i,k] += a.values[s]*b[j,k]
+        end
+    end
+    return result
+end
+
+function *{T1, T2}(a::Matrix{T1}, b::SparseMatrix{T2})
+    @assert size(a,2) == size(b,1)
+    T = promote_type(T1, T2)
+    result = zeros(T, size(a,1), size(b,2))
+    for s=1:length(b.values)
+        i = b.index_l[s]
+        j = b.index_r[s]
+        for k=1:size(a,1)
+            result[k,j] += a[k,i]*b.values[s]
+        end
+    end
+    return result
+end
+
+*{T}(a::SparseMatrix{T}, b) = convert(T,b)*a
+/{T}(a::SparseMatrix{T}, b) = a*(one(T)/convert(T,b))
 
 function _fMB{T}(j::Int, index_l::Vector{Int}, index_r::Vector{Int}, values::Vector{T}, alpha::T, B::Matrix{T}, result::Matrix{T})
     @inbounds for i=1:length(values)
