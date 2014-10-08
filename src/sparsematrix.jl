@@ -49,7 +49,7 @@ function Base.full{T}(a::SparseMatrix{T})
     return result
 end
 
-Base.ctranspose{T}(a::SparseMatrix{T}) = SparseMatrix(reverse(a.shape), deepcopy(a.indices_r), deepcopy(a.indices_l), a.values')
+Base.ctranspose{T}(a::SparseMatrix{T}) = SparseMatrix(reverse(a.shape), deepcopy(a.index_r), deepcopy(a.index_l), conj(a.values))
 
 function Base.kron{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
     shape = [a.shape[1]*b.shape[1], a.shape[2]*b.shape[2]]

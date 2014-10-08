@@ -68,8 +68,8 @@ end
 function operators.gemm!{T<:Complex}(alpha::T, a::Operator, M::SparseOperator, beta::T, result::Operator)
     sparse.gemm!(alpha, a.data, M.data, beta, result.data)
 end
-function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Vector{T}, beta::T, result::Vector{T})
-    sparse.gemv!(alpha, M.data, b, beta, result)
+function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Ket, beta::T, result::Ket)
+    sparse.gemv!(alpha, M.data, b.data, beta, result.data)
 end
 
 function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
