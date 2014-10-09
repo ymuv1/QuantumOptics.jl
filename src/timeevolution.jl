@@ -1,5 +1,6 @@
 module timeevolution
 
+using ..bases
 using ..operators
 using ..states
 using ..ode_dopri
@@ -87,6 +88,20 @@ function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing
     return fout==nothing ? (tout, xout) : nothing
 end
 
+function check_bases_left(rho0, ops...)
+    for op=ops
+        bases.check_equal(rho0.basis_l, op.basis_l)
+        bases.check_multiplicable(rho0.basis_r, op.basis_l)
+    end
+end
+
+function check_bases_right(rho0, ops...)
+    for op=ops
+        bases.check_equal(rho0.basis_r, op.basis_r)
+        bases.check_multiplicable(op.basis_r, rho0.basis_l)
+    end
+end
+
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma=[Complex(1.) for i=1:length(J)],
                 Jdagger::Vector=map(dagger, J),
@@ -105,6 +120,8 @@ function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
                 fout=nothing,
                 tmp::Operator=deepcopy(rho0),
                 kwargs...)
+    check_bases_left(rho0, Hnhdagger, Jdagger...)
+    check_bases_right(rho0, Hnh, J...)
     Gamma = complex(Gamma)
     dmaster_(t, rho::Operator, drho::Operator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)

@@ -28,6 +28,16 @@ Base.size(a::SparseMatrix, i::Int) = a.shape[i]
 sparse_eye(T, N::Int) = SparseMatrix(Int[N,N], Int[1:N], Int[1:N], T[one(T) for i=1:N])
 sparse_eye(T, N1::Int, N2::Int) = (N = min(N1,N2); SparseMatrix(Int[N1,N2], Int[1:N], Int[1:N], T[one(T) for i=1:N]))
 
+function perm!(S::SparseMatrix, perm)
+    S.index_l = S.index_l[perm]
+    S.index_r = S.index_r[perm]
+    S.values = S.values[perm]
+    return nothing
+end
+
+optimize_left!(S::SparseMatrix) = perm!(S, sortperm(S.index_l))
+optimize_right!(S::SparseMatrix) = perm!(S, sortperm(S.index_r))
+
 function add_element!{T}(a::SparseMatrix{T}, i::Int, j::Int, value::T)
     index = find((a.index_l.==i) & (a.index_r.==j))
     if length(index)==0
@@ -55,7 +65,7 @@ function Base.kron{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
     shape = [a.shape[1]*b.shape[1], a.shape[2]*b.shape[2]]
     result = SparseMatrix(shape, Int[], Int[], promote_type(T1,T2)[])
     for i=1:length(a.values), j=1:length(b.values)
-        add_element!(result, (a.index_l[i]-1)*a.shape[1] + b.index_l[j], (a.index_r[i]-1)*a.shape[2] + b.index_r[j], a.values[i]*b.values[j])
+        add_element!(result, (a.index_l[i]-1)*b.shape[1] + b.index_l[j], (a.index_r[i]-1)*b.shape[2] + b.index_r[j], a.values[i]*b.values[j])
     end
     return result
 end
@@ -98,7 +108,7 @@ function *{T}(a, b::SparseMatrix{T})
     a = convert(T, a)
     result = deepcopy(b)
     for i=1:length(b.values)
-        b.values[i] *= a
+        result.values[i] *= a
     end
     return result
 end

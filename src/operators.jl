@@ -8,7 +8,7 @@ importall ..states
 importall ..bases
 
 export AbstractOperator, Operator,
-	   tensor, dagger, expect, ptrace,
+	   tensor, dagger, expect, ptrace, embed,
 	   identity, number, destroy, create,
 	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
        qfunc

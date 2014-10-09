@@ -1,11 +1,12 @@
 module quantumoptics
 
-export bases, Basis, GenericBasis, CompositeBasis, FockBasis,
+export bases, Basis, GenericBasis, CompositeBasis, FockBasis, compose,
         states, StateVector, Bra, Ket, tensor, dagger, ⊗, basis_bra, basis_ket,
         operators, AbstractOperator, Operator, expect, identity, number, destroy, create,
-                    sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis, ptrace, qfunc,
+                    sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis, ptrace, qfunc, embed,
         operators_lazy,
-        operators_sparse,
+        operators_sparse, SparseOperator, sparse_identity,
+        sparse,
         timeevolution_simple,
         timeevolution
 
@@ -20,7 +21,10 @@ include("timeevolution.jl")
 
 using .bases
 using .states
+using .sparse
 using .operators
+using .operators_sparse
+
 
 end
 
