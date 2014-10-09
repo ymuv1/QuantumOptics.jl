@@ -104,8 +104,11 @@ function *{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
     return result
 end
 
-function *{T}(a, b::SparseMatrix{T})
-    a = convert(T, a)
+function *{T1<:Number, T2}(a::T1, b::SparseMatrix{T2})
+    a = convert(T2, a)
+    if abs2(a) < 2*eps(abs2(a))
+        return zero(b)
+    end
     result = deepcopy(b)
     for i=1:length(b.values)
         result.values[i] *= a
