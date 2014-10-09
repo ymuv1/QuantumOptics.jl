@@ -68,6 +68,8 @@ const sigmam = Operator(spinbasis, [0 1;0 0])
 
 check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
 
+Base.zero{T<:AbstractOperator}(a::T) = T(a.basis_l, a.basis_r)
+Base.one{T<:AbstractOperator}(a::T) = identity(a.basis_l, a.basis_r)
 set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data); a)
 zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 
@@ -76,16 +78,9 @@ gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
 gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b.data, beta, result)
 
+Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
 
-function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{Operator})
-    op_total = (1 in indices ? operators[findfirst(indices, 1)] : identity(basis.bases[1]))
-    for i=2:length(basis.bases)
-        op = (i in indices ? operators[findfirst(indices, i)] : identity(basis.bases[i]))
-        op_total = tensor(op_total, op)
-    end
-    return op_total
-end
-
+embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = reduce(tensor, [prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)])
 embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
 
 

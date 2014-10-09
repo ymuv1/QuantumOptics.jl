@@ -24,6 +24,8 @@ function SparseMatrix{T}(a::Matrix{T})
 end
 
 Base.size(a::SparseMatrix, i::Int) = a.shape[i]
+Base.zero{T}(a::SparseMatrix{T}) = SparseMatrix(a.shape, Int[], Int[], T[])
+Base.one{T}(a::SparseMatrix{T}) = sparse_eye(T, a.shape[1], a.shape[2])
 
 sparse_eye(T, N::Int) = SparseMatrix(Int[N,N], Int[1:N], Int[1:N], T[one(T) for i=1:N])
 sparse_eye(T, N1::Int, N2::Int) = (N = min(N1,N2); SparseMatrix(Int[N1,N2], Int[1:N], Int[1:N], T[one(T) for i=1:N]))
