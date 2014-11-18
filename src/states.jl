@@ -4,7 +4,7 @@ using ..bases
 
 export StateVector, Bra, Ket,
        tensor, dagger, ⊗,
-       basis_bra, basis_ket,
+       basis_bra, basis_ket, basis,
        zero!, coherent_state
 
 
@@ -49,6 +49,7 @@ function basis_vector(shape::Vector{Int}, index::Vector{Int})
     reshape(x, prod(shape))
 end
 
+basis{T<:StateVector}(x::T) = x.basis
 basis_bra(b::Basis, index::Array{Int}) = Bra(b, basis_vector(b.shape, index))
 basis_bra(b::Basis, index::Int) = basis_bra(b, [index])
 basis_ket(b::Basis, index::Array{Int}) = Ket(b, basis_vector(b.shape, index))
@@ -59,13 +60,10 @@ zero!(a::StateVector) = fill!(a.data, zero(eltype(a.data)))
 function coherent_state(b::FockBasis, alpha)
     alpha = complex(alpha)
     x = zeros(Complex128, b.N1)
-    x[1] = complex(1.)
-    a = exp(-abs2(alpha)/2)
+    x[1] = complex(exp(-abs2(alpha)/2))
     for n=2:b.N1
-        x[n] = x[n-1]*alpha/sqrt(n)
-        x[n-1] *= a
+        x[n] = x[n-1]*alpha/sqrt(n-1)
     end
-    x[end] *= a
     return Ket(b, x)
 end
 

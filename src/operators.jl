@@ -41,13 +41,15 @@ Operator(b::Basis) = Operator(b, b)
 
 
 tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
-tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(a.data, b.data), prod(a.basis.shape), prod(b.basis.shape)))
+tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
 Base.full(x::Operator) = x
 
 Base.norm(op::Operator, p) = norm(op.data, p)
 Base.trace(op::Operator) = trace(op.data)
+
+basis{T<:AbstractOperator}(op::T) = (check_equal(op.basis_l, op.basis_r); op.basis_l)
 
 expect(op::AbstractOperator, state::Operator) = trace(op*state)
 expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
