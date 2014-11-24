@@ -72,13 +72,15 @@ function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing
     N = nl*nr
     as_operator(x::Vector{Complex128}) = Operator(rho0.basis_l, rho0.basis_r, reshape(x, nl, nr))
     as_vector(rho::Operator) = reshape(rho.data, N)
+    f = (x->x)
     if fout==nothing
         tout = Float64[]
         xout = Operator[]
-        function f(t, rho::Operator)
+        function fout_(t, rho::Operator)
             push!(tout, t)
             push!(xout, deepcopy(rho))
         end
+        f = fout_
     else
         f = fout
     end
