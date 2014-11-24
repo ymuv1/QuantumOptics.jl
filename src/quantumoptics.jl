@@ -7,6 +7,7 @@ export bases, Basis, GenericBasis, CompositeBasis, FockBasis, compose,
         operators_lazy,
         operators_sparse, SparseOperator, sparse_identity,
         sparse,
+        metrics, tracedistance,
         timeevolution_simple,
         timeevolution
 
@@ -15,6 +16,7 @@ include("states.jl")
 include("operators.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
+include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
 include("timeevolution.jl")
@@ -24,6 +26,7 @@ using .states
 using .sparse
 using .operators
 using .operators_sparse
+using .metrics
 
 
 end
