@@ -6,14 +6,14 @@ end
 
 function split(word::AbstractString, delimiter::AbstractString)
     words = []
-    lastsearchpos = 0:1
+    lastsearchpos = -1:0
     while true
         searchpos = search(word, delimiter, lastsearchpos[end]+1)
         if searchpos==0:-1
             push!(words, word[lastsearchpos[end]+1:end])
             break
         end
-        push!(words, word[lastsearchpos[end]:searchpos[1]-1])
+        push!(words, word[lastsearchpos[end]+1:searchpos[1]-1])
         lastsearchpos = searchpos
     end
     return words
