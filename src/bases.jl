@@ -33,6 +33,7 @@ compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
 compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases, b2.bases)
 compose(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
 compose(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
+compose(bases::Basis...) = reduce(compose, bases)
 
 Base.length(b::Basis) = prod(b.shape)
 

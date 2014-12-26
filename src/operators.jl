@@ -41,7 +41,9 @@ Operator(b::Basis) = Operator(b, b)
 
 
 tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
+tensor(ops::Operator...) = reduce(tensor, ops)
 tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+
 
 dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
 Base.full(x::Operator) = x
@@ -82,7 +84,7 @@ gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T
 
 Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
 
-embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = reduce(tensor, [prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)])
+embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)]...)
 embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
 
 
