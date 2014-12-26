@@ -138,6 +138,8 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
     xp, xs, k = allocate_memory(x0)
     F(t,x,k[1])
     h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
+    h = max(hmin, h)
+    h = min(hmax, h)
     accept_step = true
     while t < tfinal
         step(F, t, h, x, xp, xs, k)
