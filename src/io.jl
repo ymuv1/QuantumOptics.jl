@@ -1,7 +1,11 @@
 module io
 
 function guess_type(x)
-    return eval(parse(x))
+    try
+        return eval(parse(x))
+    catch
+        return x
+    end
 end
 
 function split(word::AbstractString, delimiter::AbstractString)
