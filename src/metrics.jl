@@ -10,4 +10,4 @@ function tracedistance(rho::Operator, sigma::Operator)
     return 0.5*sum(abs(s))
 end
 
-end
+end # module

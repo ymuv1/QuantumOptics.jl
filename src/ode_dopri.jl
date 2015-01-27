@@ -184,4 +184,4 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
     return nothing
 end
 
-end
+end # module

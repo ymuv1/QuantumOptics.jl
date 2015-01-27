@@ -8,9 +8,9 @@ importall ..states
 importall ..bases
 
 export AbstractOperator, Operator,
-	   tensor, dagger, expect, ptrace, embed,
-	   identity, number, destroy, create,
-	   sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
+       tensor, dagger, expect, ptrace, embed,
+       identity, number, destroy, create,
+       sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
        qfunc
 
 
@@ -140,4 +140,4 @@ function qfunc(rho::AbstractOperator, X::Vector{Float64}, Y::Vector{Float64})
     return M
 end
 
-end
+end # module

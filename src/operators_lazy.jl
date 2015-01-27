@@ -105,13 +105,13 @@ end
     @inbounds @nloops RANK i (d->1:uninvolved_shape[d]) (d->(I_{d-1}=I_d)) (d->(I_d+=uninvolved_strides[d])) begin
         I_n = I_0
         for n=1:M
-            I_m = I_0 
+            I_m = I_0
             for m=1:M
                 result[I_m] += a[m,n]*b[I_n]
                 I_m += involved_stride
             end
             I_n += involved_stride
-        end        
+        end
     end
     return nothing
 end
@@ -124,13 +124,13 @@ end
     @inbounds @nloops RANK i (d->1:uninvolved_shape[d]) (d->(I_{d-1}=I_d)) (d->(I_d+=uninvolved_strides[d])) begin
         I_n = I_0
         for n=1:M
-            I_m = I_0 
+            I_m = I_0
             for m=1:M
                 result[I_n] += a[m,n]*b[I_m]
                 I_m += involved_stride
             end
             I_n += involved_stride
-        end        
+        end
     end
     return nothing
 end
@@ -455,4 +455,4 @@ end
 +(a::LazySum, b::AbstractOperator) = LazySum([a.operators, b])
 +(a::AbstractOperator, b::LazySum) = LazySum([a, b.operators])
 
-end
+end # module

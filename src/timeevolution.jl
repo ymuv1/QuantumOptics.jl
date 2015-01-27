@@ -216,4 +216,4 @@ function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
     return integrate_mcwf(f, j, tspan, psi0, seed; fout=fout, kwargs...)
 end
 
-end
+end # module

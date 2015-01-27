@@ -192,4 +192,4 @@ function gemv!{T}(alpha::T, M::SparseMatrix{T}, v::Vector{T}, beta::T, result::V
     _fMv(M.index_l, M.index_r, M.values, alpha, v, result)
 end
 
-end
+end # module

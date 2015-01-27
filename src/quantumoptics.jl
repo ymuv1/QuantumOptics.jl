@@ -30,5 +30,4 @@ using .operators_sparse
 using .metrics
 
 
-end
-
+end # module

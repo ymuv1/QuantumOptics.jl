@@ -81,4 +81,4 @@ function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{Sp
     return op_total
 end
 
-end
+end # module

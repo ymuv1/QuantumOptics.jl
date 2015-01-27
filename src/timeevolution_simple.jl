@@ -21,17 +21,17 @@ function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector; Jdagg
 end
 
 function dmaster_nondiag(rho::Operator, H::AbstractOperator, gamma::Matrix, J::Vector, Jdagger::Vector)
-	drho = -1im * (H*rho - rho*H)
-	for m=1:length(J), n=1:length(J)
-		drho += gamma[m,n]*(J[m]*rho*Jdagger[n] - Jdagger[n]*(J[m]*rho)/Complex(2) - rho*Jdagger[n]*J[m]/Complex(2))
-	end
-	return drho
+    drho = -1im * (H*rho - rho*H)
+    for m=1:length(J), n=1:length(J)
+       drho += gamma[m,n]*(J[m]*rho*Jdagger[n] - Jdagger[n]*(J[m]*rho)/Complex(2) - rho*Jdagger[n]*J[m]/Complex(2))
+    end
+    return drho
 end
 
 function master_nondiag(T::Vector, rho0::Operator, H::AbstractOperator, gamma::Matrix, J::Vector; Jdagger=map(dagger,J))
-	f(t::Number,rho::AbstractOperator) = dmaster_nondiag(rho, H, gamma, J, Jdagger)
+    f(t::Number,rho::AbstractOperator) = dmaster_nondiag(rho, H, gamma, J, Jdagger)
     tout, rho_t = ode45(f, rho0, T)
     return tout, rho_t
 end
 
-end
+end  # module

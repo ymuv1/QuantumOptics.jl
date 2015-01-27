@@ -67,4 +67,4 @@ function coherent_state(b::FockBasis, alpha)
     return Ket(b, x)
 end
 
-end
+end # module

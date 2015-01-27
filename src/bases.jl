@@ -21,7 +21,7 @@ end
 
 
 type FockBasis <: Basis
-    shape::Vector{Int} 
+    shape::Vector{Int}
     N0::Int
     N1::Int
     FockBasis(N0::Int, N1::Int) = 0 < N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionError())
@@ -103,5 +103,4 @@ function ptrace(b::CompositeBasis, indices::Vector{Int})
     end
 end
 
-
-end
+end # module
