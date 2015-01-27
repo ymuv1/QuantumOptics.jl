@@ -26,6 +26,7 @@ Operator(b::Basis, data) = Operator(b, b, data)
 Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
 Operator(b::Basis) = Operator(b, b)
 
+check_summable(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r==b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
 *(a::Operator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
 *(a::Bra, b::Operator) = (check_multiplicable(a.basis, b.basis_l); Bra(b.basis_r, b.data.'*a.data))
@@ -35,9 +36,8 @@ Operator(b::Basis) = Operator(b, b)
 
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data/complex(b))
 
-+(a::Operator, b::Operator) = ((a.basis_l==b.basis_l) && (a.basis_r==b.basis_r) ? Operator(a.basis_l, a.basis_r, a.data+b.data) : throw(IncompatibleBases()))
-
--(a::Operator, b::Operator) = ((a.basis_l==b.basis_l) && (a.basis_r==b.basis_r) ? Operator(a.basis_l, a.basis_r, a.data-b.data) : throw(IncompatibleBases()))
++(a::Operator, b::Operator) = (check_summable(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
+-(a::Operator, b::Operator) = (check_summable(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
 
 tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
