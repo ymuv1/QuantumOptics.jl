@@ -146,8 +146,8 @@ function *{T1, T2}(a::Matrix{T1}, b::SparseMatrix{T2})
     return result
 end
 
-*{T}(a::SparseMatrix{T}, b) = convert(T,b)*a
-/{T}(a::SparseMatrix{T}, b) = a*(one(T)/convert(T,b))
+*{T1,T2<:Number}(a::SparseMatrix{T1}, b::T2) = convert(T1,b)*a
+/{T1,T2<:Number}(a::SparseMatrix{T1}, b::T2) = (one(T1)/convert(T1,b))*a
 
 function _fMB{T}(j::Int, index_l::Vector{Int}, index_r::Vector{Int}, values::Vector{T}, alpha::T, B::Matrix{T}, result::Matrix{T})
     @inbounds for i=1:length(values)
