@@ -8,7 +8,7 @@ sx_sp = SparseOperator(sx)
 sy_sp = SparseOperator(sy)
 
 s = tensor(sx, sy)
-s_sp = tensor(sx_sp, sy_sp) 
+s_sp = tensor(sx_sp, sy_sp)
 
 b = FockBasis(3)
 I = sparse_identity(b)
