@@ -15,16 +15,80 @@ basis = compose(spinbasis, fockbasis)
 Ha = embed(basis, 1, 0.5*ωa*sigmaz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sigmam ⊗ create(fockbasis) + sigmap ⊗ destroy(fockbasis)
-H = SparseOperator(Ha + Hc + Hint)
+H = Ha + Hc + Hint
+Hsparse = SparseOperator(H)
 
 Ja = embed(basis, 1, sqrt(γ)*sigmam)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
-J = [SparseOperator(Ja), SparseOperator(Jc)]
+J = [Ja, Jc]
+Jsparse = map(SparseOperator, J)
 
 Ψ₀ = basis_ket(spinbasis, 2) ⊗ basis_ket(fockbasis, 1)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)
 
 
-tout, ρt = timeevolution.master(T, ρ₀, H, J)
+# Test master
+tout, ρt = timeevolution.master(T, ρ₀, H, J; reltol=1e-7)
+ρ = ρt[end]
+
+tout, ρt = timeevolution.master(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
 
 
+# Test master_h
+tout, ρt = timeevolution.master_h(T, ρ₀, H, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, H, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+
+# Test master_nh
+Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
+Hnh_sparse = SparseOperator(Hnh)
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+
+# Test simple timeevolution
+tout, ρt = timeevolution_simple.master(T, ρ₀, H, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution_simple.master(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution_simple.master(T, ρ₀, Hsparse, J; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution_simple.master(T, ρ₀, H, Jsparse; reltol=1e-6)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+
+# Test special cases
+tout, ρt = timeevolution.master(T, ρ₀, H, []; reltol=1e-7)
+ρ = ρt[end]
+
+tout, ρt = timeevolution.master_h(T, ρ₀, H, []; reltol=1e-7)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, H, []; reltol=1e-7)
+@assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution_simple.master(T, ρ₀, H, []; reltol=1e-7)
+@assert tracedistance(ρt[end], ρ) < 1e-5

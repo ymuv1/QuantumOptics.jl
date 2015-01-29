@@ -1,8 +1,8 @@
 names = readdir(".")
 
 for name=names
-    if beginswith(name, "test_") && endswith(name, ".jl")
+    if startswith(name, "test_") && endswith(name, ".jl")
         println("Run $name")
-        include(name)
+        run(`julia $name`)
     end
 end
