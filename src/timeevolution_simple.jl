@@ -1,5 +1,6 @@
 module timeevolution_simple
 
+using ..states
 using ..operators
 using ODE
 
@@ -41,6 +42,20 @@ function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
     end
     f(t::Float64, rho::Operator) = dmaster(rho, H, gamma, J, Jdagger)
     tout, rho_t = ode45(f, rho0, T; kwargs...)
+    return tout, rho_t
+end
+
+function dschroedinger(psi::Ket, H::AbstractOperator)
+    return -1im*H*psi
+end
+
+function dschroedinger(psi::Bra, H::AbstractOperator)
+    return 1im*psi*H
+end
+
+function schroedinger(T::Vector, psi0::StateVector, H::AbstractOperator; kwargs...)
+    f(t::Float64, psi::StateVector) = dschroedinger(psi, H)
+    tout, rho_t = ode45(f, psi0, T; kwargs...)
     return tout, rho_t
 end
 

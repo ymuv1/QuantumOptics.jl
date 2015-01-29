@@ -92,3 +92,7 @@ tout, ρt = timeevolution.master_nh(T, ρ₀, H, []; reltol=1e-7)
 
 tout, ρt = timeevolution_simple.master(T, ρ₀, H, []; reltol=1e-7)
 @assert tracedistance(ρt[end], ρ) < 1e-5
+
+tout, Ψket_t = timeevolution_simple.schroedinger(T, Ψ₀, H; reltol=1.e-7)
+tout, Ψbra_t = timeevolution_simple.schroedinger(T, dagger(Ψ₀), H; reltol=1.e-7)
+@assert tracedistance(Ψket_t[end]⊗Ψbra_t[end], ρ) < 1e-5
