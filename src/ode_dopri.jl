@@ -128,12 +128,19 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     display_intermediatesteps = false,
                     display_beforeevent = false,
                     display_afterevent = false,
-                    fout::Function = (t,x)->nothing,
+                    fout::Union(Function, Nothing) = nothing,
                     event_locator::Function = (t,x)->1.,
                     event_callback::Function = (t,x)->"continue",
                     )
+    if fout==nothing
+        tout = Float64[]
+        xout = Vector{T}[]
+        fout_ = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
+    else
+        fout_ = fout
+    end
     t, tfinal = tspan[1], tspan[end]
-    display_initialvalue && fout(t, x0)
+    display_initialvalue && fout_(t, x0)
     x = deepcopy(x0)
     xp, xs, k = allocate_memory(x0)
     F(t,x,k[1])
@@ -148,10 +155,10 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
         if accept_step
             if sign(event_locator(t,x))!=sign(event_locator(t+h,xp))
                 t_event = fzero(t_->(interpolate(t, x, h, k, t_, xs); event_locator(t_, xs)), t, t+h)
-                display_steps(fout, tspan[tspan.<t_event], t, xp, h, k, xs)
-                display_beforeevent && fout(t_event, xs)
+                display_steps(fout_, tspan[tspan.<t_event], t, xp, h, k, xs)
+                display_beforeevent && fout_(t_event, xs)
                 cmd = event_callback(t_event, xs)
-                display_afterevent && fout(t_event, xs)
+                display_afterevent && fout_(t_event, xs)
                 if cmd == "stop"
                     return nothing
                 elseif cmd == "jump"
@@ -161,8 +168,8 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     t = tevent
                     continue
                 elseif cmd=="continue"
-                    display_steps(fout, tspan[tspan.>t_event], t, xp, h, k, xs)
-                    display_intermediatesteps && fout(t, xp)
+                    display_steps(fout_, tspan[tspan.>t_event], t, xp, h, k, xs)
+                    display_intermediatesteps && fout_(t, xp)
                     xp, x = x, xp
                     k[1], k[end] = k[end], k[1]
                     t = t + h
@@ -170,9 +177,9 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     error("Unrecognized event command.")
                 end
             else
-                display_steps(fout, tspan, t, x, h, k, xs)
+                display_steps(fout_, tspan, t, x, h, k, xs)
                 if t+h<tfinal
-                    display_intermediatesteps && fout(t+h, xp)
+                    display_intermediatesteps && fout_(t+h, xp)
                 end
                 xp, x = x, xp
                 k[1], k[end] = k[end], k[1]
@@ -181,7 +188,11 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
         end
         h = hnew
     end
-    return nothing
+    if fout==nothing
+        return tout, xout
+    else
+        return nothing
+    end
 end
 
 end # module
