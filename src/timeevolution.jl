@@ -148,6 +148,51 @@ function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
+function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, psi0::T; fout=nothing, kwargs...)
+    as_statevector(x::Vector{Complex128}) = T(psi0.basis, x)
+    as_vector(psi::T) = psi.data
+    if fout==nothing
+        tout = Float64[]
+        xout = T[]
+        function fout_(t, psi::T)
+            push!(tout, t)
+            push!(xout, deepcopy(psi))
+        end
+        f = fout_
+    else
+        f = fout
+    end
+    f_(t, x::Vector{Complex128}) = f(t, as_statevector(x))
+    dschroedinger_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dschroedinger(t, as_statevector(x), as_statevector(dx))
+    ode(dschroedinger_, float(tspan), as_vector(psi0), fout=f_; kwargs...)
+    return fout==nothing ? (tout, xout) : nothing
+end
+
+function dschroedinger_ket(psi::Ket, H::AbstractOperator, dpsi::Ket)
+    operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
+    return dpsi
+end
+
+function dschroedinger_bra(psi::Bra, H::AbstractOperator, dpsi::Bra)
+    operators.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
+    return dpsi
+end
+
+function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
+                fout::Union(Function,Nothing)=nothing,
+                kwargs...)
+    if T==Ket
+        @assert psi0.basis==H.basis_l
+        @assert multiplicable(H.basis_r, psi0.basis)
+        dschroedinger_(t, psi::Ket, dpsi::Ket) = dschroedinger_ket(psi, H, dpsi)
+    elseif T==Bra
+        @assert psi0.basis==H.basis_r
+        @assert multiplicable(psi0.basis, H.basis_l)
+        dschroedinger_(t, psi::Bra, dpsi::Bra) = dschroedinger_bra(psi, H, dpsi)
+    end
+    return integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
+end
+
 function integrate_mcwf(dmaster::Function, jumpfun::Function, tspan, psi0::Ket, seed::Uint64;
                 fout=nothing,
                 kwargs...)
