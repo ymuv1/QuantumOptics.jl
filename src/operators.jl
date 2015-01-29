@@ -26,7 +26,7 @@ Operator(b::Basis, data) = Operator(b, b, data)
 Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
 Operator(b::Basis) = Operator(b, b)
 
-check_summable(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
+check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
 *(a::Operator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
 *(a::Bra, b::Operator) = (check_multiplicable(a.basis, b.basis_l); Bra(b.basis_r, b.data.'*a.data))
@@ -36,8 +36,8 @@ check_summable(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_
 
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data/complex(b))
 
-+(a::Operator, b::Operator) = (check_summable(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
--(a::Operator, b::Operator) = (check_summable(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
++(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
+-(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
 
 tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
@@ -78,8 +78,7 @@ set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data);
 zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{T}) = BLAS.gemm!('N', 'N', alpha, a, b, beta, result)
-gemm!{T<:Complex}(alpha::T, a::Operator, b::Matrix{T}, beta::T, result::Matrix{T}) = gemm!(alpha, a.data, b, beta, result)
-gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Operator, beta::T, result::Matrix{T}) = gemm!(alpha, a, b.data, beta, result)
+gemm!(alpha, a::Operator, b::Operator, beta, result::Operator) = gemm!(alpha, a.data, b.data, beta, result.data)
 gemv!{T<:Complex}(alpha::T, M::Operator, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b.data, beta, result)
 
 Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
