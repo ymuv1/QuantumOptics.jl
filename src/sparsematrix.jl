@@ -1,4 +1,4 @@
-module sparse
+module sparsematrix
 
 export SparseMatrix, sparse_eye
 

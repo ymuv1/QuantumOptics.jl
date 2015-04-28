@@ -1,6 +1,6 @@
 module operators_sparse
 
-using ..bases, ..states, ..sparse
+using ..bases, ..states, ..sparsematrix
 
 importall ..operators
 
@@ -10,14 +10,14 @@ export SparseOperator, sparse_identity
 type SparseOperator <: AbstractOperator
     basis_l::Basis
     basis_r::Basis
-    data::SparseMatrix{Complex128}
+    data::sparsematrix.SparseMatrix{Complex128}
 end
 
-SparseOperator(b::Basis, data::SparseMatrix) = SparseOperator(b, b, data)
-SparseOperator(b::Basis, data::Matrix) = SparseOperator(b, SparseMatrix(data))
-SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, SparseMatrix(Operator.data))
+SparseOperator(b::Basis, data::sparsematrix.SparseMatrix) = SparseOperator(b, b, data)
+SparseOperator(b::Basis, data::Matrix) = SparseOperator(b, sparsematrix.SparseMatrix(data))
+SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, sparsematrix.SparseMatrix(Operator.data))
 
-SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, SparseMatrix([prod(b1.shape), prod(b2.shape)], Int[], Int[], Complex128[]))
+SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, sparsematrix.SparseMatrix([prod(b1.shape), prod(b2.shape)], Int[], Int[], Complex128[]))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
 Operator(a::SparseOperator) = Operator(a.basis_l, a.basis_r, full(a.data))
@@ -63,13 +63,13 @@ sparse_identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, sparse_eye(Comple
 # zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
 
 function operators.gemm!{T<:Complex}(alpha::T, M::SparseOperator, b::Operator, beta::T, result::Operator)
-    sparse.gemm!(alpha, M.data, b.data, beta, result.data)
+    sparsematrix.gemm!(alpha, M.data, b.data, beta, result.data)
 end
 function operators.gemm!{T<:Complex}(alpha::T, a::Operator, M::SparseOperator, beta::T, result::Operator)
-    sparse.gemm!(alpha, a.data, M.data, beta, result.data)
+    sparsematrix.gemm!(alpha, a.data, M.data, beta, result.data)
 end
 function operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Ket, beta::T, result::Ket)
-    sparse.gemv!(alpha, M.data, b.data, beta, result.data)
+    sparsematrix.gemv!(alpha, M.data, b.data, beta, result.data)
 end
 
 function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
