@@ -57,8 +57,8 @@ expect(op::AbstractOperator, state::Operator) = trace(op*state)
 expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
 expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
 
-identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
-identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
+Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
+Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
 number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
 destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))
 create(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),-1))
@@ -101,7 +101,7 @@ function strides(shape::Vector{Int})
     return S
 end
 
-@ngenerate RANK Nothing function _ptrace{RANK}(rank::Array{Int,RANK},
+@generated function _ptrace{RANK}(rank::Array{Int,RANK},
     a::Matrix{Complex128}, shape_l::Vector{Int}, shape_r::Vector{Int}, indices::Vector{Int})
     a_strides_l = strides(shape_l)
     result_shape_l = deepcopy(shape_l)
@@ -114,15 +114,17 @@ end
     N_result_l = prod(result_shape_l)
     N_result_r = prod(result_shape_r)
     result = zeros(Complex128, N_result_l, N_result_r)
-    @nexprs 1 (d->(Jr_{RANK}=1;Ir_{RANK}=1))
-    @nloops RANK ir (d->1:shape_r[d]) (d->(Ir_{d-1}=Ir_d; Jr_{d-1}=Jr_d)) (d->(Ir_d+=a_strides_r[d]; if !(d in indices) Jr_d+=result_strides_r[d] end)) begin
-        @nexprs 1 (d->(Jl_{RANK}=1;Il_{RANK}=1))
-        @nloops RANK il (k->1:shape_l[k]) (k->(Il_{k-1}=Il_k; Jl_{k-1}=Jl_k; if (k in indices && il_k!=ir_k) Il_k+=a_strides_l[k]; continue end)) (k->(Il_k+=a_strides_l[k]; if !(k in indices) Jl_k+=result_strides_l[k] end)) begin
-            #println("Jl_0: ", Jl_0, "; Jr_0: ", Jr_0, "; Il_0: ", Il_0, "; Ir_0: ", Ir_0)
-            result[Jl_0, Jr_0] += a[Il_0, Ir_0]
+    quote
+        @nexprs 1 (d->(Jr_{RANK}=1;Ir_{RANK}=1))
+        @nloops RANK ir (d->1:shape_r[d]) (d->(Ir_{d-1}=Ir_d; Jr_{d-1}=Jr_d)) (d->(Ir_d+=a_strides_r[d]; if !(d in indices) Jr_d+=result_strides_r[d] end)) begin
+            @nexprs 1 (d->(Jl_{RANK}=1;Il_{RANK}=1))
+            @nloops RANK il (k->1:shape_l[k]) (k->(Il_{k-1}=Il_k; Jl_{k-1}=Jl_k; if (k in indices && il_k!=ir_k) Il_k+=a_strides_l[k]; continue end)) (k->(Il_k+=a_strides_l[k]; if !(k in indices) Jl_k+=result_strides_l[k] end)) begin
+                #println("Jl_0: ", Jl_0, "; Jr_0: ", Jr_0, "; Il_0: ", Il_0, "; Ir_0: ", Ir_0)
+                result[Jl_0, Jr_0] += a[Il_0, Ir_0]
+            end
         end
+        return result
     end
-    return result
 end
 
 function ptrace(a::Operator, indices::Vector{Int})
