@@ -1,6 +1,6 @@
-using quantumoptics.sparse
+using quantumoptics.sparsematrix
 
-SparseMatrix = quantumoptics.sparse.SparseMatrix
+SparseMatrix = quantumoptics.sparsematrix.SparseMatrix
 
 A = rand(Complex128,5,5)
 A_sp = SparseMatrix(A)
