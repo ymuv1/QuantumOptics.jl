@@ -1,16 +1,20 @@
+using Base.Test
 using quantumoptics
-using quantumoptics.operators_sparse
 
+
+# Set up operators
 sx = operators.sigmax
 sy = operators.sigmay
 
 sx_sp = SparseOperator(sx)
 sy_sp = SparseOperator(sy)
 
+b = FockBasis(3)
+I = quantumoptics.operators_sparse.sparse_identity(b)
+
+
 s = tensor(sx, sy)
 s_sp = tensor(sx_sp, sy_sp)
 
-b = FockBasis(3)
-I = sparse_identity(b)
-@assert norm((Operator(I)-identity(b)).data)<1e-10
-@assert norm((s - Operator(s_sp)).data)<1e-10
+@test_approx_eq 0. norm((Operator(I)-identity(b)).data)
+@test_approx_eq 0. norm((s - Operator(s_sp)).data)

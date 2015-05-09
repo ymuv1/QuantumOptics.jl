@@ -67,8 +67,8 @@ const spinbasis = GenericBasis([2])
 const sigmax = Operator(spinbasis, [0 1;1 0])
 const sigmay = Operator(spinbasis, [0 -1im;1im 0])
 const sigmaz = Operator(spinbasis, [1 0;0 -1])
-const sigmap = Operator(spinbasis, [0 0;1 0])
-const sigmam = Operator(spinbasis, [0 1;0 0])
+const sigmap = Operator(spinbasis, [0 1;0 0])
+const sigmam = Operator(spinbasis, [0 0;1 0])
 
 check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
 

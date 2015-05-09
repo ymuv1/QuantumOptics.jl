@@ -26,14 +26,14 @@ end
 
 
 # Test absolute and relative tolerances
-T = [0.:0.5:5.]
+T = [0.:0.5:5.;]
 
 for reltol=[1e-3,1e-4,1e-5,1e-6,1e-7,1e-8,1e-9]
     tout, y = ode(df, T, y₀, reltol=reltol, abstol=0.)
     for i=2:length(T)
         # println("T = $(T[i])")
         # println("Target Reltol: $(reltol*T[i]); Real reltol: ", norm(y[i]-f(T[i]))/norm(y[i]))
-        @assert T[i]*reltol*20 > norm(y[i]-f(T[i]))/norm(y[i]) > T[i]*reltol/20
+        @test T[i]*reltol*20 > norm(y[i]-f(T[i]))/norm(y[i]) > T[i]*reltol/20
     end
 end
 
@@ -42,7 +42,7 @@ for abstol=[1e-3,1e-4,1e-5,1e-6,1e-7,1e-8,1e-9]
     for i=2:length(T)
         # println("T = $(T[i])")
         # println("Target abstol: $(abstol*T[i]); Real abstol: ", norm(y[i]-f(T[i])))
-        @assert abstol*10 > norm(y[i]-f(T[i])) > abstol/100
+        @test abstol*10 > norm(y[i]-f(T[i])) > abstol/100
     end
 end
 
@@ -50,7 +50,7 @@ end
 # Test output of intermediate steps
 T = [0.,10.]
 tout, yout = ode(df, T, y₀; display_intermediatesteps=true)
-@assert length(tout)>2
+@test length(tout)>2
 maxstep = maximum(tout[2:end]-tout[1:end-1])
 
 
@@ -58,7 +58,7 @@ maxstep = maximum(tout[2:end]-tout[1:end-1])
 hmax = maxstep/10
 tout, yout = ode(df, T, y₀; display_intermediatesteps=true, hmax=hmax)
 maxstep2 = maximum(tout[2:end]-tout[1:end-1])
-@assert (maxstep2-hmax)<1e-12
+@test (maxstep2-hmax)<1e-12
 
 
 # Test hmin
@@ -68,10 +68,10 @@ maxstep2 = maximum(tout[2:end]-tout[1:end-1])
 # Test h0
 h0 = 1e-5
 tout, yout = ode(df, T, y₀; display_intermediatesteps=true, h0=h0)
-@assert abs(h0-(tout[2]-tout[1]))<1e-14
+@test abs(h0-(tout[2]-tout[1]))<1e-14
 h0 = 0.4
 tout, yout = ode(df, T, y₀; display_intermediatesteps=true, h0=h0)
-@assert abs(h0-(tout[2]-tout[1]))>0.3
+@test abs(h0-(tout[2]-tout[1]))>0.3
 
 # Test fout
 tout_ = Float64[]
@@ -82,8 +82,8 @@ function fout(t, y)
 end
 T = [0.,0.5,1.0]
 result = ode(df, T, y₀; fout=fout)
-@assert result==nothing
+@test result==nothing
 tout, yout = ode(df, T, y₀)
 
-@assert tout==tout_
-@assert yout==yout_
+@test tout==tout_
+@test yout==yout_
