@@ -86,7 +86,7 @@ function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing
     end
     f_(t, x::Vector{Complex128}) = f(t, as_operator(x))
     dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dmaster(t, as_operator(x), as_operator(dx))
-    ode(dmaster_, float(tspan), as_vector(rho0), fout=f_; kwargs...)
+    ode(dmaster_, float(tspan), as_vector(rho0), f_; kwargs...)
     return fout==nothing ? (tout, xout) : nothing
 end
 
@@ -164,7 +164,7 @@ function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, 
     end
     f_(t, x::Vector{Complex128}) = f(t, as_statevector(x))
     dschroedinger_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dschroedinger(t, as_statevector(x), as_statevector(dx))
-    ode(dschroedinger_, float(tspan), as_vector(psi0), fout=f_; kwargs...)
+    ode(dschroedinger_, float(tspan), as_vector(psi0), f_; kwargs...)
     return fout==nothing ? (tout, xout) : nothing
 end
 
@@ -193,37 +193,39 @@ function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
     return integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
 end
 
-function integrate_mcwf(dmaster::Function, jumpfun::Function, tspan, psi0::Ket, seed::Uint64;
+function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed::Uint64;
                 fout=nothing,
                 kwargs...)
     tmp = deepcopy(psi0)
     as_ket(x::Vector{Complex128}) = Ket(psi0.basis, x)
     as_vector(psi::Ket) = psi.data
     rng = MersenneTwister(convert(Uint, seed))
-    jumpnorm = rand(rng)
-    djumpnorm(t, x::Vector{Complex128}) = vecnorm(x) - jumpnorm
+    jumpnorm = Float64[rand(rng)]
+    djumpnorm(t, x::Vector{Complex128}) = norm(as_ket(x))^2 - (1-jumpnorm[1])
     function dojump(t, x::Vector{Complex128})
         jumpfun(rng, t, as_ket(x), tmp)
         for i=1:length(x)
             x[i] = tmp.data[i]
         end
-        return "jump"
+        jumpnorm[1] = rand(rng)
+        return ode_dopri.jump
     end
     if fout==nothing
         tout = Float64[]
         xout = Ket[]
-        function f(t, psi::Ket)
+        function fout_(t, x::Vector{Complex128})
+            psi = deepcopy(as_ket(x))
+            psi /= norm(psi)
             push!(tout, t)
-            push!(xout, deepcopy(psi))
+            push!(xout, psi)
             nothing
         end
     else
-        f = fout
+        fout_(t, x::Vector{Complex128}) = fout(t, as_ket(x))
     end
-    f_(t, x::Vector{Complex128}) = f(t, as_ket(x))
-    dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dmaster(t, as_ket(x), as_ket(dx))
-    ode(dmaster_, float(tspan), as_vector(psi0), fout=f_;
-        event_locator=djumpnorm, event_callback=dojump,
+    dmcwf_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dmcwf(t, as_ket(x), as_ket(dx))
+    ode_event(dmcwf_, float(tspan), as_vector(psi0), fout_,
+        djumpnorm, dojump;
         kwargs...)
     return fout==nothing ? (tout, xout) : nothing
 end
@@ -232,18 +234,19 @@ function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket)
     probs = zeros(Float64, length(J))
     for i=1:length(J)
         operators.gemv!(complex(1.), J[i], psi, complex(0.), psi_new)
-        probs[i] = vecnorm(psi_new.data)
+        #probs[i] = norm(psi_new)^2
+        probs[i] = dagger(psi_new)*psi_new
     end
     cumprobs = cumsum(probs./sum(probs))
     r = rand(rng)
     i = findfirst(cumprobs.>r)
-    operators.gemv!(complex(1.)/probs[i], J[i], psi, complex(0.), psi_new)
+    operators.gemv!(complex(1.)/sqrt(probs[i]), J[i], psi, complex(0.), psi_new)
     return nothing
 end
 
 function dmcwf_nh(psi::Ket, Hnh::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)
-    return psi
+    return dpsi
 end
 
 function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
@@ -254,14 +257,20 @@ function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
 end
 
 function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
-                seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J), kwargs...)
+                seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                display_beforeevent=false, display_afterevent=false,
+                kwargs...)
     Hnh = deepcopy(H)
     for i=1:length(J)
         Hnh -= 0.5im*Jdagger[i]*J[i]
     end
     f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
     j(rng, t, psi, psi_new) = jump(rng, t, psi, J, psi_new)
-    return integrate_mcwf(f, j, tspan, psi0, seed; fout=fout, kwargs...)
+    return integrate_mcwf(f, j, tspan, psi0, seed;
+                fout=fout,
+                display_beforeevent=display_beforeevent,
+                display_afterevent=display_afterevent,
+                kwargs...)
 end
 
 end # module
