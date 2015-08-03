@@ -56,6 +56,7 @@ basis{T<:AbstractOperator}(op::T) = (check_equal(op.basis_l, op.basis_r); op.bas
 expect(op::AbstractOperator, state::Operator) = trace(op*state)
 expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
 expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
+expect(op::AbstractOperator, states::Vector{Ket}) = [expect(op, state) for state=states]
 
 Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
 Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
