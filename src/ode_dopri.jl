@@ -1,6 +1,6 @@
 module ode_dopri
 
-export ode
+export ode, ode_event
 
 using Roots
 
@@ -117,7 +117,12 @@ function display_steps{T}(fout::Function, tspan::Vector{Float64}, t::Float64, x:
     end
 end
 
-function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
+
+@enum CallbackCommand nojump jump stop
+
+
+function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
+                    event_locator::Function, event_callback::Function;
                     reltol::Float64 = 1.0e-5,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
@@ -127,20 +132,10 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     display_finalvalue = true,
                     display_intermediatesteps = false,
                     display_beforeevent = false,
-                    display_afterevent = false,
-                    fout::Union(Function, Nothing) = nothing,
-                    event_locator::Function = (t,x)->1.,
-                    event_callback::Function = (t,x)->"continue",
+                    display_afterevent = false
                     )
-    if fout==nothing
-        tout = Float64[]
-        xout = Vector{T}[]
-        fout_ = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
-    else
-        fout_ = fout
-    end
     t, tfinal = tspan[1], tspan[end]
-    display_initialvalue && fout_(t, x0)
+    display_initialvalue && fout(t, x0)
     x = deepcopy(x0)
     xp, xs, k = allocate_memory(x0)
     F(t,x,k[1])
@@ -153,23 +148,29 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
         err = error_estimate(xp, xs, abstol, reltol)
         hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
         if accept_step
-            if sign(event_locator(t,x))!=sign(event_locator(t+h,xp))
+            e1 = event_locator(t+hmin,x)
+            e2 = event_locator(t+h,xp)
+            if e2==0. || e1*e2 < 0.
                 t_event = fzero(t_->(interpolate(t, x, h, k, t_, xs); event_locator(t_, xs)), t, t+h)
-                display_steps(fout_, tspan[tspan.<t_event], t, xp, h, k, xs)
-                display_beforeevent && fout_(t_event, xs)
+                display_steps(fout, tspan[tspan.<t_event], t, x, h, k, xs)
+                interpolate(t, x, h, k, t_event, xs)
+                display_beforeevent && fout(t_event, xs)
                 cmd = event_callback(t_event, xs)
-                display_afterevent && fout_(t_event, xs)
-                if cmd == "stop"
+                if typeof(cmd)!=CallbackCommand
+                    error("Event callback function has to return a CallbackCommand.")
+                end
+                display_afterevent && fout(t_event, xs)
+                if cmd == stop
                     return nothing
-                elseif cmd == "jump"
+                elseif cmd == jump
                     F(t,x,k[1])
                     h = 0.9*hnew
                     xs, x = x, xs
-                    t = tevent
+                    t = t_event
                     continue
-                elseif cmd=="continue"
-                    display_steps(fout_, tspan[tspan.>t_event], t, xp, h, k, xs)
-                    display_intermediatesteps && fout_(t, xp)
+                elseif cmd == nojump
+                    display_steps(fout, tspan[tspan.>t_event], t, x, h, k, xs)
+                    display_intermediatesteps && fout(t, xp)
                     xp, x = x, xp
                     k[1], k[end] = k[end], k[1]
                     t = t + h
@@ -177,9 +178,9 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
                     error("Unrecognized event command.")
                 end
             else
-                display_steps(fout_, tspan, t, x, h, k, xs)
-                if t+h<tfinal
-                    display_intermediatesteps && fout_(t+h, xp)
+                display_steps(fout, tspan, t, x, h, k, xs)
+                if display_intermediatesteps && t+h<tfinal
+                    fout(t+h, xp)
                 end
                 xp, x = x, xp
                 k[1], k[end] = k[end], k[1]
@@ -188,11 +189,64 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T};
         end
         h = hnew
     end
-    if fout==nothing
-        return tout, xout
-    else
-        return nothing
+end
+
+
+function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T},
+                    event_locator::Function, event_callback::Function;
+                    args...)
+    tout = Float64[]
+    xout = Vector{T}[]
+    fout = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
+    ode_event(F, tspan, x0, fout, event_locator, event_callback; args...)
+    return tout, xout
+end
+
+
+function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
+                    reltol::Float64 = 1.0e-5,
+                    abstol::Float64 = 1.0e-8,
+                    h0::Float64 = NaN,
+                    hmin::Float64 = (tspan[end]-tspan[1])/1e9,
+                    hmax::Float64 = (tspan[end]-tspan[1]),
+                    display_initialvalue = true,
+                    display_finalvalue = true,
+                    display_intermediatesteps = false
+                    )
+    t, tfinal = tspan[1], tspan[end]
+    display_initialvalue && fout(t, x0)
+    x = deepcopy(x0)
+    xp, xs, k = allocate_memory(x0)
+    F(t,x,k[1])
+    h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
+    h = max(hmin, h)
+    h = min(hmax, h)
+    accept_step = true
+    while t < tfinal
+        step(F, t, h, x, xp, xs, k)
+        err = error_estimate(xp, xs, abstol, reltol)
+        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
+        if accept_step
+            display_steps(fout, tspan, t, x, h, k, xs)
+            if display_intermediatesteps && t+h<tfinal
+                fout(t+h, xp)
+            end
+            xp, x = x, xp
+            k[1], k[end] = k[end], k[1]
+            t = t + h
+        end
+        h = hnew
     end
 end
+
+
+function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}; args...)
+    tout = Float64[]
+    xout = Vector{T}[]
+    fout = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
+    ode(F, tspan, x0, fout; args...)
+    return tout, xout
+end
+
 
 end # module
