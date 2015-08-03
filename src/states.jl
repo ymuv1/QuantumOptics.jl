@@ -43,7 +43,7 @@ tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
-Base.norm(x::StateVector, p) = norm(x.data, p)
+Base.norm(x::StateVector, p=2) = norm(x.data, p)
 
 function basis_vector(shape::Vector{Int}, index::Vector{Int})
     x = zeros(Complex, shape...)
