@@ -81,7 +81,7 @@ function fout(t, y)
     push!(yout_, deepcopy(y))
 end
 T = [0.,0.5,1.0]
-result = ode(df, T, y₀; fout=fout)
+result = ode(df, T, y₀, fout)
 @test result==nothing
 tout, yout = ode(df, T, y₀)
 
