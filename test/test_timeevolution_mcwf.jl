@@ -1,33 +1,39 @@
 using Base.Test
 using quantumoptics
 
+# Define parameters for spin coupled to electric field mode.
 ωc = 1.2
 ωa = 0.9
 g = 1.0
 γ = 0.5
 κ = 1.1
 
-T = Float64[0.,10.]
+Ntrajectories = 1000
+T = Float64[0.:0.1:10.;]
 
-
+# Define operators
 fockbasis = FockBasis(10)
 basis = compose(spinbasis, fockbasis)
 
+# Hamiltonian
 Ha = embed(basis, 1, 0.5*ωa*sigmaz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sigmam ⊗ create(fockbasis) + sigmap ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
 Hsparse = SparseOperator(H)
 
+# Jump operators
 Ja = embed(basis, 1, sqrt(γ)*sigmam)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
 Jsparse = map(SparseOperator, J)
 
+# Initial conditions
 Ψ₀ = basis_ket(spinbasis, 2) ⊗ basis_ket(fockbasis, 6)
+ρ₀ = Ψ₀ ⊗ dagger(Ψ₀)
 
 
-# Test master
+# Test mcwf with seed
 tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt64(1), reltol=1e-7)
 Ψ = Ψt[end]
 
@@ -37,68 +43,18 @@ tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hsparse, Jsparse; seed=UInt64(1), relto
 tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hsparse, Jsparse; seed=UInt64(2), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) > 0.1
 
-# # Test master_h
-# tout, ρt = timeevolution.master_h(T, ρ₀, H, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
 
-# tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
+# Test convergence to master solution
+tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J)
 
-# tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution.master_h(T, ρ₀, H, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-
-# # Test master_nh
-# Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
-# Hnh_sparse = SparseOperator(Hnh)
-
-# tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-
-# Test simple timeevolution
-# tout, ρt = timeevolution_simple.master(T, ρ₀, H, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution_simple.master(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution_simple.master(T, ρ₀, Hsparse, J; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution_simple.master(T, ρ₀, H, Jsparse; reltol=1e-6)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-
-# # Test special cases
-# tout, ρt = timeevolution.master(T, ρ₀, H, []; reltol=1e-7)
-# ρ = ρt[end]
-
-# tout, ρt = timeevolution.master_h(T, ρ₀, H, []; reltol=1e-7)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution.master_nh(T, ρ₀, H, []; reltol=1e-7)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, ρt = timeevolution_simple.master(T, ρ₀, H, []; reltol=1e-7)
-# @test tracedistance(ρt[end], ρ) < 1e-5
-
-# tout, Ψket_t = timeevolution_simple.schroedinger(T, Ψ₀, H; reltol=1.e-7)
-# tout, Ψbra_t = timeevolution_simple.schroedinger(T, dagger(Ψ₀), H; reltol=1.e-7)
-# @test tracedistance(Ψket_t[end]⊗Ψbra_t[end], ρ) < 1e-5
-
-# tout, Ψket_t = timeevolution.schroedinger(T, Ψ₀, H; reltol=1.e-7)
-# tout, Ψbra_t = timeevolution.schroedinger(T, dagger(Ψ₀), H; reltol=1.e-7)
-# @test tracedistance(Ψket_t[end]⊗Ψbra_t[end], ρ) < 1e-5
+ρ_average = Operator[ρ₀*0. for i=1:length(T)]
+for i=1:Ntrajectories
+    tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=Uint64(i))
+    for j=1:length(T)
+        ρ_average[j] += (Ψt[j] ⊗ dagger(Ψt[j]))/Ntrajectories
+    end
+end
+for i=1:length(T)
+    err = quantumoptics.tracedistance(ρt_master[i], ρ_average[i])
+    @test err < 0.1
+end
