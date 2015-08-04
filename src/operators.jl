@@ -16,16 +16,18 @@ export AbstractOperator, Operator,
 
 abstract AbstractOperator
 
+
 type Operator <: AbstractOperator
     basis_l::Basis
     basis_r::Basis
     data::Matrix{Complex{Float64}}
-    Operator(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch ())
+    Operator(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
 end
 
 Operator(b::Basis, data) = Operator(b, b, data)
 Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
 Operator(b::Basis) = Operator(b, b)
+
 
 check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
