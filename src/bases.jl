@@ -24,7 +24,7 @@ type FockBasis <: Basis
     shape::Vector{Int}
     N0::Int
     N1::Int
-    FockBasis(N0::Int, N1::Int) = 0 < N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionError())
+    FockBasis(N0::Int, N1::Int) = 0 < N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionMismatch())
 end
 
 FockBasis(N::Int) = FockBasis(1,N)
