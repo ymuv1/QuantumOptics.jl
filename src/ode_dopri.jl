@@ -123,7 +123,7 @@ end
 
 function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
                     event_locator::Function, event_callback::Function;
-                    reltol::Float64 = 1.0e-5,
+                    reltol::Float64 = 1.0e-6,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
@@ -204,7 +204,7 @@ end
 
 
 function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
-                    reltol::Float64 = 1.0e-5,
+                    reltol::Float64 = 1.0e-6,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
