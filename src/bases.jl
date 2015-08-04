@@ -9,9 +9,11 @@ export Basis, GenericBasis, CompositeBasis, FockBasis,
 
 abstract Basis
 
+
 type GenericBasis <: Basis
     shape::Vector{Int}
 end
+
 
 type CompositeBasis <: Basis
     shape::Vector{Int}
@@ -30,7 +32,7 @@ end
 FockBasis(N::Int) = FockBasis(1,N)
 
 compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
-compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases, b2.bases)
+compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases..., b2.bases...)
 compose(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
 compose(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
 compose(bases::Basis...) = reduce(compose, bases)
@@ -99,7 +101,7 @@ function ptrace(b::CompositeBasis, indices::Vector{Int})
     elseif length(reduced_basis)==1
         return reduced_basis[1]
     else
-        return CompositeBasis(subbasis...)
+        return CompositeBasis(reduced_basis...)
     end
 end
 
