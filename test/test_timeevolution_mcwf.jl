@@ -58,3 +58,14 @@ for i=1:length(T)
     err = quantumoptics.tracedistance(ρt_master[i], ρ_average[i])
     @test err < 0.1
 end
+
+
+# Test equivalence to schroedinger time evolution for no decay
+J = Operator[]
+tout_schroedinger, Ψt_schroedinger = timeevolution.schroedinger(T, Ψ₀, H)
+tout_mcwf, Ψt_mcwf = timeevolution.mcwf(T, Ψ₀, H, J)
+
+for i=1:length(T)
+    err = norm(Ψt_mcwf[i] - Ψt_schroedinger[i])
+    @test err < 1e-4
+end
