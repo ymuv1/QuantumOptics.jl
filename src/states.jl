@@ -5,7 +5,8 @@ using ..bases
 export StateVector, Bra, Ket,
        tensor, dagger, ⊗,
        basis_bra, basis_ket, basis,
-       zero!, coherent_state
+       normalized,
+       zero!
 
 
 abstract StateVector
@@ -13,20 +14,20 @@ abstract StateVector
 type Bra <: StateVector
     basis::Basis
     data::Vector{Complex{Float64}}
+    Bra(b::Basis, data) = length(b) == length(data) ? new(b, data) : throw(DimensionMismatch())
 end
 
 type Ket <: StateVector
     basis::Basis
     data::Vector{Complex{Float64}}
+    Ket(b::Basis, data) = length(b) == length(data) ? new(b, data) : throw(DimensionMismatch())
 end
 
 Bra(b::Basis) = Bra(b, zeros(Complex, length(b)))
 Ket(b::Basis) = Ket(b, zeros(Complex, length(b)))
 
 
-check = check_multiplicable
-
-*(a::Bra, b::Ket) = (check(a.basis, b.basis); sum(a.data.*b.data))
+*(a::Bra, b::Ket) = (check_multiplicable(a.basis, b.basis); sum(a.data.*b.data))
 *{T<:StateVector}(a::Number, b::T) = T(b.basis, complex(a)*b.data)
 *{T<:StateVector}(a::T, b::Number) = T(a.basis, complex(b)*a.data)
 
@@ -44,6 +45,7 @@ dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
 Base.norm(x::StateVector, p=2) = norm(x.data, p)
+normalized(x::StateVector, p=2) = x/norm(x, p)
 
 function basis_vector(shape::Vector{Int}, index::Vector{Int})
     x = zeros(Complex, shape...)
@@ -58,15 +60,5 @@ basis_ket(b::Basis, index::Array{Int}) = Ket(b, basis_vector(b.shape, index))
 basis_ket(b::Basis, index::Int) = basis_ket(b, [index])
 
 zero!(a::StateVector) = fill!(a.data, zero(eltype(a.data)))
-
-function coherent_state(b::FockBasis, alpha)
-    alpha = complex(alpha)
-    x = zeros(Complex128, b.N1)
-    x[1] = complex(exp(-abs2(alpha)/2))
-    for n=2:b.N1
-        x[n] = x[n-1]*alpha/sqrt(n-1)
-    end
-    return Ket(b, x)
-end
 
 end # module

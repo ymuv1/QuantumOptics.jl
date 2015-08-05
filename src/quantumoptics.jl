@@ -1,7 +1,7 @@
 module quantumoptics
 
 export bases, Basis, GenericBasis, CompositeBasis, FockBasis, compose,
-        states, StateVector, Bra, Ket, tensor, dagger, ⊗, basis_bra, basis_ket, coherent_state, basis,
+        states, StateVector, Bra, Ket, tensor, dagger, ⊗, basis_bra, basis_ket, coherentstate, basis, normalized,
         operators, AbstractOperator, Operator, expect, identity, number, destroy, create,
                     sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis, ptrace, qfunc, embed,
         operators_lazy,
@@ -17,6 +17,8 @@ include("operators.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
 include("operators_lazy.jl")
+include("spins.jl")
+include("fock.jl")
 include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
@@ -28,6 +30,8 @@ using .states
 using .sparse
 using .operators
 using .operators_sparse
+using .spins
+using .fock
 using .metrics
 
 

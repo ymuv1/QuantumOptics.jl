@@ -1,6 +1,6 @@
 module bases
 
-export Basis, GenericBasis, CompositeBasis, FockBasis,
+export Basis, GenericBasis, CompositeBasis,
        compose, ptrace,
        equal_shape, equal_bases, multiplicable,
        IncompatibleBases,
@@ -21,15 +21,6 @@ type CompositeBasis <: Basis
     CompositeBasis(bases::Basis...) = new([prod(b.shape) for b=bases], [bases...])
 end
 
-
-type FockBasis <: Basis
-    shape::Vector{Int}
-    N0::Int
-    N1::Int
-    FockBasis(N0::Int, N1::Int) = 0 < N0 <= N1 ? new([N1-N0+1], N0, N1) : throw(DimensionMismatch())
-end
-
-FockBasis(N::Int) = FockBasis(1,N)
 
 compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
 compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases..., b2.bases...)
@@ -69,7 +60,7 @@ end
 ==(b1::Basis, b2::Basis) = false
 ==(b1::GenericBasis, b2::GenericBasis) = equal_shape(b1.shape,b2.shape)
 ==(b1::CompositeBasis, b2::CompositeBasis) = equal_shape(b1.shape,b2.shape) && equal_bases(b1.bases,b2.bases)
-==(b1::FockBasis, b2::FockBasis) = b1.N0==b2.N0 && b1.N1==b2.N1
+
 
 multiplicable(b1::Basis, b2::Basis) = b1==b2
 function multiplicable(b1::CompositeBasis, b2::CompositeBasis)

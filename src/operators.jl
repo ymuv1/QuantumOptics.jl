@@ -8,9 +8,8 @@ importall ..states
 importall ..bases
 
 export AbstractOperator, Operator,
-       tensor, dagger, expect, ptrace, embed,
+       tensor, dagger, expect, ptrace, embed, normalized,
        identity, number, destroy, create,
-       sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis,
        qfunc
 
 
@@ -53,6 +52,7 @@ Base.full(x::Operator) = x
 
 Base.norm(op::Operator, p) = norm(op.data, p)
 Base.trace(op::Operator) = trace(op.data)
+normalized(op::Operator) = op/trace(op)
 
 basis{T<:AbstractOperator}(op::T) = (check_equal(op.basis_l, op.basis_r); op.basis_l)
 
@@ -66,13 +66,6 @@ Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), 
 number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
 destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))
 create(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),-1))
-
-const spinbasis = GenericBasis([2])
-const sigmax = Operator(spinbasis, [0 1;1 0])
-const sigmay = Operator(spinbasis, [0 -1im;1im 0])
-const sigmaz = Operator(spinbasis, [1 0;0 -1])
-const sigmap = Operator(spinbasis, [0 1;0 0])
-const sigmam = Operator(spinbasis, [0 0;1 0])
 
 check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
 
