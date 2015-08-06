@@ -40,6 +40,16 @@ I = identity(fockbasis)
 # Test division
 @test_approx_eq_eps 0. norm((at/5.)*xket - (at*xket)/5) 1e-14
 
+# Test trace and normalize
+op = Operator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
+@test_approx_eq 8. trace(op)
+op_normalized = normalize(op)
+@test_approx_eq 8. trace(op)
+@test_approx_eq 1. trace(op_normalized)
+op_ = normalize!(op)
+@test op_ === op
+@test_approx_eq 1. trace(op)
+
 # Test gemv implementation
 result_ket = deepcopy(xket)
 operators.gemv!(complex(1.0), at, xket, complex(0.), result_ket)

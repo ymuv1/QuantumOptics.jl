@@ -8,7 +8,7 @@ importall ..states
 importall ..bases
 
 export AbstractOperator, Operator,
-       tensor, dagger, expect, ptrace, embed, normalized,
+       tensor, dagger, expect, ptrace, embed, normalize, normalize!,
        identity, number, destroy, create,
        qfunc
 
@@ -52,7 +52,14 @@ Base.full(x::Operator) = x
 
 Base.norm(op::Operator, p) = norm(op.data, p)
 Base.trace(op::Operator) = trace(op.data)
-normalized(op::Operator) = op/trace(op)
+normalize(op::Operator) = op/trace(op)
+function normalize!(op::Operator)
+    u = 1./trace(op)
+    for j=1:size(op.data,2), i=1:size(op.data,1)
+        op.data[i,j] *= u
+    end
+    return op
+end
 
 basis{T<:AbstractOperator}(op::T) = (check_equal(op.basis_l, op.basis_r); op.basis_l)
 

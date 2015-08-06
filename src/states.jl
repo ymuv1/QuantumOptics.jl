@@ -5,10 +5,13 @@ using ..bases
 export StateVector, Bra, Ket,
        tensor, dagger, ⊗,
        basis_bra, basis_ket, basis,
-       normalized,
+       normalize, normalize!,
        zero!
 
 
+"""
+Abstract base class for Bra and Ket.
+"""
 abstract StateVector
 
 type Bra <: StateVector
@@ -27,6 +30,7 @@ Bra(b::Basis) = Bra(b, zeros(Complex, length(b)))
 Ket(b::Basis) = Ket(b, zeros(Complex, length(b)))
 
 
+# Arithmetic operations
 *(a::Bra, b::Ket) = (check_multiplicable(a.basis, b.basis); sum(a.data.*b.data))
 *{T<:StateVector}(a::Number, b::T) = T(b.basis, complex(a)*b.data)
 *{T<:StateVector}(a::T, b::Number) = T(a.basis, complex(b)*a.data)
@@ -45,7 +49,19 @@ dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
 Base.norm(x::StateVector, p=2) = norm(x.data, p)
-normalized(x::StateVector, p=2) = x/norm(x, p)
+
+"""
+Normalized copy of the given state vector.
+"""
+normalize(x::StateVector, p=2) = x/norm(x, p)
+
+function normalize!(x::StateVector, p=2)
+    u = 1./norm(x, p)
+    for i=1:length(x.data)
+        x.data[i]*=u
+    end
+    return x
+end
 
 function basis_vector(shape::Vector{Int}, index::Vector{Int})
     x = zeros(Complex, shape...)
