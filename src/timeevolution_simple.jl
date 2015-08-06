@@ -7,6 +7,9 @@ using ODE
 export master
 
 
+"""
+Evaluate master equation for diagonal jump operators.
+"""
 function dmaster(rho::Operator, H::AbstractOperator, gamma::Vector, J::Vector, Jdagger::Vector)
     drho = -1im * (H*rho - rho*H)
     for n = 1:length(J)
@@ -15,6 +18,9 @@ function dmaster(rho::Operator, H::AbstractOperator, gamma::Vector, J::Vector, J
     return drho
 end
 
+"""
+Evaluate master equation for nondiagonal jump operators.
+"""
 function dmaster(rho::Operator, H::AbstractOperator, gamma::Matrix, J::Vector, Jdagger::Vector)
     drho = -1im * (H*rho - rho*H)
     for m=1:length(J), n=1:length(J)
@@ -23,6 +29,9 @@ function dmaster(rho::Operator, H::AbstractOperator, gamma::Matrix, J::Vector, J
     return drho
 end
 
+"""
+Integrate master equation.
+"""
 function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
                     Jdagger=map(dagger,J),
                     gamma::Union(Real, Vector, Matrix)=ones(Int, length(J)),
@@ -45,14 +54,26 @@ function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
     return tout, rho_t
 end
 
+master(T::Vector, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master(T, tensor(psi0, dagger(psi0)), H, J; kwargs...)
+
+
+"""
+Evaluate schroedinger equation for ket states.
+"""
 function dschroedinger(psi::Ket, H::AbstractOperator)
     return -1im*H*psi
 end
 
+"""
+Evaluate schroedinger equation for bra states.
+"""
 function dschroedinger(psi::Bra, H::AbstractOperator)
     return 1im*psi*H
 end
 
+"""
+Integrate schroedinger equation.
+"""
 function schroedinger(T::Vector, psi0::StateVector, H::AbstractOperator; kwargs...)
     f(t::Float64, psi::StateVector) = dschroedinger(psi, H)
     tout, rho_t = ode45(f, psi0, T; kwargs...)

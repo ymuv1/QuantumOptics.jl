@@ -8,6 +8,9 @@ using ..ode_dopri
 export master, master_nh, master_h
 
 
+"""
+Evaluate master equation for diagonal jump operators.
+"""
 function dmaster_h(rho::Operator, H::AbstractOperator,
                     Gamma::Vector, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
@@ -25,6 +28,9 @@ function dmaster_h(rho::Operator, H::AbstractOperator,
     return drho
 end
 
+"""
+Evaluate master equation for nondiagonal jump operators.
+"""
 function dmaster_h(rho::Operator, H::AbstractOperator,
                     Gamma::Matrix, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
@@ -42,6 +48,9 @@ function dmaster_h(rho::Operator, H::AbstractOperator,
     return drho
 end
 
+"""
+Evaluate master equation for non-hermitian Hamiltonian and diagonal jump operators.
+"""
 function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
                     Gamma::Vector, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
@@ -54,6 +63,9 @@ function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOp
     return drho
 end
 
+"""
+Evaluate master equation for non-hermitian Hamiltonian and nondiagonal jump operators.
+"""
 function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
                     Gamma::Matrix, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
@@ -66,6 +78,9 @@ function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOp
     return drho
 end
 
+"""
+Integrate master equation with given derivative function.
+"""
 function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing, kwargs...)
     nl = prod(rho0.basis_l.shape)
     nr = prod(rho0.basis_r.shape)
@@ -106,6 +121,9 @@ function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::V
     end
 end
 
+"""
+Integrate master equation with dmaster_h as derivative function.
+"""
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
@@ -118,6 +136,12 @@ function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
+master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
+
+
+"""
+Integrate master equation with master_nh as derivative function.
+"""
 function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
                 Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
                 Hnhdagger::AbstractOperator=dagger(Hnh),
@@ -131,6 +155,15 @@ function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
+master_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector; kwargs...) = master_nh(tspan, tensor(psi0, dagger(psi0)), Hnh, J; kwargs...)
+
+
+"""
+Integrate master equation.
+
+Hnh is first calculated from the given Hamiltonian and Jump operators and
+then dmaster_nh is used for the time evolution.
+"""
 function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
@@ -148,6 +181,12 @@ function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
+master(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
+
+
+"""
+Integrate schroedinger equation with given derivative function.
+"""
 function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, psi0::T; fout=nothing, kwargs...)
     as_statevector(x::Vector{Complex128}) = T(psi0.basis, x)
     as_vector(psi::T) = psi.data
@@ -168,16 +207,25 @@ function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, 
     return fout==nothing ? (tout, xout) : nothing
 end
 
+"""
+Evaluate schroedinger equation for ket states.
+"""
 function dschroedinger_ket(psi::Ket, H::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
     return dpsi
 end
 
+"""
+Evaluate schroedinger equation for bra states.
+"""
 function dschroedinger_bra(psi::Bra, H::AbstractOperator, dpsi::Bra)
     operators.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
     return dpsi
 end
 
+"""
+Integrate schroedinger equation.
+"""
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
                 fout::Union(Function,Nothing)=nothing,
                 kwargs...)
@@ -231,31 +279,89 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, se
 end
 
 function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket)
-    probs = zeros(Float64, length(J))
-    for i=1:length(J)
-        operators.gemv!(complex(1.), J[i], psi, complex(0.), psi_new)
-        #probs[i] = norm(psi_new)^2
-        probs[i] = dagger(psi_new)*psi_new
+    if length(J)==1
+        operators.gemv!(complex(1.), J[1], psi, complex(0.), psi_new)
+        N = norm(psi_new)
+        for i=1:length(psi_new.data)
+            psi_new.data[i] /= N
+        end
+    else
+        probs = zeros(Float64, length(J))
+        for i=1:length(J)
+            operators.gemv!(complex(1.), J[i], psi, complex(0.), psi_new)
+            #probs[i] = norm(psi_new)^2
+            probs[i] = dagger(psi_new)*psi_new
+        end
+        cumprobs = cumsum(probs./sum(probs))
+        r = rand(rng)
+        i = findfirst(cumprobs.>r)
+        operators.gemv!(complex(1.)/sqrt(probs[i]), J[i], psi, complex(0.), psi_new)
     end
-    cumprobs = cumsum(probs./sum(probs))
-    r = rand(rng)
-    i = findfirst(cumprobs.>r)
-    operators.gemv!(complex(1.)/sqrt(probs[i]), J[i], psi, complex(0.), psi_new)
     return nothing
 end
 
+"""
+Evaluate Schroedinger equation with nonhermitian Hamiltonian.
+
+The nonhermitian Hamiltonian is given in two parts - the hermition part H and
+the jump operators J.
+"""
+function dmcwf_h(psi::Ket, H::AbstractOperator,
+                 J::Vector, Jdagger::Vector, dpsi::Ket, tmp::Ket)
+    operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
+    for i=1:length(J)
+        operators.gemv!(complex(1.), J[i], psi, complex(0.), tmp)
+        operators.gemv!(-complex(0.5,0.), Jdagger[i], tmp, complex(1.), dpsi)
+    end
+    return dpsi
+end
+
+
+"""
+Evaluate Schroedinger equation with nonhermitian Hamiltonian.
+"""
 function dmcwf_nh(psi::Ket, Hnh::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)
     return dpsi
 end
 
-function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
-                seed=rand(Uint64), fout=nothing, kwargs...)
-    f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
+"""
+Integrate master equation using MCWF method with mcwf_h as derivative function.
+"""
+function mcwf_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
+                seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                tmp::Ket=deepcopy(psi0),
+                display_beforeevent=false, display_afterevent=false,
+                kwargs...)
+    f(t, psi, dpsi) = dmcwf_h(psi, H, J, Jdagger, dpsi, tmp)
     j(rng, t, psi, psi_new) = jump(rng, t, psi, J, psi_new)
-    return integrate_mcwf(f, j, tspan, psi0, seed; fout=fout, kwargs...)
+    return integrate_mcwf(f, j, tspan, psi0, seed; fout=fout,
+                display_beforeevent=display_beforeevent,
+                display_afterevent=display_afterevent,
+                kwargs...)
 end
 
+"""
+Integrate master equation using MCWF method with mcwf_nh as derivative function.
+"""
+function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
+                seed=rand(Uint64), fout=nothing,
+                display_beforeevent=false, display_afterevent=false,
+                kwargs...)
+    f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
+    j(rng, t, psi, psi_new) = jump(rng, t, psi, J, psi_new)
+    return integrate_mcwf(f, j, tspan, psi0, seed; fout=fout,
+                display_beforeevent=display_beforeevent,
+                display_afterevent=display_afterevent,
+                kwargs...)
+end
+
+"""
+Integrate master equation using MCWF method.
+
+Hnh is first calculated from the given Hamiltonian and Jump operators and
+then dmcwf_nh is used for the time evolution.
+"""
 function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
                 seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J),
                 display_beforeevent=false, display_afterevent=false,

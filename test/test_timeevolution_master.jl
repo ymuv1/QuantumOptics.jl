@@ -35,6 +35,9 @@ tout, ρt = timeevolution.master(T, ρ₀, H, J; reltol=1e-7)
 tout, ρt = timeevolution.master(T, ρ₀, Hsparse, Jsparse; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
+tout, ρt = timeevolution.master(T, Ψ₀, H, J; reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
 
 # Test master_h
 tout, ρt = timeevolution.master_h(T, ρ₀, H, J; reltol=1e-6)
@@ -47,6 +50,9 @@ tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, J; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 tout, ρt = timeevolution.master_h(T, ρ₀, H, Jsparse; reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, Ψ₀, H, J; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 
@@ -66,6 +72,9 @@ tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, J; reltol=1e-6)
 tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Jsparse; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
+tout, ρt = timeevolution.master_nh(T, Ψ₀, Hnh, J; reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
 
 # Test simple timeevolution
 tout, ρt = timeevolution_simple.master(T, ρ₀, H, J; reltol=1e-6)
@@ -78,6 +87,9 @@ tout, ρt = timeevolution_simple.master(T, ρ₀, Hsparse, J; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 tout, ρt = timeevolution_simple.master(T, ρ₀, H, Jsparse; reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution_simple.master(T, Ψ₀, H, J; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 
