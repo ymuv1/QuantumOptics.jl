@@ -3,8 +3,8 @@ using quantumoptics
 
 
 # Set up operators
-sx = operators.sigmax
-sy = operators.sigmay
+sx = sigmax
+sy = sigmay
 
 sx_sp = SparseOperator(sx)
 sy_sp = SparseOperator(sy)
