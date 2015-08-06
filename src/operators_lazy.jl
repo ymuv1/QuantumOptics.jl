@@ -1,4 +1,4 @@
-module lazy
+module operators_lazy
 
 using Base.Cartesian
 using ..bases, ..states
