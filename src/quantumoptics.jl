@@ -19,6 +19,7 @@ include("sparsematrix.jl")
 include("operators_sparse.jl")
 include("operators_lazy.jl")
 include("spins.jl")
+include("particle.jl")
 include("fock.jl")
 include("metrics.jl")
 include("ode_dopri.jl")
@@ -33,6 +34,7 @@ using .operators
 using .operators_sparse
 using .spins
 using .fock
+using .particle
 using .metrics
 
 
