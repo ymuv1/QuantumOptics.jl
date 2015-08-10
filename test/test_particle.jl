@@ -39,8 +39,8 @@ psip0_fft = quantumoptics.particle.transformation(basis_momentum, basis_position
 @test_approx_eq_eps p0 expect(opx_p, psip0_fft) 0.1
 @test_approx_eq x0 expect(opx_x, psip0_fft)
 
-println((angle(psip0_fft.data) - angle(psix0.data)))
-
+println((angle(psix0_fft.data) - angle(psip0.data)))
+println(norm(psix0_fft - psip0))
 
 #println(opp_x.data)
 #

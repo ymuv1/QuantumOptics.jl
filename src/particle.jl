@@ -31,7 +31,7 @@ function gaussianstate(b::PositionBasis, x0::Float64, p0::Float64, sigma::Float6
     alpha = 1./(pi^(1/4)*sqrt(sigma))*sqrt(dx)
     x = b.xmin
     for i=1:b.N
-        psi.data[i] = alpha*exp(1im*p0*x - (x-x0)^2/(2*sigma^2))
+        psi.data[i] = alpha*exp(1im*p0*(x-x0) - (x-x0)^2/(2*sigma^2))
         x += dx
     end
     return psi
@@ -118,6 +118,7 @@ end
 laplace_x(b::MomentumBasis) = Operator(b, diagm(samplepoints(b).^2))
 
 
+
 function transformation(b1::MomentumBasis, b2::PositionBasis, psi::Ket)
     Lp = (b1.pmax - b1.pmin)
     dx = spacing(b2)
@@ -125,7 +126,7 @@ function transformation(b1::MomentumBasis, b2::PositionBasis, psi::Ket)
         throw(IncompatibleBases())
     end
     N = b1.N
-    psi_shifted = exp(1im*b2.xmin*(samplepoints(b1)+b1.pmin)).*psi.data
+    psi_shifted = exp(1im*b2.xmin*(samplepoints(b1)-b1.pmin)).*psi.data
     psi_fft = exp(1im*b1.pmin*samplepoints(b2)).*ifft(psi_shifted)*sqrt(N)
     return Ket(b2, psi_fft)
 end
@@ -137,9 +138,8 @@ function transformation(b1::PositionBasis, b2::MomentumBasis, psi::Ket)
         throw(IncompatibleBases())
     end
     N = b1.N
-    psi_shifted = exp(-1im*b2.pmin*(samplepoints(b1)+b1.xmin)).*psi.data
+    psi_shifted = exp(-1im*b2.pmin*(samplepoints(b1)-b1.xmin)).*psi.data
     psi_fft = exp(-1im*b1.xmin*samplepoints(b2)).*fft(psi_shifted)/sqrt(N)
-    #psi_fft = exp(-1im*b1.xmin*(samplepoints(b2)+b2.pmin)).*fft(psi_shifted)/sqrt(N)
     return Ket(b2, psi_fft)
 end
 
