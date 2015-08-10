@@ -5,7 +5,7 @@ using ..bases, ..states
 
 importall ..operators
 
-export LazyTensor, LazySum
+export LazyOperator, LazyTensor, LazySum
 
 
 abstract LazyOperator <: AbstractOperator
