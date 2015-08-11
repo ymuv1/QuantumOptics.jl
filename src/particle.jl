@@ -2,6 +2,8 @@ module particle
 
 using ..bases, ..states, ..operators, ..operators_lazy
 
+importall ..operators
+
 type PositionBasis <: Basis
     shape::Vector{Int}
     xmin::Float64
@@ -118,55 +120,90 @@ end
 laplace_x(b::MomentumBasis) = Operator(b, diagm(samplepoints(b).^2))
 
 
-
-function transformation(b1::MomentumBasis, b2::PositionBasis, psi::Ket)
-    Lp = (b1.pmax - b1.pmin)
-    dx = spacing(b2)
-    if b1.N != b2.N || abs(2*pi/dx - Lp)/Lp > 1e-12
-        throw(IncompatibleBases())
-    end
-    N = b1.N
-    psi_shifted = exp(1im*b2.xmin*(samplepoints(b1)-b1.pmin)).*psi.data
-    psi_fft = exp(1im*b1.pmin*samplepoints(b2)).*ifft(psi_shifted)*sqrt(N)
-    return Ket(b2, psi_fft)
-end
-
-function transformation(b1::PositionBasis, b2::MomentumBasis, psi::Ket)
-    Lx = (b1.xmax - b1.xmin)
-    dp = spacing(b2)
-    if b1.N != b2.N || abs(2*pi/dp - Lx)/Lx > 1e-12
-        throw(IncompatibleBases())
-    end
-    N = b1.N
-    psi_shifted = exp(-1im*b2.pmin*(samplepoints(b1)-b1.xmin)).*psi.data
-    psi_fft = exp(-1im*b1.xmin*samplepoints(b2)).*fft(psi_shifted)/sqrt(N)
-    return Ket(b2, psi_fft)
-end
-
-function transformation!(b1::PositionBasis, b2::MomentumBasis, psi::Ket)
-    Lx = (b1.xmax - b1.xmin)
-    dp = spacing(b2)
-    dx = spacing(b1)
-    if b1.N != b2.N || abs(2*pi/dp - Lx)/Lx > 1e-12
-        throw(IncompatibleBases())
-    end
-    N = b1.N
-    for i=1:N
-        psi.data[i] *= exp(-1im*b2.pmin*i*dx)
-    end
-    fft!(psi.data)
-    for i=1:N
-        psi.data[i] *= exp(-1im*b1.xmin*(b2.pmin + i*dp))/sqrt(N)
-    end
-    psi.basis = b2
-    return psi
-end
-
 type FFTOperator <: LazyOperator
     basis_l::Basis
     basis_r::Basis
+    fft_l!
+    fft_r!
+    mul_before::Vector{Complex128}
+    mul_after::Vector{Complex128}
 end
 
-*(op::FFTOperator, psi::Ket) = transformation(op.basis_r, op.basis_l, psi)
+function FFTOperator(basis_l::MomentumBasis, basis_r::PositionBasis)
+    Lx = (basis_r.xmax - basis_r.xmin)
+    dp = spacing(basis_l)
+    dx = spacing(basis_r)
+    if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
+        throw(IncompatibleBases())
+    end
+    x = zeros(Complex128, length(basis_r))
+    mul_before = exp(-1im*basis_l.pmin*(samplepoints(basis_r)-basis_r.xmin))
+    mul_after = exp(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
+    FFTOperator(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
+end
+
+function FFTOperator(basis_l::PositionBasis, basis_r::MomentumBasis)
+    Lx = (basis_l.xmax - basis_l.xmin)
+    dp = spacing(basis_r)
+    dx = spacing(basis_l)
+    if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
+        throw(IncompatibleBases())
+    end
+    x = zeros(Complex128, length(basis_r))
+    mul_before = exp(1im*basis_l.xmin*(samplepoints(basis_r)-basis_r.pmin))
+    mul_after = exp(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
+    FFTOperator(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
+end
+
+
+dagger(op::FFTOperator) = FFTOperator(op.basis_r, op.basis_l)
+
+
+function operators.gemv!{T<:Complex}(alpha::T, M::FFTOperator, b::Ket, beta::T, result::Ket)
+    N::Int = M.basis_r.N
+    if beta==Complex(0.)
+        @inbounds for i=1:N
+            result.data[i] = M.mul_before[i] * b.data[i]
+        end
+        M.fft_r!(result.data)
+        @inbounds for i=1:N
+            result.data[i] *= M.mul_after[i] * alpha
+        end
+    else
+        psi_ = Ket(M.basis_l, deepcopy(b.data))
+        @inbounds for i=1:N
+            psi_.data[i] *= M.mul_before[i]
+        end
+        M.fft_r!(psi_.data)
+        @inbounds for i=1:N
+            result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
+        end
+    end
+    nothing
+end
+
+function operators.gemv!{T<:Complex}(alpha::T, b::Bra, M::FFTOperator, beta::T, result::Bra)
+    N::Int = M.basis_l.N
+    if beta==Complex(0.)
+        @inbounds for i=1:N
+            result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
+        end
+        M.fft_l!(result.data)
+        @inbounds for i=1:N
+            result.data[i] = conj(result.data[i]) * M.mul_before[i] * alpha
+        end
+    else
+        psi_ = Bra(M.basis_r, conj(b.data))
+        @inbounds for i=1:N
+            psi_.data[i] *= conj(M.mul_after[i])
+        end
+        M.fft_l!(psi_.data)
+        @inbounds for i=1:N
+            result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
+        end
+    end
+    nothing
+end
+
 
 end # module
