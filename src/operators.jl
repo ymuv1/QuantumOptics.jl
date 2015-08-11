@@ -89,6 +89,50 @@ gemm!(alpha, a::Operator, b::Operator, beta, result::Operator) = gemm!(alpha, a.
 gemv!(alpha, a::Operator, b::Ket, beta, result::Ket) = gemv!(alpha, a.data, b.data, beta, result.data)
 gemv!(alpha, a::Bra, b::Operator, beta, result::Bra) = gemv!(alpha, a.data, b.data, beta, result.data)
 
+function gemm!(alpha, M::AbstractOperator, b::Operator, beta, result::Operator)
+    for i=1:size(b.data, 2)
+        bket = Ket(b.basis_l, b.data[:,i])
+        resultket = Ket(M.basis_l, result.data[:,i])
+        gemv!(alpha, M, bket, beta, resultket)
+    end
+end
+
+function gemm!(alpha, b::Operator, M::AbstractOperator, beta, result::Operator)
+    for i=1:size(b.data, 1)
+        bbra = Bra(b.basis_r, vec(b.data[i,:]))
+        resultbra = Bra(M.basis_r, vec(result.data[i,:]))
+        gemv!(alpha, bbra, M, beta, resultbra)
+    end
+end
+
+function *(op1::AbstractOperator, op2::Operator)
+    check_multiplicable(op1.basis_r, op2.basis_l)
+    result = Operator(op1.basis_l, b2.basis_r)
+    gemm!(Complex(1.), op1, op2, Complex(0.), result)
+    return result
+end
+
+function *(op1::Operator, op2::AbstractOperator)
+    check_multiplicable(op1.basis_r, op2.basis_l)
+    result = Operator(op1.basis_l, b2.basis_r)
+    gemm!(Complex(1.), op1, op2, Complex(0.), result)
+    return result
+end
+
+function *(op::AbstractOperator, psi::Ket)
+    check_multiplicable(op.basis_r, psi.basis)
+    result = Ket(op.basis_l)
+    gemv!(Complex(1.), op, psi, Complex(0.), result)
+    return result
+end
+
+function *(psi::Bra, op::AbstractOperator)
+    check_multiplicable(psi.basis, op.basis_l)
+    result = Bra(op.basis_r)
+    gemv!(Complex(1.), psi, op, Complex(0.), result)
+    return result
+end
+
 Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
 
 embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)]...)
