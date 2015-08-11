@@ -87,6 +87,10 @@ end
 *(a::Number, b::LazyTensor) = LazyTensor(b.basis_l, b.basis_r, b.operators, a*b.factor)
 
 *(a::LazySum, b::LazySum) = LazySum([op1*op2 for op1=a.operators, op2=b.operators]...)
+*(a::LazySum, b::Operator) = sum([op*b for op=a.operators]...)
+*(a::Operator, b::LazySum) = sum([a*op for op=b.operators]...)
+*(a::LazySum, b::Ket) = sum([op*b for op=a.operators]...)
+*(a::Bra, b::LazySum) = sum([a*op for op=b.operators]...)
 *(a::LazySum, b) = LazySum([op*b for op=a.operators]...)
 *(a, b::LazySum) = LazySum([a*op for op=b.operators]...)
 
