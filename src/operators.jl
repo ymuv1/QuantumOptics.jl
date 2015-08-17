@@ -94,6 +94,7 @@ function gemm!(alpha, M::AbstractOperator, b::Operator, beta, result::Operator)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
         gemv!(alpha, M, bket, beta, resultket)
+        result.data[:,i] = resultket.data
     end
 end
 
@@ -102,19 +103,20 @@ function gemm!(alpha, b::Operator, M::AbstractOperator, beta, result::Operator)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
         gemv!(alpha, bbra, M, beta, resultbra)
+        result.data[i,:] = resultbra.data
     end
 end
 
 function *(op1::AbstractOperator, op2::Operator)
     check_multiplicable(op1.basis_r, op2.basis_l)
-    result = Operator(op1.basis_l, b2.basis_r)
+    result = Operator(op1.basis_l, op2.basis_r)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
 
 function *(op1::Operator, op2::AbstractOperator)
     check_multiplicable(op1.basis_r, op2.basis_l)
-    result = Operator(op1.basis_l, b2.basis_r)
+    result = Operator(op1.basis_l, op2.basis_r)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end

@@ -96,13 +96,27 @@ operators.gemv!(Complex(1.), Txp, psip0, Complex(1.), psi_)
 @test_approx_eq_eps 0. norm(psi_ - 2*psix0) 1e-12
 
 rhox0x0 = tensor(psix0, dagger(psix0))
+rhox0p0 = tensor(psix0, dagger(psip0))
 rhop0x0 = tensor(psip0, dagger(psix0))
 rhop0p0 = tensor(psip0, dagger(psip0))
 
-rho_ = deepcopy(rhop0x0)
+rho_ = Operator(basis_momentum, basis_position)
 operators.gemm!(Complex(1.), Tpx, rhox0x0, Complex(0.), rho_)
+println("Trace: ", trace(rho_))
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0x0) 1e-5
+# @test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0, rhop0x0) 1e-5
 
-rho_ = deepcopy(rhop0p0)
+rho_ = Operator(basis_position, basis_momentum)
+operators.gemm!(Complex(1.), rhox0x0, Txp, Complex(0.), rho_)
+@test_approx_eq_eps 0. tracedistance(rho_, rhox0p0) 1e-5
+@test_approx_eq_eps 0. tracedistance(rhox0x0*Txp, rhox0p0) 1e-5
+
+rho_ = Operator(basis_momentum, basis_momentum)
+operators.gemm!(Complex(1.), Tpx, rhop0x0, Complex(0.), rho_)
+@test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
+@test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0*Txp, rhop0p0) 1e-5
+
+rho_ = Operator(basis_position, basis_position)
 operators.gemm!(Complex(1.), rhop0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
+@test_approx_eq_eps 0. tracedistance(Txp*rhop0p0*Tpx, rhox0x0) 1e-5
