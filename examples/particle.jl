@@ -1,9 +1,13 @@
 using quantumoptics
 
-N = 500
+N = 200
 xmin = -10.
 xmax = 10.
 omega = 2.
+
+x0 = 1.
+p0 = 0.
+sigma0 = 1.
 
 T = [0.:0.2:2.;]
 
@@ -17,41 +21,42 @@ Tpx = quantumoptics.particle.FFTOperator(basis_momentum, basis_position)
 Txp = quantumoptics.particle.FFTOperator(basis_position, basis_momentum)
 
 # Position Basis
-p = quantumoptics.particle.momentumoperator(basis_position)
-x = quantumoptics.particle.positionoperator(basis_position)
-V = Operator(basis_position, diagm(omega^2*xsamplepoints.^2))
-H = p*p/2 #+ V
+#p_pos = SparseOperator(quantumoptics.particle.momentumoperator(basis_position))
+p_pos = Txp*quantumoptics.particle.momentumoperator(basis_momentum)*Tpx
+x_pos = quantumoptics.particle.positionoperator(basis_position)
+V_pos = Operator(basis_position, diagm(omega^2*xsamplepoints.^2))
+H_pos = p_pos*p_pos/2 + V_pos
 
-psi0 = quantumoptics.particle.gaussianstate(basis_position, 0., 0., 1.)
-tout, psi_x_t = timeevolution.schroedinger(T, psi0, H)
+psi0_pos = quantumoptics.particle.gaussianstate(basis_position, x0, p0, sigma0)
+@time tout, psi_pos_t = timeevolution.schroedinger(T, psi0_pos, H_pos)
+@time tout, psi_pos_t = timeevolution.schroedinger(T, psi0_pos, H_pos)
 
 
 # Momentum Basis
-p_ = quantumoptics.particle.momentumoperator(basis_momentum)
-x_ = quantumoptics.particle.positionoperator(basis_momentum)
-V_ = Tpx*V*Txp
-H_ = p_*p_/2 #+ V_
+p_mom = SparseOperator(quantumoptics.particle.momentumoperator(basis_momentum))
+x_mom = SparseOperator(quantumoptics.particle.positionoperator(basis_momentum))
+#x_mom = SparseOperator(Tpx*quantumoptics.particle.positionoperator(basis_position)*Txp)
+V_mom = SparseOperator(Tpx*Operator(basis_position, diagm(omega^2*xsamplepoints.^2))*Txp)
+H_mom = p_mom*p_mom/2 + V_mom
 
-#psi0 = quantumoptics.particle.gaussianstate(basis_momentum, 2., 0., 1.)
-tout, psi_p_t = timeevolution.schroedinger(T, Tpx*psi0, H_)
+psi0_mom = quantumoptics.particle.gaussianstate(basis_momentum, x0, p0, sigma0)
+@time tout, psi_mom_t = timeevolution.schroedinger(T, psi0_mom, H_mom)
+@time tout, psi_mom_t = timeevolution.schroedinger(T, psi0_mom, H_mom)
+
+
+# Mixed evolution
+H_mix = LazyProduct(Txp, p_mom*p_mom/2, Tpx) + SparseOperator(V_pos)
+# println(expect(H_mix, psi0_pos))
+# println(expect(H_pos, psi0_pos))
+# println(expect(H_mix, psi0_pos + 0.1im*H_mix*psi0_pos))
+# println(expect(H_pos, psi0_pos + 0.1im*H_pos*psi0_pos))
+@time tout, psi_mix_t = timeevolution.schroedinger(T, psi0_pos, H_mix)
+@time tout, psi_mix_t = timeevolution.schroedinger(T, psi0_pos, H_mix)
 
 for i=1:length(T)
-    println(expect(p_, psi_p_t[i]), expect(p, psi_x_t[i]))
-    println(expect(x_, psi_p_t[i]), expect(x, psi_x_t[i]))
-    println(norm(Txp*psi_p_t[i] - psi_x_t[i]))
+    println(expect(p_mom, psi_mom_t[i]), ", ", expect(p_pos, psi_pos_t[i]))
+    println(expect(x_mom, psi_mom_t[i]), ", ", expect(x_pos, psi_pos_t[i]))
+    println(norm(Txp*psi_mom_t[i] - psi_pos_t[i]))
+    println(norm(psi_mix_t[i] - psi_pos_t[i]))
     println("================================================")
 end
-# using PyCall
-# @pyimport matplotlib.pyplot as plt
-#
-# for i=1:length(T)
-#     psi_x = psi_x_t[i]
-#     psi_p = psi_p_t[i]
-#     plt.subplot(2,1,1)
-#     plt.plot(xsamplepoints, real(dagger(psi_x).data .* psi_x.data), "b")
-#     plt.plot(xsamplepoints, real(dagger(Txp*psi_p).data .* (Txp*psi_).data), "g")
-#     plt.subplot(2,1,2)
-#     plt.plot(psamplepoints, real(dagger(Tpx*psi_x).data .* (Tpx*psi_x).data), "b")
-#     plt.plot(psamplepoints, real(dagger(psi_p).data .* psi_.data), "g")
-# end
-# plt.show()

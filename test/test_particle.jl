@@ -102,9 +102,8 @@ rhop0p0 = tensor(psip0, dagger(psip0))
 
 rho_ = Operator(basis_momentum, basis_position)
 operators.gemm!(Complex(1.), Tpx, rhox0x0, Complex(0.), rho_)
-println("Trace: ", trace(rho_))
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0x0) 1e-5
-# @test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0, rhop0x0) 1e-5
+@test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0, rhop0x0) 1e-5
 
 rho_ = Operator(basis_position, basis_momentum)
 operators.gemm!(Complex(1.), rhox0x0, Txp, Complex(0.), rho_)
@@ -112,11 +111,22 @@ operators.gemm!(Complex(1.), rhox0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rhox0x0*Txp, rhox0p0) 1e-5
 
 rho_ = Operator(basis_momentum, basis_momentum)
-operators.gemm!(Complex(1.), Tpx, rhop0x0, Complex(0.), rho_)
+operators.gemm!(Complex(1.), Tpx, rhox0p0, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0*Txp, rhop0p0) 1e-5
 
-rho_ = Operator(basis_position, basis_position)
+rho_ = Operator(basis_momentum, basis_momentum)
 operators.gemm!(Complex(1.), rhop0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Txp*rhop0p0*Tpx, rhox0x0) 1e-5
+
+psi_ = deepcopy(psix0)
+operators.gemv!(Complex(1.), LazyProduct(Txp, Tpx), psix0, Complex(0.), psi_)
+@test_approx_eq_eps 0. norm(psi_ - psix0) 1e-12
+@test_approx_eq_eps 0. norm(Txp*(Tpx*psix0) - psix0) 1e-12
+
+psi_ = deepcopy(psix0)
+I = identity(basis_momentum)
+operators.gemv!(Complex(1.), LazyProduct(Txp, I, Tpx), psix0, Complex(0.), psi_)
+@test_approx_eq_eps 0. norm(psi_ - psix0) 1e-12
+@test_approx_eq_eps 0. norm(Txp*I*(Tpx*psix0) - psix0) 1e-12
