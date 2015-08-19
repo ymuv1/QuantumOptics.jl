@@ -5,7 +5,7 @@ export bases, Basis, GenericBasis, CompositeBasis, FockBasis, compose,
         normalize, normalize!,
         operators, AbstractOperator, Operator, expect, identity, number, destroy, create,
                     sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis, ptrace, qfunc, embed,
-        operators_lazy, LazyOperator,
+        operators_lazy, LazyOperator,LazyTensor, LazySum, LazyProduct,
         operators_sparse, SparseOperator, sparse_identity,
         sparse,
         metrics, tracedistance,
@@ -32,6 +32,7 @@ using .states
 using .sparse
 using .operators
 using .operators_sparse
+using .operators_lazy
 using .spins
 using .fock
 using .particle
