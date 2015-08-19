@@ -39,6 +39,8 @@ check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis
 /(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data/complex(b))
 
 +(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
+
+-(a::Operator) = Operator(a.basis_l, a.basis_r, -a.data)
 -(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
 
