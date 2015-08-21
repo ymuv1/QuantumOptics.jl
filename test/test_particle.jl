@@ -31,6 +31,8 @@ opp_x = quantumoptics.particle.positionoperator(basis_momentum)
 @test_approx_eq p0 expect(opp_p, psip0)
 @test_approx_eq_eps x0 expect(opp_x, psip0) 0.1
 
+
+# Test FFT transformation
 function transformation(b1::quantumoptics.particle.MomentumBasis, b2::quantumoptics.particle.PositionBasis, psi::Ket)
     Lp = (b1.pmax - b1.pmin)
     dx = quantumoptics.particle.spacing(b2)
@@ -120,6 +122,7 @@ operators.gemm!(Complex(1.), rhop0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Txp*rhop0p0*Tpx, rhox0x0) 1e-5
 
+# Test FFT with lazy product
 psi_ = deepcopy(psix0)
 operators.gemv!(Complex(1.), LazyProduct(Txp, Tpx), psix0, Complex(0.), psi_)
 @test_approx_eq_eps 0. norm(psi_ - psix0) 1e-12
@@ -130,3 +133,10 @@ I = identity(basis_momentum)
 operators.gemv!(Complex(1.), LazyProduct(Txp, I, Tpx), psix0, Complex(0.), psi_)
 @test_approx_eq_eps 0. norm(psi_ - psix0) 1e-12
 @test_approx_eq_eps 0. norm(Txp*I*(Tpx*psix0) - psix0) 1e-12
+
+# Test dense FFT operator
+Txp_dense = Operator(Txp)
+Tpx_dense = Operator(Tpx)
+@test typeof(Txp_dense) == Operator
+@test typeof(Tpx_dense) == Operator
+@test_approx_eq_eps 0. tracedistance(Txp_dense*rhop0p0*Tpx_dense, rhox0x0) 1e-5
