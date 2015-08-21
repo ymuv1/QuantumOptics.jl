@@ -1,18 +1,19 @@
 using Base.Test
 using quantumoptics.sparsematrix
 
-SparseMatrix = quantumoptics.sparsematrix.SparseMatrix
+# SparseMatrix = quantumoptics.sparsematrix.SparseMatrix
+typealias SparseMatrix SparseMatrixCSC{Complex128}
 
 # Set up test matrices
 A = rand(Complex128, 5, 5)
-A_sp = quantumoptics.sparsematrix.SparseMatrix(A)
+A_sp = sparse(A)
 
 B = eye(Complex128, 5)
-B_sp = quantumoptics.sparsematrix.sparse_eye(Complex128, 5)
+B_sp = speye(Complex128, 5)
 
 C = rand(Complex128, 3, 3)
 C[2,:] = 0
-C_sp = quantumoptics.sparsematrix.SparseMatrix(C)
+C_sp = sparse(C)
 
 R_sp = A_sp + B_sp
 R = A + B
@@ -27,4 +28,3 @@ R = A + B
 # Test kronecker product
 @test_approx_eq 0. norm(full(kron(A_sp, C_sp)) - kron(A, C))
 @test_approx_eq 0. norm(full(kron(A_sp, B_sp)) - kron(A, B))
-
