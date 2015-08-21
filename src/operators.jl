@@ -26,6 +26,8 @@ end
 Operator(b::Basis, data) = Operator(b, b, data)
 Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
 Operator(b::Basis) = Operator(b, b)
+Operator(op::Operator) = deepcopy(op)
+Operator(op::AbstractOperator) = op*identity(op.basis_r)
 
 
 check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
