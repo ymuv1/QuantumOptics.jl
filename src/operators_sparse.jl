@@ -13,8 +13,8 @@ type SparseOperator <: AbstractOperator
     data::sparsematrix.SparseMatrix{Complex128}
 end
 
-SparseOperator(b::Basis, data::sparsematrix.SparseMatrix) = SparseOperator(b, b, data)
-SparseOperator(b::Basis, data::Matrix) = SparseOperator(b, sparsematrix.SparseMatrix(data))
+SparseOperator(b::Basis, data::sparsematrix.SparseMatrix{Complex128}) = SparseOperator(b, b, data)
+SparseOperator(b::Basis, data::Matrix{Complex128}) = SparseOperator(b, sparsematrix.SparseMatrix(data))
 SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, sparsematrix.SparseMatrix(Operator.data))
 
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, sparsematrix.SparseMatrix([prod(b1.shape), prod(b2.shape)], Int[], Int[], Complex128[]))

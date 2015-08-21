@@ -39,15 +39,38 @@ optimize_left!(S::SparseMatrix) = perm!(S, sortperm(S.index_l))
 optimize_right!(S::SparseMatrix) = perm!(S, sortperm(S.index_r))
 
 function add_element!{T}(a::SparseMatrix{T}, i::Int, j::Int, value::T)
-    index = find((a.index_l.==i) & (a.index_r.==j))
-    if length(index)==0
+    #index = find((a.index_l.==i) & (a.index_r.==j))
+    index = 0
+    for k=1:length(a.index_l)
+        if (a.index_l[k] == i) && (a.index_r[k] == j)
+            index = k
+            break
+        end
+    end
+    if index==0
         push!(a.index_l, i)
         push!(a.index_r, j)
         push!(a.values, value)
-    elseif length(index)==1
-        a.values[index[1]] += value
     else
-        error("Index not unique.")
+        a.values[index] += value
+    end
+end
+
+function add_element_sorted!{T}(a::SparseMatrix{T}, i::Int, j::Int, value::T)
+    #index = find((a.index_l.==i) & (a.index_r.==j))
+    index = 0
+    for k=searchsorted(a.index_l, i)
+        if a.index_r[k] == j
+            index = k
+            break
+        end
+    end
+    if index==0
+        push!(a.index_l, i)
+        push!(a.index_r, j)
+        push!(a.values, value)
+    else
+        a.values[index] += value
     end
 end
 
@@ -63,9 +86,17 @@ Base.ctranspose{T}(a::SparseMatrix{T}) = SparseMatrix(reverse(a.shape), deepcopy
 
 function Base.kron{T1,T2}(a::SparseMatrix{T1}, b::SparseMatrix{T2})
     shape = [a.shape[1]*b.shape[1], a.shape[2]*b.shape[2]]
-    result = SparseMatrix(shape, Int[], Int[], promote_type(T1,T2)[])
+    N = length(a.values)*length(b.values)
+    index_l = zeros(Int, N)
+    index_r = zeros(Int, N)
+    values = zeros(promote_type(T1,T2), N)
+    result = SparseMatrix(shape, index_l, index_r, values)
+    index = 0
     for i=1:length(a.values), j=1:length(b.values)
-        add_element!(result, (a.index_l[i]-1)*b.shape[1] + b.index_l[j], (a.index_r[i]-1)*b.shape[2] + b.index_r[j], a.values[i]*b.values[j])
+        index += 1
+        index_l[index] = (a.index_l[i]-1)*b.shape[1] + b.index_l[j]
+        index_r[index] = (a.index_r[i]-1)*b.shape[2] + b.index_r[j]
+        values[index] = a.values[i]*b.values[j]
     end
     return result
 end
