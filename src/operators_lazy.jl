@@ -1,7 +1,6 @@
 module operators_lazy
 
 using Base.Cartesian
-using ArrayViews
 using ..bases, ..states
 
 importall ..operators
