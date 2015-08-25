@@ -1,6 +1,7 @@
 module operators_lazy
 
 using Base.Cartesian
+using ArrayViews
 using ..bases, ..states
 
 importall ..operators
@@ -28,9 +29,9 @@ type LazyTensor <: LazyOperator
     end
 end
 
-function LazyTensor{T<:AbstractOperator}(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::Vector{Int}, operators::Vector{T})
-    @assert length(indices) == length(Set(indices))
-    LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}([i=>op for (i,op)=zip(indices, operators)]))
+function LazyTensor{T<:AbstractOperator}(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::Vector{Int}, operators::Vector{T}, factor::Number=1.)
+    @assert length(indices) == length(Set(indices)) == length(operators)
+    LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}([i=>op for (i,op)=zip(indices, operators)]), factor)
 end
 
 LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::AbstractOperator) = LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}(index=>operator))
@@ -57,6 +58,7 @@ type LazyProduct <: LazyOperator
     basis_r::Basis
     factor::Complex128
     operators::Vector{AbstractOperator}
+
     function LazyProduct(factor::Complex128, operators::AbstractOperator...)
         @assert length(operators)>1
         for i = 2:length(operators)
@@ -70,8 +72,8 @@ LazyProduct(operators::AbstractOperator...) = LazyProduct(Complex(1.), operators
 function Base.full(x::LazyTensor)
     op_list = Operator[]
     for i=1:length(x.basis_l.bases)
-        if i in x.indices
-            push!(op_list, full(x.operators[first(find(x.indices.==i))]))
+        if i in keys(x.operators)
+            push!(op_list, full(x.operators[i]))
         else
             push!(op_list, identity(x.basis_l.bases[i], x.basis_r.bases[i]))
         end
@@ -140,22 +142,85 @@ end
 -(a::LazySum, b::AbstractOperator) = LazySum([a.operators, -b]...)
 -(a::AbstractOperator, b::LazySum) = LazySum([a, (-b).operators]...)
 
-# @generated function _lazytensor_gemv!{RANK}(rank::Array{Int, RANK}, alpha,
-#                                             op::AbstractOperator, index::Int,
-#                                             b::Ket, beta, result::Ket)
-#     N0 = index-1
-#     N1 = RANK-index
-#     return quote
-#         @nloops $N0
-#     end
-# end
-#
-# function gemv!(alpha, a::LazyTensor, b::Ket, beta, result::Ket)
-#     gemv!(alpha, a.operators[1], b, beta, result)
-#     for i=2:length(a.operators)
-#         gemv!(alpha, a.operators[i], b, Complex(1.), result)
-#     end
-# end
+@generated function _lazytensor_gemv!{RANK, INDEX}(rank::Array{Int, RANK}, index::Array{Int, INDEX},
+                                        alpha, op::AbstractOperator, b::Ket, beta, result::Ket)
+    return quote
+        x = Ket(b.basis.bases[$INDEX])
+        y = Ket(result.basis.bases[$INDEX])
+        indices_others = filter(x->(x!=$INDEX), 1:$RANK)
+        shape_others = [b.basis.shape[i] for i=indices_others]
+        strides_others = [operators._strides(b.basis.shape)[i] for i=indices_others]
+        stride = operators._strides(b.basis.shape)[$INDEX]
+        N = b.basis.shape[$INDEX]
+        @nexprs 1 d->(I_{$(RANK-1)}=1)
+        @nloops $(RANK-1) i d->(1:shape_others[d]) d->(I_{d-1}=I_{d}) d->(I_d+=strides_others[d]) begin
+            for j=1:N
+                x.data[j] = b.data[I_0+stride*(j-1)]
+            end
+            operators.gemv!(alpha, op, x, beta, y)
+            for j=1:N
+                result.data[I_0+stride*(j-1)] = y.data[j]
+            end
+        end
+    end
+end
+
+function operators.gemv!(alpha, a::LazyTensor, b::Ket, beta, result::Ket)
+    rank = zeros(Int, [0 for i=1:length(a.basis_l.shape)]...)
+    bases = [b for b=b.basis.bases]
+    for (n, op_index) in enumerate(keys(a.operators))
+        index = zeros(Int, [0 for i=1:op_index]...)
+        bases[op_index] = a.operators[op_index].basis_l
+        if n==length(a.operators)
+            _lazytensor_gemv!(rank, index, alpha, a.operators[op_index], b, beta, result)
+        else
+            tmp = Ket(CompositeBasis(bases...))
+            _lazytensor_gemv!(rank, index, Complex(1.), a.operators[op_index], b, Complex(0.), tmp)
+            b = tmp
+        end
+    end
+    nothing
+end
+
+@generated function _lazytensor_gemv!{RANK, INDEX}(rank::Array{Int, RANK}, index::Array{Int, INDEX},
+                                        alpha, b::Bra, op::AbstractOperator, beta, result::Bra)
+    return quote
+        x = Bra(b.basis.bases[$INDEX])
+        y = Bra(result.basis.bases[$INDEX])
+        indices_others = filter(x->(x!=$INDEX), 1:$RANK)
+        shape_others = [b.basis.shape[i] for i=indices_others]
+        strides_others = [operators._strides(b.basis.shape)[i] for i=indices_others]
+        stride = operators._strides(b.basis.shape)[$INDEX]
+        N = b.basis.shape[$INDEX]
+        @nexprs 1 d->(I_{$(RANK-1)}=1)
+        @nloops $(RANK-1) i d->(1:shape_others[d]) d->(I_{d-1}=I_{d}) d->(I_d+=strides_others[d]) begin
+            for j=1:N
+                x.data[j] = b.data[I_0+stride*(j-1)]
+            end
+            operators.gemv!(alpha, x, op, beta, y)
+            for j=1:N
+                result.data[I_0+stride*(j-1)] = y.data[j]
+            end
+        end
+    end
+end
+
+function operators.gemv!(alpha, a::Bra, b::LazyTensor, beta, result::Bra)
+    rank = zeros(Int, [0 for i=1:length(b.basis_r.shape)]...)
+    bases = [b for b=a.basis.bases]
+    for (n, op_index) in enumerate(keys(b.operators))
+        index = zeros(Int, [0 for i=1:op_index]...)
+        bases[op_index] = b.operators[op_index].basis_r
+        if n==length(b.operators)
+            _lazytensor_gemv!(rank, index, alpha, a, b.operators[op_index], beta, result)
+        else
+            tmp = Bra(CompositeBasis(bases...))
+            _lazytensor_gemv!(rank, index, Complex(1.), a, b.operators[op_index], Complex(0.), tmp)
+            a = tmp
+        end
+    end
+    nothing
+end
 
 function operators.gemv!(alpha, a::LazySum, b::Ket, beta, result::Ket)
     operators.gemv!(alpha, a.operators[1], b, beta, result)
@@ -181,17 +246,6 @@ function operators.gemv!(alpha, a::LazyProduct, b::Ket, beta, result::Ket)
     end
     operators.gemv!(alpha, a.operators[1], tmp1, beta, result)
 end
-# function operators.gemv!(alpha, a::LazyProduct, b::Ket, beta, result::Ket)
-#     tmp = Ket(b.basis)
-#     operators.gemv!(alpha, a.operators[end], b, Complex(0.), result)
-#     for i=length(a.operators)-1:-1:1
-#         result, tmp = tmp, result
-#         operators.gemv!(Complex(1.), a.operators[i], tmp, Complex(0.), result)
-#     end
-#     tmp.data[:] = result.data[:]
-#     nothing
-# end
-
 
 function operators.gemv!(alpha, a::Bra, b::LazyProduct, beta, result::Bra)
     tmp1 = Bra(b.operators[1].basis_r)
