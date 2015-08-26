@@ -59,16 +59,6 @@ samplepoints(b::MomentumBasis) = (dp = spacing(b); Float64[b.pmin + i*dp for i=0
 
 positionoperator(b::PositionBasis) = Operator(b, diagm(samplepoints(b)))
 
-# function positionoperator(b::MomentumBasis)
-#     p_op = Operator(b)
-#     u = 1im/(2*spacing(b))
-#     for i=1:b.N-1
-#         p_op.data[i+1,i] = -u
-#         p_op.data[i,i+1] = u
-#     end
-#     return p_op
-# end
-
 function positionoperator(b::MomentumBasis)
     p_op = Operator(b)
     u = 1im/(12*spacing(b))
@@ -82,16 +72,6 @@ function positionoperator(b::MomentumBasis)
 end
 
 momentumoperator(b::MomentumBasis) = Operator(b, diagm(samplepoints(b)))
-
-# function momentumoperator(b::PositionBasis)
-#     x_op = Operator(b)
-#     u = -1im/(2*spacing(b))
-#     for i=1:b.N-1
-#         x_op.data[i+1,i] = -u
-#         x_op.data[i,i+1] = u
-#     end
-#     return x_op
-# end
 
 function momentumoperator(b::PositionBasis)
     p_op = Operator(b)
@@ -118,6 +98,20 @@ function laplace_x(b::PositionBasis)
 end
 
 laplace_x(b::MomentumBasis) = Operator(b, diagm(samplepoints(b).^2))
+
+function laplace_p(b::MomentumBasis)
+    p_op = Operator(b)
+    u = 1/spacing(b)^2
+    for i=1:b.N-1
+        p_op.data[i+1,i] = u
+        p_op.data[i,i] = -2*u
+        p_op.data[i,i+1] = u
+    end
+    p_op.data[b.N,b.N] = -2*u
+    return p_op
+end
+
+laplace_p(b::PositionBasis) = Operator(b, diagm(samplepoints(b).^2))
 
 
 type FFTOperator <: LazyOperator

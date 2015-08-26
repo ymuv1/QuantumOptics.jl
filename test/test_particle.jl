@@ -8,6 +8,7 @@ xmax = 70.1
 basis_position = quantumoptics.particle.PositionBasis(xmin, xmax, N)
 basis_momentum = quantumoptics.particle.MomentumBasis(basis_position)
 
+# Test Gaussian wave-packet in both bases
 x0 = 5.1
 p0 = -3.2
 sigma = 1.
@@ -31,6 +32,11 @@ opp_x = quantumoptics.particle.positionoperator(basis_momentum)
 @test_approx_eq p0 expect(opp_p, psip0)
 @test_approx_eq_eps x0 expect(opp_x, psip0) 0.1
 
+# Test position and momentum operators
+@test_approx_eq_eps expect(-opx_p^2, psix0) expect(quantumoptics.particle.laplace_x(basis_position), psix0) 0.3
+@test_approx_eq expect(opp_p^2, psip0) expect(quantumoptics.particle.laplace_x(basis_momentum), psip0)
+@test_approx_eq expect(opx_x^2, psix0) expect(quantumoptics.particle.laplace_p(basis_position), psix0)
+@test_approx_eq_eps expect(-opp_x^2, psip0) expect(quantumoptics.particle.laplace_p(basis_momentum), psip0) 0.3
 
 # Test FFT transformation
 function transformation(b1::quantumoptics.particle.MomentumBasis, b2::quantumoptics.particle.PositionBasis, psi::Ket)
