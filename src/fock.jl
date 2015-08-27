@@ -1,5 +1,7 @@
 module fock
 
+import Base.==
+
 using ..bases, ..states, ..operators
 
 export FockBasis, coherentstate

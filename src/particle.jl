@@ -1,8 +1,15 @@
 module particle
 
+import Base.==
+importall ..operators
+
 using ..bases, ..states, ..operators, ..operators_lazy
 
-importall ..operators
+export PositionBasis, MomentumBasis,
+        gaussianstate,
+        spacing, samplingpoints,
+        positionoperator, momentumoperator, laplace_x, laplace_p, FFTOperator
+
 
 type PositionBasis <: Basis
     shape::Vector{Int}

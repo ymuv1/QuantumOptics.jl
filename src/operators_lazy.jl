@@ -1,9 +1,10 @@
 module operators_lazy
 
+import Base.*, Base./, Base.+, Base.-
+importall ..operators
+
 using Base.Cartesian
 using ..bases, ..states
-
-importall ..operators
 
 export LazyOperator, LazyTensor, LazySum, LazyProduct
 

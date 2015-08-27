@@ -1,5 +1,6 @@
 module operators
 
+import Base.*, Base./, Base.+, Base.-
 using ..bases, ..states
 using Base.LinAlg.BLAS
 using Base.Cartesian
@@ -46,9 +47,9 @@ check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis
 -(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
 
-tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
-tensor(ops::Operator...) = reduce(tensor, ops)
-tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+states.tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
+states.tensor(ops::Operator...) = reduce(tensor, ops)
+states.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 
 dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')

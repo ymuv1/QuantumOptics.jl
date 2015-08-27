@@ -1,8 +1,8 @@
 module operators_sparse
 
-using ..bases, ..states, ..sparsematrix
-
+import Base.*, Base./, Base.+, Base.-
 importall ..operators
+using ..bases, ..states, ..sparsematrix
 
 export SparseOperator, sparse_identity
 

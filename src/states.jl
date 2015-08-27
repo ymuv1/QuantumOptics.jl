@@ -1,5 +1,6 @@
 module states
 
+import Base.*, Base./, Base.+, Base.-
 using ..bases
 
 export StateVector, Bra, Ket,

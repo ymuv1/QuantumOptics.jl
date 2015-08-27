@@ -1,5 +1,7 @@
 module bases
 
+import Base.==
+
 export Basis, GenericBasis, CompositeBasis,
        compose, ptrace,
        equal_shape, equal_bases, multiplicable,
