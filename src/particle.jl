@@ -159,7 +159,7 @@ function operators.gemv!{T<:Complex}(alpha::T, M::FFTOperator, b::Ket, beta::T, 
         @inbounds for i=1:N
             result.data[i] = M.mul_before[i] * b.data[i]
         end
-        M.fft_r!(result.data)
+        M.fft_r! * result.data
         @inbounds for i=1:N
             result.data[i] *= M.mul_after[i] * alpha
         end
@@ -168,7 +168,7 @@ function operators.gemv!{T<:Complex}(alpha::T, M::FFTOperator, b::Ket, beta::T, 
         @inbounds for i=1:N
             psi_.data[i] *= M.mul_before[i]
         end
-        M.fft_r!(psi_.data)
+        M.fft_r! * psi_.data
         @inbounds for i=1:N
             result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
         end
@@ -182,7 +182,7 @@ function operators.gemv!{T<:Complex}(alpha::T, b::Bra, M::FFTOperator, beta::T, 
         @inbounds for i=1:N
             result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
         end
-        M.fft_l!(result.data)
+        M.fft_l! * result.data
         @inbounds for i=1:N
             result.data[i] = conj(result.data[i]) * M.mul_before[i] * alpha
         end
@@ -191,7 +191,7 @@ function operators.gemv!{T<:Complex}(alpha::T, b::Bra, M::FFTOperator, beta::T, 
         @inbounds for i=1:N
             psi_.data[i] *= conj(M.mul_after[i])
         end
-        M.fft_l!(psi_.data)
+        M.fft_l! * psi_.data
         @inbounds for i=1:N
             result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
         end
