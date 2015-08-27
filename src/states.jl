@@ -41,8 +41,9 @@ Ket(b::Basis) = Ket(b, zeros(Complex, length(b)))
 
 -{T<:StateVector}(a::T, b::T) = (a.basis==b.basis ? T(a.basis, a.data-b.data) : throw(IncompatibleBases()))
 
-
+tensor() = error("Tensor function needs at least one argument.")
 tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b.data))
+tensor{T<:StateVector}(states::T...) = reduce(tensor, states)
 ⊗(a,b) = tensor(a,b)
 
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
