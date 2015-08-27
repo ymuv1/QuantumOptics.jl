@@ -1,10 +1,10 @@
 module operators_lazy
 
-import Base.*, Base./, Base.+, Base.-
-importall ..operators
+import Base: *, /, +, -
+import ..operators
 
 using Base.Cartesian
-using ..bases, ..states
+using ..bases, ..states, ..operators
 
 export LazyOperator, LazyTensor, LazySum, LazyProduct
 
@@ -69,7 +69,7 @@ type LazyProduct <: LazyOperator
 end
 LazyProduct(operators::AbstractOperator...) = LazyProduct(Complex(1.), operators...)
 
-function Base.full(x::LazyTensor)
+function operators.full(x::LazyTensor)
     op_list = Operator[]
     for i=1:length(x.basis_l.bases)
         if i in keys(x.operators)
@@ -82,8 +82,8 @@ function Base.full(x::LazyTensor)
 end
 
 
-Base.trace(op::LazyTensor) = op.factor*prod([(haskey(op.operators,i) ? trace(op.operators[i]): prod(op.basis_l.shape)) for i=1:length(op.basis_l)])
-Base.trace(op::LazySum) = sum([trace(x) for x=op.operators])
+operators.trace(op::LazyTensor) = op.factor*prod([(haskey(op.operators,i) ? trace(op.operators[i]): prod(op.basis_l.shape)) for i=1:length(op.basis_l)])
+operators.trace(op::LazySum) = sum([trace(x) for x=op.operators])
 
 function *(a::LazyTensor, b::LazyTensor)
     check_multiplicable(a.basis_r, b.basis_l)

@@ -6,8 +6,7 @@ using ..bases
 export StateVector, Bra, Ket,
        tensor, dagger, ⊗,
        basis_bra, basis_ket, basis,
-       normalize, normalize!,
-       zero!
+       normalize, normalize!
 
 
 """
@@ -42,14 +41,25 @@ Ket(b::Basis) = Ket(b, zeros(Complex, length(b)))
 
 -{T<:StateVector}(a::T, b::T) = (a.basis==b.basis ? T(a.basis, a.data-b.data) : throw(IncompatibleBases()))
 
+"""
+Tensor product of given bras or kets.
+"""
 tensor() = error("Tensor function needs at least one argument.")
 tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b.data))
 tensor{T<:StateVector}(states::T...) = reduce(tensor, states)
 ⊗(a,b) = tensor(a,b)
 
+"""
+Hermitian conjugate of given state vector.
+"""
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
+
+# Normalization functions
+"""
+Norm of given state vector.
+"""
 Base.norm(x::StateVector, p=2) = norm(x.data, p)
 
 """
@@ -57,6 +67,9 @@ Normalized copy of the given state vector.
 """
 normalize(x::StateVector, p=2) = x/norm(x, p)
 
+"""
+Normalize the given state vector.
+"""
 function normalize!(x::StateVector, p=2)
     u = 1./norm(x, p)
     for i=1:length(x.data)
@@ -65,18 +78,18 @@ function normalize!(x::StateVector, p=2)
     return x
 end
 
-function basis_vector(shape::Vector{Int}, index::Vector{Int})
+
+# Creation of basis states.
+function basis_vector(shape::Vector{Int}, indices::Vector{Int})
     x = zeros(Complex, shape...)
-    x[index] = Complex(1.)
+    x[indices] = Complex(1.)
     reshape(x, prod(shape))
 end
 
-basis{T<:StateVector}(x::T) = x.basis
-basis_bra(b::Basis, index::Array{Int}) = Bra(b, basis_vector(b.shape, index))
+basis_bra(b::Basis, indices::Array{Int}) = Bra(b, basis_vector(b.shape, indices))
 basis_bra(b::Basis, index::Int) = basis_bra(b, [index])
-basis_ket(b::Basis, index::Array{Int}) = Ket(b, basis_vector(b.shape, index))
+basis_ket(b::Basis, indices::Array{Int}) = Ket(b, basis_vector(b.shape, indices))
 basis_ket(b::Basis, index::Int) = basis_ket(b, [index])
 
-zero!(a::StateVector) = fill!(a.data, zero(eltype(a.data)))
 
 end # module

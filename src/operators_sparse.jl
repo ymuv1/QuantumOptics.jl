@@ -1,8 +1,9 @@
 module operators_sparse
 
-import Base.*, Base./, Base.+, Base.-
-importall ..operators
-using ..bases, ..states, ..sparsematrix
+import Base: *, /, +, -
+import ..operators
+
+using ..bases, ..states, ..operators, ..sparsematrix
 
 export SparseOperator, sparse_identity
 
@@ -20,7 +21,7 @@ SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, sp
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(Complex128, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
-Operator(a::SparseOperator) = Operator(a.basis_l, a.basis_r, full(a.data))
+operators.Operator(a::SparseOperator) = Operator(a.basis_l, a.basis_r, full(a.data))
 
 # *(a::SparseOperator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
 # *(a::Bra, b::SparseOperator) = (check_multiplicable(a.basis, b.basis_l); Bra(b.basis_r, b.data.'*a.data))
@@ -36,9 +37,9 @@ Operator(a::SparseOperator) = Operator(a.basis_l, a.basis_r, full(a.data))
 -(a::SparseOperator, b::SparseOperator) = ((a.basis_l==b.basis_l) && (a.basis_r==b.basis_r) ? SparseOperator(a.basis_l, a.basis_r, a.data-b.data) : throw(IncompatibleBases()))
 
 
-tensor(a::SparseOperator, b::SparseOperator) = SparseOperator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
+operators.tensor(a::SparseOperator, b::SparseOperator) = SparseOperator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
 
-dagger(x::SparseOperator) = SparseOperator(x.basis_r, x.basis_l, x.data')
+operators.dagger(x::SparseOperator) = SparseOperator(x.basis_r, x.basis_l, x.data')
 Base.full(x::SparseOperator) = Operator(x.basis_l, x.basis_r, full(x.data))
 
 # Base.norm(op::SparseOperator, p) = norm(op.data, p)

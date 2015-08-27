@@ -1,7 +1,7 @@
 module particle
 
 import Base.==
-importall ..operators
+import ..operators
 
 using ..bases, ..states, ..operators, ..operators_lazy
 
@@ -157,7 +157,7 @@ function FFTOperator(basis_l::PositionBasis, basis_r::MomentumBasis)
 end
 
 
-dagger(op::FFTOperator) = FFTOperator(op.basis_r, op.basis_l)
+operators.dagger(op::FFTOperator) = FFTOperator(op.basis_r, op.basis_l)
 
 
 function operators.gemv!{T<:Complex}(alpha::T, M::FFTOperator, b::Ket, beta::T, result::Ket)

@@ -1,22 +1,36 @@
 module operators
 
-import Base.*, Base./, Base.+, Base.-
-using ..bases, ..states
+import Base: *, /, +, -
+import ..states
+
 using Base.LinAlg.BLAS
 using Base.Cartesian
 
-importall ..states
-importall ..bases
+using ..bases, ..states
 
 export AbstractOperator, Operator,
-       tensor, dagger, expect, ptrace, embed, normalize, normalize!,
-       identity, number, destroy, create,
-       qfunc
+       tensor, dagger, expect, embed, normalize, normalize!,
+       identity
 
 
+"""
+Abstract base class for all operators.
+
+All deriving operator classes have to define the fields
+basis_l and basis_r defining the left and right side bases.
+
+For fast time evolution also at least the function
+gemv!(alpha, op::AbstractOperator, x::Ket, beta, result::Ket) should begin
+implemented. Many other generic multiplication functions can be defined in
+terms of this function and are provided automatically.
+"""
 abstract AbstractOperator
 
+"""
+Dense array implementation of AbstractOperator.
 
+The matrix consisting of complex floats is stored in the data field.
+"""
 type Operator <: AbstractOperator
     basis_l::Basis
     basis_r::Basis
@@ -27,10 +41,16 @@ end
 Operator(b::Basis, data) = Operator(b, b, data)
 Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
 Operator(b::Basis) = Operator(b, b)
-Operator(op::Operator) = deepcopy(op)
-Operator(op::AbstractOperator) = op*identity(op.basis_r)
+Operator(op::AbstractOperator) = full(op)
+
+"""
+Converting an arbitrary AbstractOperator into an Operator.
+"""
+Base.full(x::Operator) = deepcopy(x)
+Base.full(op::AbstractOperator) = op*identity(op.basis_r)
 
 
+# Arithmetic operations for dense Operators
 check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
 *(a::Operator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
@@ -47,45 +67,7 @@ check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis
 -(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
 
 
-states.tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
-states.tensor(ops::Operator...) = reduce(tensor, ops)
-states.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
-
-
-dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
-Base.full(x::Operator) = x
-
-Base.norm(op::Operator, p) = norm(op.data, p)
-Base.trace(op::Operator) = trace(op.data)
-normalize(op::Operator) = op/trace(op)
-function normalize!(op::Operator)
-    u = 1./trace(op)
-    for j=1:size(op.data,2), i=1:size(op.data,1)
-        op.data[i,j] *= u
-    end
-    return op
-end
-
-basis{T<:AbstractOperator}(op::T) = (check_equal(op.basis_l, op.basis_r); op.basis_l)
-
-expect(op::AbstractOperator, state::Operator) = trace(op*state)
-expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
-expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
-expect(op::AbstractOperator, states::Vector{Ket}) = [expect(op, state) for state=states]
-
-Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
-Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
-number(b::Basis) = Operator(b, b, diagm(map(Complex, 0:(length(b)-1))))
-destroy(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),1))
-create(b::Basis) = Operator(b, b, diagm(map(Complex, sqrt(1:(length(b)-1))),-1))
-
-check_equal_bases(a::AbstractOperator, b::AbstractOperator) = (check_equal(a.basis_l,b.basis_l); check_equal(a.basis_r,b.basis_r))
-
-Base.zero{T<:AbstractOperator}(a::T) = T(a.basis_l, a.basis_r)
-Base.one{T<:AbstractOperator}(a::T) = identity(a.basis_l, a.basis_r)
-set!(a::Operator, b::Operator) = (check_equal_bases(a, b); set!(a.data, b.data); a)
-zero!(a::Operator) = fill!(a.data, zero(eltype(a.data)))
-
+# Fast in-place multiplication implementations
 gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{T}) = BLAS.gemm!('N', 'N', alpha, a, b, beta, result)
 gemv!{T<:Complex}(alpha::T, a::Matrix{T}, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b, beta, result)
 gemv!{T<:Complex}(alpha::T, a::Vector{T}, b::Matrix{T}, beta::T, result::Vector{T}) = BLAS.gemv!('T', alpha, b, a, beta, result)
@@ -94,6 +76,67 @@ gemm!(alpha, a::Operator, b::Operator, beta, result::Operator) = gemm!(alpha, a.
 gemv!(alpha, a::Operator, b::Ket, beta, result::Ket) = gemv!(alpha, a.data, b.data, beta, result.data)
 gemv!(alpha, a::Bra, b::Operator, beta, result::Bra) = gemv!(alpha, a.data, b.data, beta, result.data)
 
+
+"""
+Tensor product of operators.
+"""
+states.tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
+states.tensor(ops::Operator...) = reduce(tensor, ops)
+
+"""
+Tensor product of ket with bra results in an operator.
+"""
+states.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+
+"""
+Hermitian conjugate of given operator.
+"""
+states.dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
+
+
+"""
+p-norm of given operator.
+"""
+Base.norm(op::Operator, p) = norm(op.data, p)
+
+"""
+Trace of given operator.
+"""
+Base.trace(op::Operator) = trace(op.data)
+
+"""
+Normalized copy of given operator (trace is 1.).
+"""
+states.normalize(op::Operator) = op/trace(op)
+
+"""
+Normalize the given operator.
+"""
+function states.normalize!(op::Operator)
+    u = 1./trace(op)
+    for j=1:size(op.data,2), i=1:size(op.data,1)
+        op.data[i,j] *= u
+    end
+    return op
+end
+
+
+"""
+Expectation value of the given operator for the specified state(s).
+"""
+expect(op::AbstractOperator, state::Operator) = trace(op*state)
+expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
+expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
+expect(op::AbstractOperator, states::Vector{Ket}) = [expect(op, state) for state=states]
+
+"""
+Identity operator.
+"""
+Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
+Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
+
+
+# Multiplication for AbstractOperators in terms of their gemv! implementation
 function gemm!(alpha, M::AbstractOperator, b::Operator, beta, result::Operator)
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
@@ -146,6 +189,7 @@ embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([
 embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
 
 
+# Partial trace for dense operators.
 function _strides(shape::Vector{Int})
     N = length(shape)
     S = zeros(Int, N)
@@ -183,26 +227,22 @@ end
     end
 end
 
-function ptrace(a::Operator, indices::Vector{Int})
+"""
+Partial trace of the given operator over the specified indices.
+"""
+function bases.ptrace(a::Operator, indices::Vector{Int})
     rank = zeros(Int, [0 for i=1:length(a.basis_l.shape)]...)
     result = _ptrace(rank, a.data, a.basis_l.shape, a.basis_r.shape, indices)
     return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 
-ptrace(a::Operator, indices::Int) = ptrace(a, Int[indices])
-ptrace(a::Ket, indices) = ptrace(tensor(a, dagger(a)), indices)
-ptrace(a::Bra, indices) = ptrace(tensor(dagger(a), a), indices)
+bases.ptrace(a::Operator, indices::Int) = bases.ptrace(a, Int[indices])
 
+"""
+Partial trace of the given state vector over the specified indices.
+"""
+bases.ptrace(a::Ket, indices) = bases.ptrace(tensor(a, dagger(a)), indices)
+bases.ptrace(a::Bra, indices) = bases.ptrace(tensor(dagger(a), a), indices)
 
-function qfunc(rho::AbstractOperator, X::Vector{Float64}, Y::Vector{Float64})
-    M = zeros(Float64, length(X), length(Y))
-    @assert rho.basis_l == rho.basis_r
-    for (i,x)=enumerate(X), (j,y)=enumerate(Y)
-        z = complex(x,y)
-        coh = coherent_state(rho.basis_l, z)
-        M[i,j] = real(dagger(coh)*rho*coh)
-    end
-    return M
-end
 
 end # module
