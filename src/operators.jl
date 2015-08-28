@@ -9,8 +9,7 @@ using Base.Cartesian
 using ..bases, ..states
 
 export AbstractOperator, Operator,
-       tensor, dagger, expect, embed, normalize, normalize!,
-       identity
+       tensor, dagger, expect, embed, normalize, normalize!
 
 
 """
@@ -132,8 +131,8 @@ expect(op::AbstractOperator, states::Vector{Ket}) = [expect(op, state) for state
 """
 Identity operator.
 """
-Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
-Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
+identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
+identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
 
 
 # Multiplication for AbstractOperators in terms of their gemv! implementation

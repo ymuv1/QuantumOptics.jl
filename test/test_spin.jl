@@ -1,7 +1,7 @@
 using Base.Test
 using quantumoptics
 
-I = identity(spinbasis)
+I = operators.identity(spinbasis)
 Zero = Operator(spinbasis)
 sx = quantumoptics.sigmax
 sy = quantumoptics.sigmay

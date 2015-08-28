@@ -75,7 +75,7 @@ function operators.full(x::LazyTensor)
         if i in keys(x.operators)
             push!(op_list, full(x.operators[i]))
         else
-            push!(op_list, identity(x.basis_l.bases[i], x.basis_r.bases[i]))
+            push!(op_list, operators.identity(x.basis_l.bases[i], x.basis_r.bases[i]))
         end
     end
     return x.factor*reduce(tensor, op_list)
