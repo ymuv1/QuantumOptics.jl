@@ -125,9 +125,9 @@ end
 Integrate master equation with dmaster_h as derivative function.
 """
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
-                Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
+                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
-                fout::Union(Function,Nothing)=nothing,
+                fout::Union{Function,Void}=nothing,
                 tmp::Operator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
@@ -143,10 +143,10 @@ master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h
 Integrate master equation with master_nh as derivative function.
 """
 function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
-                Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
+                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
                 Hnhdagger::AbstractOperator=dagger(Hnh),
                 Jdagger::Vector=map(dagger, J),
-                fout::Union(Function,Nothing)=nothing,
+                fout::Union{Function,Void}=nothing,
                 tmp::Operator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, Hnh, J, Jdagger, Gamma)
@@ -165,9 +165,9 @@ Hnh is first calculated from the given Hamiltonian and Jump operators and
 then dmaster_nh is used for the time evolution.
 """
 function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
-                Gamma::Union(Real, Vector, Matrix)=ones(Float64, length(J)),
+                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
-                fout::Union(Function,Nothing)=nothing,
+                fout::Union{Function,Void}=nothing,
                 tmp::Operator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
@@ -227,7 +227,7 @@ end
 Integrate schroedinger equation.
 """
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
-                fout::Union(Function,Nothing)=nothing,
+                fout::Union{Function,Void}=nothing,
                 kwargs...)
     if T==Ket
         @assert psi0.basis==H.basis_l
@@ -241,7 +241,7 @@ function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
     return integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
 end
 
-function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed::Uint64;
+function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed::UInt64;
                 fout=nothing,
                 kwargs...)
     tmp = deepcopy(psi0)
@@ -329,7 +329,7 @@ end
 Integrate master equation using MCWF method with mcwf_h as derivative function.
 """
 function mcwf_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
-                seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
                 tmp::Ket=deepcopy(psi0),
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
@@ -345,7 +345,7 @@ end
 Integrate master equation using MCWF method with mcwf_nh as derivative function.
 """
 function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
-                seed=rand(Uint64), fout=nothing,
+                seed=rand(UInt64), fout=nothing,
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
     f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
@@ -363,7 +363,7 @@ Hnh is first calculated from the given Hamiltonian and Jump operators and
 then dmcwf_nh is used for the time evolution.
 """
 function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
-                seed=rand(Uint64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
     Hnh = deepcopy(H)

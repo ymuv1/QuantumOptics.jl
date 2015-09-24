@@ -81,7 +81,7 @@ tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J)
 
 ρ_average = Operator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
-    tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=Uint64(i))
+    tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt64(i))
     for j=1:length(T)
         ρ_average[j] += (Ψt[j] ⊗ dagger(Ψt[j]))/Ntrajectories
     end
@@ -101,8 +101,8 @@ tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J1)
 ρ_average_1 = Operator[0 * ρ₀ for i=1:length(T)]
 ρ_average_2 = Operator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
-    tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, H, J1; seed=Uint64(i))
-    tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, H, J2; seed=Uint64(i))
+    tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, H, J1; seed=UInt64(i))
+    tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, H, J2; seed=UInt64(i))
     for j=1:length(T)
         ρ_average_1[j] += (Ψt_1[j] ⊗ dagger(Ψt_1[j]))/Ntrajectories
         ρ_average_2[j] += (Ψt_2[j] ⊗ dagger(Ψt_2[j]))/Ntrajectories

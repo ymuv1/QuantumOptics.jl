@@ -34,7 +34,7 @@ Integrate master equation.
 """
 function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
                     Jdagger=map(dagger,J),
-                    gamma::Union(Real, Vector, Matrix)=ones(Int, length(J)),
+                    gamma::Union{Real, Vector, Matrix}=ones(Int, length(J)),
                     kwargs...)
     operators.check_samebases(rho0, H)
     for j=J
