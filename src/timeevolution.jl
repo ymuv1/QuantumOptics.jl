@@ -247,7 +247,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, se
     tmp = deepcopy(psi0)
     as_ket(x::Vector{Complex128}) = Ket(psi0.basis, x)
     as_vector(psi::Ket) = psi.data
-    rng = MersenneTwister(convert(Uint, seed))
+    rng = MersenneTwister(convert(UInt64, seed))
     jumpnorm = Float64[rand(rng)]
     djumpnorm(t, x::Vector{Complex128}) = norm(as_ket(x))^2 - (1-jumpnorm[1])
     function dojump(t, x::Vector{Complex128})
