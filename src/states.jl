@@ -29,6 +29,8 @@ end
 Bra(b::Basis) = Bra(b, zeros(Complex, length(b)))
 Ket(b::Basis) = Ket(b, zeros(Complex, length(b)))
 
+Base.eltype(x::StateVector) = Complex128
+Base.zero{T<:StateVector}(x::T) = T(x.basis)
 
 # Arithmetic operations
 *(a::Bra, b::Ket) = (check_multiplicable(a.basis, b.basis); sum(a.data.*b.data))

@@ -48,6 +48,9 @@ Converting an arbitrary AbstractOperator into an Operator.
 Base.full(x::Operator) = deepcopy(x)
 Base.full(op::AbstractOperator) = op*identity(op.basis_r)
 
+Base.eltype(x::AbstractOperator) = Complex128
+Base.zero{T<:AbstractOperator}(x::T) = T(x.basis_l, x.basis_r)
+
 
 # Arithmetic operations for dense Operators
 check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
