@@ -9,8 +9,28 @@ using ..bases, ..states, ..operators
 export LazyOperator, LazyTensor, LazySum, LazyProduct
 
 
+"""
+Abstract base class for lazy operators.
+
+Lazy means in this context that operator-operator operations are not performed
+immediately but delayed until the operator is applied to a state, e.g. instead
+of (A + B) * x it calculates (A * x) + (B * x).
+
+Lazy operations are implemented for:
+    * TensorProduct: LazyTensor
+    * Addition: LazySum
+    * Multiplication: LazyProduct
+"""
 abstract LazyOperator <: AbstractOperator
 
+
+"""
+Lazy implementation of a tensor product of operators.
+
+The suboperators are stored as values in a dictionary where the key is
+the index of the subsystem. Additionally a complex factor is stored in the
+"factor" field which allows for fast multiplication with a number.
+"""
 type LazyTensor <: LazyOperator
     basis_l::CompositeBasis
     basis_r::CompositeBasis
@@ -37,6 +57,11 @@ end
 LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::AbstractOperator) = LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}(index=>operator))
 
 
+"""
+Lazy implementation of a sum of operators.
+
+The terms of the sum are stored in the "operators" field.
+"""
 type LazySum <: LazyOperator
     basis_l::Basis
     basis_r::Basis
@@ -53,6 +78,13 @@ type LazySum <: LazyOperator
 end
 
 
+"""
+Lazy implementation of a product of operators.
+
+The factors of the product are stored in the "operators" field. Additionally a
+complex factor is stored in the "factor" field which allows for fast
+multiplication with a number.
+"""
 type LazyProduct <: LazyOperator
     basis_l::Basis
     basis_r::Basis
@@ -68,6 +100,7 @@ type LazyProduct <: LazyOperator
     end
 end
 LazyProduct(operators::AbstractOperator...) = LazyProduct(Complex(1.), operators...)
+
 
 function operators.full(x::LazyTensor)
     op_list = Operator[]
