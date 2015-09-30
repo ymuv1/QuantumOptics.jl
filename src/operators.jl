@@ -86,12 +86,12 @@ states.tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l)
 states.tensor(ops::Operator...) = reduce(tensor, ops)
 
 """
-Tensor product of ket with bra results in an operator.
+Tensor product of a ket and a bra results in an operator.
 """
 states.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 """
-Hermitian conjugate of given operator.
+Hermitian conjugate of the given operator.
 """
 states.dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
 
@@ -187,6 +187,15 @@ end
 
 Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
 
+"""
+Tensor product of operators where all missing indices are identity operators.
+
+Arguments
+---------
+    * basis: CompositeBasis of the resuting operator.
+    * indices: Indices of the subsystems in which the given operators live.
+    * operators: Operators defined in the subsystems.
+"""
 embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)]...)
 embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
 
