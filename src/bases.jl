@@ -9,14 +9,40 @@ export Basis, GenericBasis, CompositeBasis,
        check_equal, check_multiplicable
 
 
+"""
+Abstract base class for all specialized bases.
+
+The Basis class is meant to specify a basis of the Hilbert space of the
+studied system. Besides basis specific information all subclasses must
+implement a shape variable which indicates the dimension of the used
+Hilbert space. For a spin 1/2 Hilbert space this would for example be the
+vector Int[2]. A system composed of 2 spins could for example have a
+shape vector Int[2 2].
+
+Composite systems can be easily defined with help of the CompositeBasis class.
+"""
 abstract Basis
 
 
+"""
+An easy and fast to use general purpose basis.
+
+Should only be used rarely since it defeats the purpose of checking that the
+bases of state vectors and operators are correct for algebraic operations.
+The cleaner way is to specify special bases for different systems, i.e.
+there are FockBasis, MomentumBasis and PositionBasis.
+"""
 type GenericBasis <: Basis
     shape::Vector{Int}
 end
 
 
+"""
+Basis for composite Hilbert spaces.
+
+Simply stores the subbases in a vector and creates the shape vector directly
+from the shape vectors of these subbases.
+"""
 type CompositeBasis <: Basis
     shape::Vector{Int}
     bases::Vector{Basis}
@@ -24,14 +50,31 @@ type CompositeBasis <: Basis
 end
 
 
+"""
+Create composite bases.
+
+Any given CompositeBasis is expanded so that the resulting CompositeBasis never
+has another CompositeBasis as subbasis.
+"""
 compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
 compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases..., b2.bases...)
 compose(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
 compose(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
 compose(bases::Basis...) = reduce(compose, bases)
 
+
+"""
+Total dimension of the Hilbert space.
+"""
 Base.length(b::Basis) = prod(b.shape)
 
+
+"""
+Check if two shape vectors are the same.
+
+This implementation handles special cases in a very fast way so that their
+overhead is very low in often performed operations.
+"""
 function equal_shape(a::Vector{Int64}, b::Vector{Int64})
     if a === b
         return true
@@ -47,6 +90,13 @@ function equal_shape(a::Vector{Int64}, b::Vector{Int64})
     return true
 end
 
+
+"""
+Check if two subbases vectors are identical.
+
+This implementation handles special cases in a very fast way so that their
+overhead is very low in often performed operations.
+"""
 function equal_bases(a::Vector{Basis}, b::Vector{Basis})
     if a===b
         return true
@@ -59,11 +109,19 @@ function equal_bases(a::Vector{Basis}, b::Vector{Basis})
     return true
 end
 
+
 ==(b1::Basis, b2::Basis) = false
 ==(b1::GenericBasis, b2::GenericBasis) = equal_shape(b1.shape,b2.shape)
 ==(b1::CompositeBasis, b2::CompositeBasis) = equal_shape(b1.shape,b2.shape) && equal_bases(b1.bases,b2.bases)
 
 
+"""
+Check if two objects given in the specified bases are multiplicable.
+
+In the case of orthogonal bases this mostly means that the two bases have to be
+the same. For nonorthogonal bases this function can be overridden to account
+for their behavior.
+"""
 multiplicable(b1::Basis, b2::Basis) = b1==b2
 function multiplicable(b1::CompositeBasis, b2::CompositeBasis)
     if !equal_shape(b1.shape,b2.shape)
@@ -77,11 +135,31 @@ function multiplicable(b1::CompositeBasis, b2::CompositeBasis)
     return true
 end
 
+
+"""
+Exception that shoud be raised for an illegal algebraic operation.
+"""
 type IncompatibleBases <: Exception end
 
+
+"""
+Error throwing version of equality checking.
+
+For a boolean version use the equality operator ==
+"""
 check_equal(b1::Basis, b2::Basis) = (b1==b2 ? true : throw(IncompatibleBases()))
+
+"""
+Error throwing version of multiplicativity checking.
+
+For a boolean version use the function multiplicable.
+"""
 check_multiplicable(b1::Basis, b2::Basis) = (multiplicable(b1, b2) ? true : throw(IncompatibleBases()))
 
+
+"""
+Partial trace of a composite basis.
+"""
 function ptrace(b::CompositeBasis, indices::Vector{Int})
     reduced_basis = Basis[]
     for (i, subbasis) in enumerate(b.bases)
@@ -97,5 +175,6 @@ function ptrace(b::CompositeBasis, indices::Vector{Int})
         return CompositeBasis(reduced_basis...)
     end
 end
+
 
 end # module
