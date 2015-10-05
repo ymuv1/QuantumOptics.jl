@@ -1,12 +1,13 @@
 module quantumoptics
 
-export bases, Basis, GenericBasis, CompositeBasis, FockBasis, compose,
+export bases, Basis, GenericBasis, CompositeBasis, compose,
         states, StateVector, Bra, Ket, tensor, dagger, ⊗, basis_bra, basis_ket, coherentstate, basis,
         normalize, normalize!,
-        operators, AbstractOperator, Operator, expect, identity, number, destroy, create,
-                    sigmax, sigmay, sigmaz, sigmap, sigmam, spinbasis, ptrace, qfunc, embed,
+        operators, AbstractOperator, Operator, expect, identity, ptrace, embed,
         operators_lazy, LazyOperator,LazyTensor, LazySum, LazyProduct,
         operators_sparse, SparseOperator, sparse_identity,
+        FockBasis, number, destroy, create,
+        SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, qfunc,
         sparse,
         metrics, tracedistance,
         timeevolution_simple,

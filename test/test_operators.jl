@@ -2,11 +2,19 @@ using Base.Test
 using quantumoptics
 
 fockbasis = FockBasis(20)
+spinbasis = SpinBasis(1//2)
 
 alpha = 0.5
 a = destroy(fockbasis)
 at = create(fockbasis)
 n = number(fockbasis)
+
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
+sp = sigmap(spinbasis)
+sm = sigmam(spinbasis)
+
 xket = coherentstate(fockbasis, alpha)
 xbra = dagger(xket)
 op1 = Operator(spinbasis, GenericBasis([3]), [1 1 1; 1 1 1])
@@ -20,11 +28,11 @@ I = identity(fockbasis)
 @test_approx_eq 0. maximum(abs((dagger(op1)-op2).data))
 
 # Test addition
-@test_approx_eq 0. tracedistance(sigmax, sigmap + sigmam)
+@test_approx_eq 0. tracedistance(sx, sp + sm)
 @test_throws bases.IncompatibleBases op1+op2
 
 # Test substraction
-@test_approx_eq 0. tracedistance(sigmay, -1im*(sigmap - sigmam))
+@test_approx_eq 0. tracedistance(sy, -1im*(sp - sm))
 @test_throws bases.IncompatibleBases op1-op2
 
 # Test multiplication

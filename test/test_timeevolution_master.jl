@@ -11,15 +11,22 @@ T = Float64[0.,1.]
 
 
 fockbasis = FockBasis(10)
+spinbasis = SpinBasis(1//2)
 basis = compose(spinbasis, fockbasis)
 
-Ha = embed(basis, 1, 0.5*ωa*sigmaz)
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
+sp = sigmap(spinbasis)
+sm = sigmam(spinbasis)
+
+Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
-Hint = sigmam ⊗ create(fockbasis) + sigmap ⊗ destroy(fockbasis)
+Hint = sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
 Hsparse = SparseOperator(H)
 
-Ja = embed(basis, 1, sqrt(γ)*sigmam)
+Ja = embed(basis, 1, sqrt(γ)*sm)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
 Jsparse = map(SparseOperator, J)

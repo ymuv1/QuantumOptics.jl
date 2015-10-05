@@ -3,8 +3,10 @@ using quantumoptics
 
 
 # Set up operators
-sx = sigmax
-sy = sigmay
+spinbasis = SpinBasis(1//2)
+
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
 
 sx_sp = SparseOperator(sx)
 sy_sp = SparseOperator(sy)

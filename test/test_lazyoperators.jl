@@ -4,19 +4,24 @@ using quantumoptics
 alpha = 0.5
 
 fockbasis = FockBasis(20)
+spinbasis = SpinBasis(1//2)
 
 a = destroy(fockbasis)
 at = create(fockbasis)
 n = number(fockbasis)
+
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
 
 # LazyTensor
 basis = compose(spinbasis, fockbasis, spinbasis)
 psi_ket = tensor(basis_ket(spinbasis, 2), coherentstate(fockbasis, alpha), basis_ket(spinbasis, 1))
 psi_bra = dagger(psi_ket)
 op1 = LazyTensor(basis, basis, 2, a)
-op2 = LazyTensor(basis, basis, 3, sigmay)
-op3 = LazyTensor(basis, basis, [2,3], [a,sigmay])
-op4 = LazyTensor(basis, basis, [1,2,3], [sigmax,a,sigmay])
+op2 = LazyTensor(basis, basis, 3, sy)
+op3 = LazyTensor(basis, basis, [2,3], [a,sy])
+op4 = LazyTensor(basis, basis, [1,2,3], [sx,a,sy])
 result_ket = deepcopy(psi_ket)
 result_bra = deepcopy(psi_bra)
 
