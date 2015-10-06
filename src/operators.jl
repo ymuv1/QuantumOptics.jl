@@ -1,6 +1,6 @@
 module operators
 
-import Base: *, /, +, -
+import Base: ==, +, -, *, /
 import ..states
 
 using Base.LinAlg.BLAS
@@ -50,6 +50,8 @@ Base.full(op::AbstractOperator) = op*identity(op.basis_r)
 
 Base.eltype(x::AbstractOperator) = Complex128
 Base.zero{T<:AbstractOperator}(x::T) = T(x.basis_l, x.basis_r)
+
+==(x::Operator, y::Operator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
 
 
 # Arithmetic operations for dense Operators

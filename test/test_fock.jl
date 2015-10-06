@@ -1,0 +1,57 @@
+using Base.Test
+using quantumoptics
+
+basis = FockBasis(2)
+
+# Test creation
+@test basis.Nmin == 0
+@test basis.Nmax == 2
+@test basis.shape[1] == 3
+
+
+# Test equality
+@test FockBasis(2) == FockBasis(2)
+@test FockBasis(2) == FockBasis(0,2)
+@test FockBasis(2) != FockBasis(3)
+@test FockBasis(1,3) != FockBasis(2,4)
+
+
+# Test operators
+@test number(basis) == Operator(basis, diagm(Complex128[0, 1, 2]))
+@test destroy(basis) == Operator(basis, Complex128[0 1 0; 0 0 sqrt(2); 0 0 0])
+@test create(basis) == Operator(basis, Complex128[0 0 0; 1 0 0; 0 sqrt(2) 0])
+@test number(basis) == dagger(number(basis))
+@test create(basis) == dagger(destroy(basis))
+@test destroy(basis) == dagger(create(basis))
+@test_approx_eq_eps tracedistance(create(basis)*destroy(basis), number(basis)) 0. 1e-15
+
+
+# Test application onto statevectors
+@test create(basis)*fockstate(basis, 0) == fockstate(basis, 1)
+@test create(basis)*fockstate(basis, 1) == sqrt(2)*fockstate(basis, 2)
+@test dagger(fockstate(basis, 0))*destroy(basis) == dagger(fockstate(basis, 1))
+@test dagger(fockstate(basis, 1))*destroy(basis) == sqrt(2)*dagger(fockstate(basis, 2))
+
+@test destroy(basis)*fockstate(basis, 1) == fockstate(basis, 0)
+@test destroy(basis)*fockstate(basis, 2) == sqrt(2)*fockstate(basis, 1)
+@test dagger(fockstate(basis, 1))*create(basis) == dagger(fockstate(basis, 0))
+@test dagger(fockstate(basis, 2))*create(basis) == sqrt(2)*dagger(fockstate(basis, 1))
+
+
+# Test Fock states
+
+b1 = FockBasis(2, 5)
+b2 = FockBasis(5)
+
+@test expect(number(b1), fockstate(b1, 3)) == complex(3.)
+@test expect(number(b2), fockstate(b2, 3)) == complex(3.)
+
+
+# Test coherent states
+
+b1 = FockBasis(100)
+b2 = FockBasis(2, 5)
+alpha = complex(3.)
+
+@test_approx_eq_eps norm(expect(destroy(b1), coherentstate(b1, alpha)) - alpha) 0. 1e-14
+@test_approx_eq_eps norm(coherentstate(b1, alpha).data[3:6] - coherentstate(b2, alpha).data) 0. 1e-14

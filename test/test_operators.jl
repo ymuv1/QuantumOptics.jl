@@ -1,7 +1,7 @@
 using Base.Test
 using quantumoptics
 
-fockbasis = FockBasis(20)
+fockbasis = FockBasis(40)
 spinbasis = SpinBasis(1//2)
 
 alpha = 0.5
@@ -40,13 +40,13 @@ I = identity(fockbasis)
 @test_approx_eq 0. norm(xbra*I - xbra)
 @test_approx_eq alpha norm(a*xket)
 @test_approx_eq alpha norm(xbra*at)
-@test_approx_eq_eps 0. tracedistance(n, at*a) 1e-14
-@test_approx_eq_eps 0. norm((5. * at)*xket - 5 * (at*xket)) 1e-14
-@test_approx_eq_eps 0. norm((at * 5.)*xket - (at*xket) * 5) 1e-14
+@test_approx_eq_eps 0. tracedistance(n, at*a) 1e-13
+@test_approx_eq_eps 0. norm((5. * at)*xket - 5 * (at*xket)) 1e-13
+@test_approx_eq_eps 0. norm((at * 5.)*xket - (at*xket) * 5) 1e-13
 @test_throws bases.IncompatibleBases a*op1
 
 # Test division
-@test_approx_eq_eps 0. norm((at/5.)*xket - (at*xket)/5) 1e-14
+@test_approx_eq_eps 0. norm((at/5.)*xket - (at*xket)/5) 1e-13
 
 # Test trace and normalize
 op = Operator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
