@@ -1,4 +1,4 @@
-module spins
+module spin
 
 import Base.==
 
