@@ -11,7 +11,8 @@ export bases, Basis, GenericBasis, CompositeBasis, compose,
         sparse,
         metrics, tracedistance,
         timeevolution_simple,
-        timeevolution
+        timeevolution,
+        steadystate
 
 
 include("bases.jl")
@@ -27,6 +28,7 @@ include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
 include("timeevolution.jl")
+include("steadystate.jl")
 include("io.jl")
 
 
