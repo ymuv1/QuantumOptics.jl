@@ -31,7 +31,7 @@ Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
 Jsparse = map(SparseOperator, J)
 
-Ψ₀ = basis_ket(spinbasis, 2) ⊗ basis_ket(fockbasis, 1)
+Ψ₀ = basis_ket(spinbasis, 2) ⊗ fockstate(fockbasis, 5)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)
 
 
