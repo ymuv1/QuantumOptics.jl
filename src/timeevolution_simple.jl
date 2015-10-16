@@ -85,7 +85,7 @@ function schroedinger{T<:StateVector}(tspan::Vector, psi0::T, H::AbstractOperato
     as_vector(psi::T) = psi.data
     f(t::Float64, x::Vector{Complex128}) = as_vector(dschroedinger(as_statevector(x), H))
     tout, x_t = ode45(f, as_vector(psi0), tspan; kwargs...)
-    psi_t = [as_statevector(x) for x=x_t]
+    psi_t = T[as_statevector(x) for x=x_t]
     return tout, psi_t
 end
 
