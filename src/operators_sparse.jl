@@ -53,11 +53,11 @@ operators.dagger(x::SparseOperator) = SparseOperator(x.basis_r, x.basis_l, x.dat
 operators.norm(op::SparseOperator, p) = norm(op.data, p)
 operators.trace(op::SparseOperator) = trace(op.data)
 
-Base.identity(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
-Base.identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
+sparse_identity(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
+sparse_identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
 
 
-function embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
+function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
     op_total = (1 in indices ? operators[findfirst(indices, 1)] : sparse_identity(basis.bases[1]))
     for i=2:length(basis.bases)
         op = (i in indices ? operators[findfirst(indices, i)] : sparse_identity(basis.bases[i]))

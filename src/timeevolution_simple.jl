@@ -56,7 +56,7 @@ function master(T::Vector, rho0::Operator, H::AbstractOperator, J::Vector;
     as_vector(rho::Operator) = reshape(rho.data, N)
     f(t::Float64, x::Vector{Complex128}) = as_vector(dmaster(as_operator(x), H, gamma, J, Jdagger))
     tout, x_t = ode45(f, as_vector(rho0), T; kwargs...)
-    rho_t = [as_operator(x) for x=x_t]
+    rho_t = Operator[as_operator(x) for x=x_t]
     return tout, rho_t
 end
 

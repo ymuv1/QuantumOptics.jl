@@ -8,7 +8,6 @@ export bases, Basis, GenericBasis, CompositeBasis, compose,
         operators_sparse, SparseOperator, sparse_identity,
         FockBasis, number, destroy, create, fockstate, coherentstate,
         SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, qfunc,
-        sparse,
         metrics, tracedistance,
         timeevolution_simple,
         timeevolution,
@@ -36,7 +35,6 @@ include("io.jl")
 
 using .bases
 using .states
-using .sparse
 using .operators
 using .operators_sparse
 using .operators_lazy
