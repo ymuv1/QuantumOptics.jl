@@ -42,17 +42,22 @@ function correlation(rho0::Operator, H::AbstractOperator, J::Vector,
 end
 
 
-function spectrum(tspan::Vector{Float64}, H::AbstractOperator, J::Vector, op::AbstractOperator;
+function spectrum(omega_samplepoints::Vector{Float64},
+                H::AbstractOperator, J::Vector, op::AbstractOperator;
                 eps::Float64=1e-4,
                 rho_ss::Operator=steadystate.master(H, J; eps=eps),
                 kwargs...)
+    domega = minimum(diff(omega_samplepoints))
+    dt = 2*pi/(omega_samplepoints[end] - omega_samplepoints[1])
+    T = 2*pi/domega
+    tspan = [0.:dt:T;]
     exp_values = correlation(tspan, rho_ss, H, J, dagger(op), op, kwargs...)
-    dtmin = minimum(diff(tspan))
-    T = tspan[end] - tspan[1]
-    domega = 2*pi/T
-    omega_min = -pi/dtmin
-    omega_max = pi/dtmin
-    omega_samplepoints = Float64[omega_min:domega:omega_max-domega/2;]
+    # dtmin = minimum(diff(tspan))
+    # T = tspan[end] - tspan[1]
+    # domega = 2*pi/T
+    # omega_min = -pi/dtmin
+    # omega_max = pi/dtmin
+    # omega_samplepoints = Float64[omega_min:domega:omega_max-domega/2;]
     S = Float64[]
     for omega=omega_samplepoints
         y = exp(1im*omega*tspan).*exp_values/pi
