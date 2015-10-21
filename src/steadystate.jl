@@ -31,7 +31,7 @@ function master(H::AbstractOperator, J::Vector;
         end
     end
     try
-        timeevolution.master([0., Inf], rho0, H, J; Gamma=Gamma, Jdagger=Jdagger,
+        timeevolution.master_h([0., Inf], rho0, H, J; Gamma=Gamma, Jdagger=Jdagger,
                             hmin=hmin, hmax=Inf,
                             tmp=tmp,
                             display_initialvalue=false,
