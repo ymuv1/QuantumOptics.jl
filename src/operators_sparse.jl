@@ -58,6 +58,11 @@ sparse_identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128,
 
 
 function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
+    @assert length(indices) == length(operators)
+    @assert length(basis.bases) >= maximum(indices)
+    if length(basis.bases) == 1
+        return SparseOperator(basis, basis, deepcopy(operators[1].data))
+    end
     op_total = (1 in indices ? operators[findfirst(indices, 1)] : sparse_identity(basis.bases[1]))
     for i=2:length(basis.bases)
         op = (i in indices ? operators[findfirst(indices, i)] : sparse_identity(basis.bases[i]))
@@ -65,5 +70,6 @@ function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators:
     end
     return op_total
 end
+
 
 end # module
