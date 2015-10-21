@@ -22,7 +22,7 @@ end
 
 SparseOperator(b::Basis, data::SparseMatrixCSC{Complex128}) = SparseOperator(b, b, data)
 SparseOperator(b::Basis, data::Matrix{Complex128}) = SparseOperator(b, sparse(data))
-SparseOperator(Operator) = SparseOperator(Operator.basis_l, Operator.basis_r, sparse(Operator.data))
+SparseOperator(op::Operator) = SparseOperator(op.basis_l, op.basis_r, sparse(op.data))
 
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(Complex128, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
