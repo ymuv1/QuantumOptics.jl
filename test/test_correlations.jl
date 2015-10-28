@@ -48,4 +48,3 @@ tout, exp_values2 = correlations.correlation(ρ₀, H, J, dagger(op), op; eps=1e
 
 op = embed(basis, 1, sqrt(γ)*sm)
 omega, S = correlations.spectrum(H, J, op)
-println(maximum(abs(S)))
