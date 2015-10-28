@@ -6,11 +6,16 @@ using quantumoptics
 R = 0.5
 
 # System operators
-H = ω0 * sigmaz
-J = [γ*sigmam, R*sigmap]
+spinbasis = SpinBasis(1//2)
+sz = sigmaz(spinbasis)
+sm = sigmam(spinbasis)
+sp = sigmap(spinbasis)
+
+H = ω0 * sz
+J = [γ*sm, R*sp]
 
 # Initial state
-Ψ₀ = basis_ket(spinbasis, 1)
+Ψ₀ = spinup(spinbasis)
 ρ₀ = Ψ₀ ⊗ dagger(Ψ₀)
 
 # Integration options
@@ -41,13 +46,13 @@ using PyCall
 @pyimport matplotlib.pyplot as plt
 
 plt.subplot(2, 1, 1)
-plt.plot(T, real(expect(sigmaz, ρt_master)))
-plt.plot(T, real(expect(sigmaz, ρt_average)))
+plt.plot(T, real(expect(sz, ρt_master)))
+plt.plot(T, real(expect(sz, ρt_average)))
 plt.xlabel("\$\\mathrm\{Time\} \$")
 plt.ylabel("\$\\sigma^z\$")
 
 plt.subplot(2, 1, 2)
-plt.plot(tout_example, real(expect(sigmaz, Ψt_example)))
+plt.plot(tout_example, real(expect(sz, Ψt_example)))
 plt.xlabel("\$\\mathrm\{Time\} \$")
 plt.ylabel("\$\\sigma^z\$")
 

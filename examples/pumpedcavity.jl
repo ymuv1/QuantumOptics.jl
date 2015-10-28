@@ -13,7 +13,7 @@ H = η*(a+aᵀ)
 J = [sqrt(κ)*a]
 
 # Initial state
-Ψ₀ = basis_ket(basis, 10)
+Ψ₀ = fockstate(basis, 10)
 ρ₀ = Ψ₀ ⊗ dagger(Ψ₀)
 
 # Integration options

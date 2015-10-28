@@ -4,7 +4,7 @@ import Base.==
 
 using ..bases, ..states, ..operators
 
-export SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam
+export SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown
 
 
 """
@@ -52,6 +52,10 @@ function sigmam(b::SpinBasis)
     d = [complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
     Operator(b, diagm(d, -1))
 end
+
+
+spinup(b::SpinBasis) = basis_ket(b, 1)
+spindown(b::SpinBasis) = basis_ket(b, b.shape[1])
 
 
 end #module

@@ -36,7 +36,7 @@ J = [Ja, Jc]
 Jsparse = map(SparseOperator, J)
 
 # Initial conditions
-Ψ₀ = basis_ket(spinbasis, 2) ⊗ basis_ket(fockbasis, 5)
+Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
 ρ₀ = Ψ₀ ⊗ dagger(Ψ₀)
 
 

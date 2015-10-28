@@ -55,6 +55,13 @@ for spinnumber=1//2:1//2:5//2
     @test_approx_eq_eps 0. tracedistance(kommutator(sz, kommutator(sz, sx)), 4*sx) 1e-12
     @test_approx_eq_eps 0. tracedistance(kommutator(sz, kommutator(sz, sy)), 4*sy) 1e-12
     @test_approx_eq_eps 0. tracedistance(kommutator(sz, kommutator(sz, sz)), Zero) 1e-12
+
+
+    # Test spinup and spindown states
+    @test_approx_eq_eps 1. norm(spinup(spinbasis)) 1e-11
+    @test_approx_eq_eps 1. norm(spindown(spinbasis)) 1e-11
+    @test_approx_eq_eps 0. norm(sp*spinup(spinbasis)) 1e-11
+    @test_approx_eq_eps 0. norm(sm*spindown(spinbasis)) 1e-11
 end
 
 
@@ -89,3 +96,8 @@ antikommutator(x, y) = x*y + y*x
 @test_approx_eq 0. tracedistance(sy*sy, I)
 @test_approx_eq 0. tracedistance(sz*sz, I)
 @test_approx_eq 0. tracedistance(-1im*sx*sy*sz, I)
+
+
+# Test consistency of spin up and down with sigmap and sigmam
+@test_approx_eq_eps 0. norm(sm*spinup(spinbasis) - spindown(spinbasis)) 1e-11
+@test_approx_eq_eps 0. norm(sp*spindown(spinbasis) - spinup(spinbasis)) 1e-11
