@@ -39,7 +39,6 @@ basis = FockBasis(2)
 
 
 # Test Fock states
-
 b1 = FockBasis(2, 5)
 b2 = FockBasis(5)
 
@@ -48,10 +47,22 @@ b2 = FockBasis(5)
 
 
 # Test coherent states
-
 b1 = FockBasis(100)
 b2 = FockBasis(2, 5)
 alpha = complex(3.)
 
 @test_approx_eq_eps norm(expect(destroy(b1), coherentstate(b1, alpha)) - alpha) 0. 1e-14
 @test_approx_eq_eps norm(coherentstate(b1, alpha).data[3:6] - coherentstate(b2, alpha).data) 0. 1e-14
+
+
+# Test qfunc
+b = FockBasis(50)
+alpha = complex(1., 2.)
+X = [-2:0.1:2;]
+Y = [0:0.1:3;]
+rho = tensor(coherentstate(b, alpha), dagger(coherentstate(b, alpha)))
+Q = qfunc(rho, X, Y)
+for (i,x)=enumerate(X), (j,y)=enumerate(Y)
+    c = complex(x, y)
+    @test_approx_eq_eps Q[i,j] exp(-abs2(c) - abs2(alpha) + 2*real(alpha*conj(c)))/pi 1e-14
+end

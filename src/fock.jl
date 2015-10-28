@@ -77,15 +77,17 @@ end
 coherentstate(b::FockBasis, alpha::Number) = coherentstate(b, complex(alpha))
 
 
+"""
+Husimi Q representation 1/pi * <alpha|rho|alpha>.
+"""
+function qfunc(rho::AbstractOperator, alpha::Complex128)
+    psi = coherentstate(rho.basis_l, alpha)
+    return real(dagger(psi)*rho*psi)/pi
+end
+
 function qfunc(rho::AbstractOperator, X::Vector{Float64}, Y::Vector{Float64})
-    M = zeros(Float64, length(X), length(Y))
     @assert rho.basis_l == rho.basis_r
-    for (i,x)=enumerate(X), (j,y)=enumerate(Y)
-        z = complex(x,y)
-        coh = coherent_state(rho.basis_l, z)
-        M[i,j] = real(dagger(coh)*rho*coh)
-    end
-    return M
+    return Float64[qfunc(rho, complex(x,y)) for x=X, y=Y]
 end
 
 end # module
