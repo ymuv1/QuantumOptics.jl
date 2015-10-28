@@ -45,6 +45,7 @@ Operator(op::AbstractOperator) = full(op)
 """
 Converting an arbitrary AbstractOperator into an Operator.
 """
+Base.copy(x::Operator) = deepcopy(x)
 Base.full(x::Operator) = deepcopy(x)
 Base.full(op::AbstractOperator) = op*identity(op.basis_r)
 
