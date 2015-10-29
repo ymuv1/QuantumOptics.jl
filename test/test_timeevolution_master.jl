@@ -24,11 +24,20 @@ Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
-Hsparse = SparseOperator(H)
+
+Ja_unscaled = embed(basis, 1, sm)
+Jc_unscaled = embed(basis, 2, destroy(fockbasis))
+Junscaled = [Ja_unscaled, Jc_unscaled]
 
 Ja = embed(basis, 1, sqrt(γ)*sm)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
+
+Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
+
+Hsparse = SparseOperator(H)
+Hnh_sparse = SparseOperator(Hnh)
+Junscaled_sparse = map(SparseOperator, Junscaled)
 Jsparse = map(SparseOperator, J)
 
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
@@ -64,9 +73,6 @@ tout, ρt = timeevolution.master_h(T, Ψ₀, H, J; reltol=1e-6)
 
 
 # Test master_nh
-Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
-Hnh_sparse = SparseOperator(Hnh)
-
 tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, Jsparse; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
@@ -80,6 +86,56 @@ tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Jsparse; reltol=1e-6)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 tout, ρt = timeevolution.master_nh(T, Ψ₀, Hnh, J; reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+
+# Test explicit gamma vector
+Gamma_vector = [γ, κ]
+
+tout, ρt = timeevolution.master(T, ρ₀, H, Junscaled; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master(T, ρ₀, Hsparse, Junscaled_sparse; Gamma=Gamma_vector, reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, H, Junscaled; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Junscaled; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, Hsparse, Junscaled_sparse; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh_sparse, Junscaled_sparse; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, H, Junscaled_sparse; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Junscaled_sparse; Gamma=Gamma_vector, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+
+# Test explicit gamma matrix
+alpha = 0.3
+R = [cos(alpha) -sin(alpha); sin(alpha) cos(alpha)]
+Rt = transpose(R)
+Jrotated = [R[1,1]*Junscaled[1] + R[1,2]*Junscaled[2], R[2,1]*Junscaled[1] + R[2,2]*Junscaled[2]]
+Jrotated_sparse = [SparseOperator(j) for j=Jrotated]
+Gamma_matrix = diagm(Gamma_vector)
+Gamma_matrix_rotated = R * Gamma_matrix * Rt
+
+tout, ρt = timeevolution.master(T, ρ₀, H, Jrotated; Gamma=Gamma_matrix_rotated, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master(T, ρ₀, Hsparse, Jrotated_sparse; Gamma=Gamma_matrix_rotated, reltol=1e-6)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_h(T, ρ₀, H, Jrotated; Gamma=Gamma_matrix_rotated, reltol=1e-7)
+@test tracedistance(ρt[end], ρ) < 1e-5
+
+tout, ρt = timeevolution.master_nh(T, ρ₀, Hnh, Jrotated; Gamma=Gamma_matrix_rotated, reltol=1e-7)
 @test tracedistance(ρt[end], ρ) < 1e-5
 
 

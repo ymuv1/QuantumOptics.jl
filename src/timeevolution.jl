@@ -12,7 +12,7 @@ export master, master_nh, master_h
 Evaluate master equation for diagonal jump operators.
 """
 function dmaster_h(rho::Operator, H::AbstractOperator,
-                    Gamma::Vector, J::Vector, Jdagger::Vector,
+                    Gamma::Vector{Complex128}, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
     operators.gemm!(complex(0,-1.), H, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, H, complex(1.), drho)
@@ -32,7 +32,7 @@ end
 Evaluate master equation for nondiagonal jump operators.
 """
 function dmaster_h(rho::Operator, H::AbstractOperator,
-                    Gamma::Matrix, J::Vector, Jdagger::Vector,
+                    Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
     operators.gemm!(complex(0,-1.), H, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, H, complex(1.), drho)
@@ -52,7 +52,7 @@ end
 Evaluate master equation for non-hermitian Hamiltonian and diagonal jump operators.
 """
 function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
-                    Gamma::Vector, J::Vector, Jdagger::Vector,
+                    Gamma::Vector{Complex128}, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
     operators.gemm!(complex(0,-1.), Hnh, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, Hnh_dagger, complex(1.), drho)
@@ -67,7 +67,7 @@ end
 Evaluate master equation for non-hermitian Hamiltonian and nondiagonal jump operators.
 """
 function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
-                    Gamma::Matrix, J::Vector, Jdagger::Vector,
+                    Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
                     drho::Operator, tmp::Operator)
     operators.gemm!(complex(0,-1.), Hnh, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, Hnh_dagger, complex(1.), drho)
@@ -105,7 +105,7 @@ function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing
     return fout==nothing ? (tout, xout) : nothing
 end
 
-function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector, Gamma)
+function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector, Gamma::Union{Vector{Float64}, Matrix{Float64}})
     operators.check_samebases(rho0, H)
     for j=J
         @assert typeof(j) <: AbstractOperator
@@ -116,8 +116,12 @@ function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::V
         operators.check_samebases(rho0, j)
     end
     @assert length(J)==length(Jdagger)
-    if typeof(Gamma)<:Real
-        Gamma = ones(typeof(Gamma), length(J))*Gamma
+    if typeof(Gamma) == Matrix{Float64}
+        @assert size(Gamma, 1) == size(Gamma, 2) == length(J)
+    elseif typeof(Gamma) == Vector{Float64}
+        @assert length(Gamma) == length(J)
+    else
+        error()
     end
 end
 
@@ -125,7 +129,7 @@ end
 Integrate master equation with dmaster_h as derivative function.
 """
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
-                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
+                Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
                 tmp::Operator=deepcopy(rho0),
@@ -143,7 +147,7 @@ master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h
 Integrate master equation with master_nh as derivative function.
 """
 function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
-                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
+                Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Hnhdagger::AbstractOperator=dagger(Hnh),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
@@ -165,18 +169,38 @@ Hnh is first calculated from the given Hamiltonian and Jump operators and
 then dmaster_nh is used for the time evolution.
 """
 function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
-                Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
+                Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
                 tmp::Operator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
     Gamma = complex(Gamma)
+    dmaster_(t, rho::Operator, drho::Operator) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp)
+    return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
+end
+
+function master(tspan, rho0::Operator, H::Operator, J::Vector{Operator};
+                Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
+                Jdagger::Vector{Operator}=map(dagger, J),
+                fout::Union{Function,Void}=nothing,
+                tmp::Operator=deepcopy(rho0),
+                kwargs...)
+    _check_input(rho0, H, J, Jdagger, Gamma)
     Hnh = deepcopy(H)
-    for i=1:length(J)
-        Hnh -= 0.5im*Jdagger[i]*J[i]
+    if typeof(Gamma) == Matrix{Float64}
+        for i=1:length(J), j=1:length(J)
+            Hnh -= 0.5im*Gamma[i,j]*Jdagger[i]*J[j]
+        end
+    elseif typeof(Gamma) == Vector{Float64}
+        for i=1:length(J)
+            Hnh -= 0.5im*Gamma[i]*Jdagger[i]*J[i]
+        end
+    else
+        error()
     end
     Hnhdagger = dagger(Hnh)
+    Gamma = complex(Gamma)
     dmaster_(t, rho::Operator, drho::Operator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
