@@ -58,6 +58,9 @@ op_ = normalize!(op)
 @test op_ === op
 @test_approx_eq 1. trace(op)
 
+# Test identity function
+@test I == identity(a)
+
 # Test gemv implementation
 result_ket = deepcopy(xket)
 operators.gemv!(complex(1.0), at, xket, complex(0.), result_ket)

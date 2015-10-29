@@ -1,6 +1,6 @@
 module operators_sparse
 
-import Base: *, /, +, -
+import Base: ==, *, /, +, -
 import ..operators
 
 using ..bases, ..states, ..operators, ..sparsematrix
@@ -29,6 +29,9 @@ SparseOperator(b::Basis) = SparseOperator(b, b)
 
 operators.full(a::SparseOperator) = Operator(a.basis_l, a.basis_r, full(a.data))
 
+==(x::SparseOperator, y::SparseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
+
+
 *(a::SparseOperator, b::SparseOperator) = (check_multiplicable(a.basis_r, b.basis_l); SparseOperator(a.basis_l, b.basis_r, a.data*b.data))
 *(a::SparseOperator, b::Number) = SparseOperator(a.basis_l, a.basis_r, complex(b)*a.data)
 *(a::Number, b::SparseOperator) = SparseOperator(b.basis_l, b.basis_r, complex(a)*b.data)
@@ -55,6 +58,7 @@ operators.trace(op::SparseOperator) = trace(op.data)
 
 sparse_identity(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
 sparse_identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
+Base.identity(op::SparseOperator) = sparse_identity(op.basis_l, op.basis_r)
 
 
 function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})

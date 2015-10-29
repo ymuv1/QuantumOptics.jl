@@ -22,3 +22,5 @@ s_sp = tensor(sx_sp, sy_sp)
 @test typeof(I_dense) == Operator
 @test_approx_eq 0. norm((I_dense-full(I)).data)
 @test_approx_eq 0. norm((s - full(s_sp)).data)
+
+@test I == identity(SparseOperator(destroy(b)))
