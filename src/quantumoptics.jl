@@ -6,6 +6,7 @@ export bases, Basis, GenericBasis, CompositeBasis, compose,
         operators, AbstractOperator, Operator, expect, identity, ptrace, embed,
         operators_lazy, LazyOperator,LazyTensor, LazySum, LazyProduct,
         operators_sparse, SparseOperator, sparse_identity,
+        super, SuperOperator, SparseSuperOperator, spre, spost, liouvillian,
         FockBasis, number, destroy, create, fockstate, coherentstate, qfunc,
         spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         metrics, tracedistance,
@@ -21,6 +22,7 @@ include("operators.jl")
 include("sparsematrix.jl")
 include("operators_sparse.jl")
 include("operators_lazy.jl")
+include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")
 include("particle.jl")
@@ -38,6 +40,7 @@ using .states
 using .operators
 using .operators_sparse
 using .operators_lazy
+using .superoperators
 using .spin
 using .fock
 using .particle
