@@ -1,3 +1,5 @@
+__precompile__()
+
 module quantumoptics
 
 export bases, Basis, GenericBasis, CompositeBasis, compose,
