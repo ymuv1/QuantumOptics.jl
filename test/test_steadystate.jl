@@ -32,10 +32,16 @@ Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
 Jsparse = map(SparseOperator, J)
 
-Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
+Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 2)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)
 
+tout, ρt = timeevolution.master([0,100], ρ₀, H, J; reltol=1e-7)
 
 ρss = steadystate.master(H, J; eps=1e-4)
-tout, ρt = timeevolution.master([0,100], ρ₀, H, J; reltol=1e-7)
+@test tracedistance(ρss, ρt[end]) < 1e-3
+
+ρss = steadystate.eigenvector(H, J)
+@test tracedistance(ρss, ρt[end]) < 1e-6
+
+ρss = steadystate.eigenvector(Hsparse, Jsparse; rho0=ρ₀)
 @test tracedistance(ρss, ρt[end]) < 1e-3

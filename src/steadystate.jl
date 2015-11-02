@@ -2,6 +2,7 @@ module steadystate
 
 using ..states
 using ..operators
+using ..superoperators
 using ..timeevolution
 using ..metrics
 
@@ -45,5 +46,24 @@ function master(H::AbstractOperator, J::Vector;
     end
     return rho0
 end
+
+
+function eigenvector(L::SparseSuperOperator;
+              rho0::Operator=tensor(basis_ket(L.basis_r[1], 1), basis_bra(L.basis_r[2], 1)),)
+    d, v, nconv, niter, nmult, resid = Base.eigs(L.data; nev=1, sigma=1e-30)
+    data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
+    op = Operator(L.basis_r[1], L.basis_r[2], data)
+    return op/trace(op)
+end
+
+function eigenvector(L::SuperOperator;
+              rho0::Operator=tensor(basis_ket(L.basis_r[1], 1), basis_bra(L.basis_r[2], 1)),)
+    d, v = Base.eig(L.data)
+    data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
+    return Operator(L.basis_r[1], L.basis_r[2], data)
+end
+
+eigenvector(H::AbstractOperator, J::Vector; kwargs...) = eigenvector(liouvillian(H, J); kwargs...)
+
 
 end # module
