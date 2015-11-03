@@ -42,7 +42,7 @@ function correlation(rho0::Operator, H::AbstractOperator, J::Vector,
 end
 
 
-function spectrum(omega_samplepoints::Vector{Float64},
+function correlationspectrum(omega_samplepoints::Vector{Float64},
                 H::AbstractOperator, J::Vector, op::AbstractOperator;
                 eps::Float64=1e-4,
                 rho_ss::Operator=steadystate.master(H, J; eps=eps),
@@ -72,7 +72,7 @@ function spectrum(omega_samplepoints::Vector{Float64},
 end
 
 
-function spectrum(H::AbstractOperator, J::Vector, op::AbstractOperator;
+function correlationspectrum(H::AbstractOperator, J::Vector, op::AbstractOperator;
                 eps::Float64=1e-4, h0=10.,
                 rho_ss::Operator=steadystate.master(H, J; eps=eps),
                 kwargs...)
@@ -80,7 +80,7 @@ function spectrum(H::AbstractOperator, J::Vector, op::AbstractOperator;
     dtmin = minimum(diff(tspan))
     T = tspan[end] - tspan[1]
     tspan = Float64[0.:dtmin:T;]
-    return spectrum(tspan, H, J, op; eps=eps, rho_ss=rho_ss, kwargs...)
+    return correlationspectrum(tspan, H, J, op; eps=eps, rho_ss=rho_ss, kwargs...)
     # domega = 1./T
     # omega_min = -pi/dtmin
     # omega_max = pi/dtmin

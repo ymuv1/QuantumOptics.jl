@@ -47,4 +47,4 @@ tout, exp_values2 = correlations.correlation(ρ₀, H, J, dagger(op), op; eps=1e
 @test norm(exp_values[end]-exp_values2[end]) < 1e-4
 
 op = embed(basis, 1, sqrt(γ)*sm)
-omega, S = correlations.spectrum(H, J, op)
+omega, S = correlations.correlationspectrum(H, J, op)
