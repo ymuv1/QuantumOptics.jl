@@ -12,6 +12,7 @@ export bases, Basis, GenericBasis, CompositeBasis, compose,
         FockBasis, number, destroy, create, fockstate, coherentstate, qfunc,
         spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         metrics, tracedistance,
+        spectralanalysis, operatorspectrum, operatorspectrum_hermitian, eigenbasis, eigenbasis_hermitian, groundstate,
         timeevolution_simple,
         timeevolution,
         steadystate,
@@ -34,6 +35,7 @@ include("timeevolution_simple.jl")
 include("timeevolution.jl")
 include("steadystate.jl")
 include("correlations.jl")
+include("spectralanalysis.jl")
 include("io.jl")
 
 
@@ -47,6 +49,7 @@ using .spin
 using .fock
 using .particle
 using .metrics
+using .spectralanalysis
 
 
 end # module
