@@ -9,7 +9,7 @@ using Base.Cartesian
 using ..bases, ..states
 
 export AbstractOperator, Operator,
-       tensor, dagger, expect, embed, normalize, normalize!
+       tensor, dagger, expect, embed
 
 
 """
