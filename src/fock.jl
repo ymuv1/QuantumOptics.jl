@@ -10,12 +10,14 @@ export FockBasis, number, destroy, create, fockstate, coherentstate, qfunc
 """
 Basis for a Fock space.
 
-Arguments:
-* Nmin
-    Minimal particle number incuded in this basis. By default it is zero, i.e.
-    starting with the vacuum state.
-* Nmax
-    Maximal particle number incuded in this basis.
+
+**Arguments**
+
+    Nmin
+        Minimal particle number incuded in this basis. By default it is
+        zero, i.e. starting with the vacuum state.
+    Nmax
+        Maximal particle number incuded in this basis.
 """
 type FockBasis <: Basis
     shape::Vector{Int}

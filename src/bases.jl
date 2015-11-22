@@ -137,7 +137,7 @@ end
 
 
 """
-Exception that shoud be raised for an illegal algebraic operation.
+Exception that should be raised for an illegal algebraic operation.
 """
 type IncompatibleBases <: Exception end
 
