@@ -29,7 +29,7 @@ function dmaster_h(rho::Operator, H::AbstractOperator,
 end
 
 """
-Evaluate master equation for nondiagonal jump operators.
+Evaluate master equation for non-diagonal jump operators.
 """
 function dmaster_h(rho::Operator, H::AbstractOperator,
                     Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
@@ -64,7 +64,7 @@ function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOp
 end
 
 """
-Evaluate master equation for non-hermitian Hamiltonian and nondiagonal jump operators.
+Evaluate master equation for non-hermitian Hamiltonian and non-diagonal jump operators.
 """
 function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
                     Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
@@ -209,7 +209,7 @@ master(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master(tsp
 
 
 """
-Integrate schroedinger equation with given derivative function.
+Integrate Schroedinger equation with given derivative function.
 """
 function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, psi0::T; fout=nothing, kwargs...)
     as_statevector(x::Vector{Complex128}) = T(psi0.basis, x)
@@ -232,7 +232,7 @@ function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, 
 end
 
 """
-Evaluate schroedinger equation for ket states.
+Evaluate Schroedinger equation for ket states.
 """
 function dschroedinger_ket(psi::Ket, H::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
@@ -240,7 +240,7 @@ function dschroedinger_ket(psi::Ket, H::AbstractOperator, dpsi::Ket)
 end
 
 """
-Evaluate schroedinger equation for bra states.
+Evaluate Schroedinger equation for bra states.
 """
 function dschroedinger_bra(psi::Bra, H::AbstractOperator, dpsi::Bra)
     operators.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
@@ -248,7 +248,7 @@ function dschroedinger_bra(psi::Bra, H::AbstractOperator, dpsi::Bra)
 end
 
 """
-Integrate schroedinger equation.
+Integrate Schroedinger equation.
 """
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
                 fout::Union{Function,Void}=nothing,
@@ -325,9 +325,9 @@ function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket)
 end
 
 """
-Evaluate Schroedinger equation with nonhermitian Hamiltonian.
+Evaluate Schroedinger equation with non-hermitian Hamiltonian.
 
-The nonhermitian Hamiltonian is given in two parts - the hermition part H and
+The non-hermitian Hamiltonian is given in two parts - the hermitian part H and
 the jump operators J.
 """
 function dmcwf_h(psi::Ket, H::AbstractOperator,
@@ -342,7 +342,7 @@ end
 
 
 """
-Evaluate Schroedinger equation with nonhermitian Hamiltonian.
+Evaluate Schroedinger equation with non-hermitian Hamiltonian.
 """
 function dmcwf_nh(psi::Ket, Hnh::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)

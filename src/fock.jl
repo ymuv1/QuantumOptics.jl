@@ -14,10 +14,10 @@ Basis for a Fock space.
 **Arguments**
 
     Nmin
-        Minimal particle number incuded in this basis. By default it is
+        Minimal particle number included in this basis. By default it is
         zero, i.e. starting with the vacuum state.
     Nmax
-        Maximal particle number incuded in this basis.
+        Maximal particle number included in this basis.
 """
 type FockBasis <: Basis
     shape::Vector{Int}

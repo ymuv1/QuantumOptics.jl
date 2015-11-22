@@ -10,9 +10,9 @@ export SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown
 """
 Basis for spin-n particles.
 
-The basis can be created for arbitrary spinnumbers by using a rational number,
-e.g. SpinBasis(3//2). The pauli operators are defined for all possible
-spinnumbers.
+The basis can be created for arbitrary spin numbers by using a rational number,
+e.g. SpinBasis(3//2). The Pauli operators are defined for all possible
+spin numbers.
 """
 type SpinBasis <: Basis
     shape::Vector{Int}

@@ -19,7 +19,7 @@ function dmaster(rho::Operator, H::AbstractOperator, gamma::Vector, J::Vector, J
 end
 
 """
-Evaluate master equation for nondiagonal jump operators.
+Evaluate master equation for non-diagonal jump operators.
 """
 function dmaster(rho::Operator, H::AbstractOperator, gamma::Matrix, J::Vector, Jdagger::Vector)
     drho = -1im * (H*rho - rho*H)
@@ -64,21 +64,21 @@ master(T::Vector, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master
 
 
 """
-Evaluate schroedinger equation for ket states.
+Evaluate Schroedinger equation for ket states.
 """
 function dschroedinger(psi::Ket, H::AbstractOperator)
     return -1im*H*psi
 end
 
 """
-Evaluate schroedinger equation for bra states.
+Evaluate Schroedinger equation for bra states.
 """
 function dschroedinger(psi::Bra, H::AbstractOperator)
     return 1im*psi*H
 end
 
 """
-Integrate schroedinger equation.
+Integrate Schroedinger equation.
 """
 function schroedinger{T<:StateVector}(tspan::Vector, psi0::T, H::AbstractOperator; kwargs...)
     as_statevector(x::Vector{Complex128}) = T(psi0.basis, x)

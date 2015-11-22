@@ -194,11 +194,14 @@ Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operator
 """
 Tensor product of operators where all missing indices are identity operators.
 
-Arguments
----------
-    * basis: CompositeBasis of the resuting operator.
-    * indices: Indices of the subsystems in which the given operators live.
-    * operators: Operators defined in the subsystems.
+**Arguments**
+
+    basis
+        CompositeBasis of the resulting operator.
+    indices
+        Indices of the subsystems in which the given operators live.
+    operators
+        Operators defined in the subsystems.
 """
 embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)]...)
 embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
