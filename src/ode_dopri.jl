@@ -231,17 +231,17 @@ function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
-                    display_initialvalue = true,
-                    display_finalvalue = true,
-                    display_intermediatesteps = false,
-                    display_beforeevent = false,
-                    display_afterevent = false
+                    display_initialvalue::Bool = true,
+                    display_finalvalue::Bool = true,
+                    display_intermediatesteps::Bool = false,
+                    display_beforeevent::Bool = false,
+                    display_afterevent::Bool = false
                     )
     t, tfinal = tspan[1], tspan[end]
     display_initialvalue && fout(t, x0)
 
     # Allocate memory
-    x = deepcopy(x0) # Dont change initial state.
+    x = copy(x0) # Dont change initial state.
     xp, xs, k = allocate_memory(x0)
 
     # Initial derivative.
@@ -346,15 +346,15 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
-                    display_initialvalue = true,
-                    display_finalvalue = true,
-                    display_intermediatesteps = false
+                    display_initialvalue::Bool = true,
+                    display_finalvalue::Bool = true,
+                    display_intermediatesteps::Bool = false,
                     )
     t, tfinal = tspan[1], tspan[end]
     display_initialvalue && fout(t, x0)
 
     # Allocate memory
-    x = deepcopy(x0) # Dont change initial state.
+    x = copy(x0) # Dont change initial state.
     xp, xs, k = allocate_memory(x0)
 
     # Initial derivative.
