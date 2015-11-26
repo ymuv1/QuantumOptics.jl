@@ -50,9 +50,9 @@ Base.zero{T<:StateVector}(x::T) = T(x.basis)
 """
 Tensor product of given bras or kets.
 """
-tensor() = error("Tensor function needs at least one argument.")
 tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b.data))
 tensor{T<:StateVector}(states::T...) = reduce(tensor, states)
+tensor() = error("Tensor function needs at least one argument.")
 ⊗(a,b) = tensor(a,b)
 
 """
