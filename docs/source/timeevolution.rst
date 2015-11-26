@@ -11,7 +11,8 @@ Schroedinger time evolution
     - i\hbar\frac{\mathrm{d}}{\mathrm{d} t} \langle \Psi(t)| = \langle\Psi(t)| H
 
 
-.. function:: schroedinger(tspan, psi0, H; fout=nothing, kwargs...)
+.. .. function:: schroedinger(tspan, psi0, H; fout=nothing, kwargs...)
+.. jl:autofunction:: timeevolution.jl schroedinger
 
 
 Master time evolution
@@ -34,9 +35,11 @@ Equation for non-hermitian Hamiltonian :math:`H_\mathrm{nh} = H - \frac{i\hbar}{
                  + \sum_i J_i \rho J_i^\dagger
 
 
-.. function:: master(tspan, rho0, Hnh, J; Gamma, Jdagger, fout, tmp, kwargs...)
-.. function:: master_h(tspan, rho0, H, J; Gamma, Jdagger, fout, tmp, kwargs...)
-.. function:: master_nh(tspan, rho0, Hnh, J; Gamma, Jdagger, fout, tmp, kwargs...)
+.. jl:autofunction:: timeevolution.jl master
+
+.. .. function:: master(tspan, rho0, Hnh, J; Gamma, Jdagger, fout, tmp, kwargs...)
+.. .. function:: master_h(tspan, rho0, H, J; Gamma, Jdagger, fout, tmp, kwargs...)
+.. .. function:: master_nh(tspan, rho0, Hnh, J; Gamma, Jdagger, fout, tmp, kwargs...)
 
 
 MCWF time evolution
@@ -79,6 +82,8 @@ and also the stochastic average of the single trajectory expectation values is e
 
 avoiding explicit calculations of density matrices.
 
-.. function:: mcwf(tspan, rho0, Hnh, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
-.. function:: mcwf_h(tspan, rho0, H, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
-.. function:: mcwf_nh(tspan, rho0, Hnh, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
+.. jl:autofunction:: timeevolution.jl mcwf
+
+.. .. function:: mcwf(tspan, rho0, Hnh, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
+.. .. function:: mcwf_h(tspan, rho0, H, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
+.. .. function:: mcwf_nh(tspan, rho0, Hnh, J; seed, fout, Jdagger, display_beforeevent, display_afterevent, kwargs...)
