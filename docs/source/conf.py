@@ -32,9 +32,8 @@ import os
 extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'juliadomain',
-    'juliaautodoc',
-    'sphinx.ext.napoleon'
+    'sphinxjulia.juliadomain',
+    'sphinxjulia.juliaautodoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -100,29 +99,11 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
 
-# primary_domain = 'jl'
+primary_domain = 'jl'
 highlight_language = 'julia'
-
-# Julia settings
-julia_signature_show_type = False
-julia_signature_show_default = True
-julia_signature_show_qualifier = False
-julia_docstring_show_type = True
 
 # Julia autodoc
 juliaautodoc_basedir = "../src"
-
-# Napoleon settings
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -135,9 +116,6 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
-
-# Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = [juliadoc.get_theme_dir()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
