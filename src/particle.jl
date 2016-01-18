@@ -10,7 +10,23 @@ export PositionBasis, MomentumBasis,
         spacing, samplingpoints,
         positionoperator, momentumoperator, laplace_x, laplace_p, FFTOperator
 
+"""
+Basis for a particle in real space.
 
+For simplicity periodic boundaries are assumed which means that
+the rightmost point defined by xmax is not included in the basis
+but is defined to be the same as xmin.
+
+Arguments
+---------
+
+xmin
+    Left boundary.
+xmax
+    Right boundary.
+N
+    Number of discrete points in the basis.
+"""
 type PositionBasis <: Basis
     shape::Vector{Int}
     xmin::Float64
@@ -19,6 +35,23 @@ type PositionBasis <: Basis
     PositionBasis(xmin::Float64, xmax::Float64, N::Int) = new([N], xmin, xmax, N)
 end
 
+
+"""
+Basis for a particle in momentum space.
+
+For simplicity periodic boundaries are assumed which means that
+pmax is not included in the basis but is defined to be the same as pmin.
+
+Arguments
+---------
+
+pmin
+    Left boundary.
+pmax
+    Right boundary.
+N
+    Number of discrete points in the basis.
+"""
 type MomentumBasis <: Basis
     shape::Vector{Int}
     pmin::Float64
@@ -27,13 +60,41 @@ type MomentumBasis <: Basis
     MomentumBasis(pmin::Float64, pmax::Float64, N::Int) = new([N], pmin, pmax, N)
 end
 
+
+"""
+Create a PositionBasis from a MomentumBasis.
+
+Since periodic boundary conditions are assumed the values for :math:`x_{min}`
+and :math:`x_{max}` are more or less arbitrary and are chosen to be
+:math:`-\\pi/dp` and :math:`\\pi/dp` with :math:`dp=(p_{max}-p_{min})/N`.
+"""
 PositionBasis(b::MomentumBasis) = (dp = (b.pmax - b.pmin)/b.N; PositionBasis(-pi/dp, pi/dp, b.N))
+
+"""
+Create a MomentumBasis from a PositionBasis.
+
+Since periodic boundary conditions are assumed the values for :math:`p_{min}`
+and :math:`p_{max}` are more or less arbitrary and are chosen to be
+:math:`-\\pi/dx` and :math:`\\pi/dx` with :math:`dx=(xmax-xmin)/N`.
+"""
 MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi/dx, pi/dx, b.N))
 
 ==(b1::PositionBasis, b2::PositionBasis) = b1.xmin==b2.xmin && b1.xmax==b2.xmax && b1.N==b2.N
 ==(b1::MomentumBasis, b2::MomentumBasis) = b1.pmin==b2.pmin && b1.pmax==b2.pmax && b1.N==b2.N
 
 
+"""
+Create a Gaussian state around x0 and p0 with width sigma in real space.
+
+Arguments
+---------
+b
+    PositionBasis.
+x0
+    Center of the Gaussian in position space.
+p0
+    Center of the Gaussian in momentum space.
+"""
 function gaussianstate(b::PositionBasis, x0::Float64, p0::Float64, sigma::Float64)
     psi = Ket(b)
     dx = spacing(b)
@@ -46,6 +107,19 @@ function gaussianstate(b::PositionBasis, x0::Float64, p0::Float64, sigma::Float6
     return psi
 end
 
+
+"""
+Create a Gaussian state around x0 and p0 with width sigma in momentum space.
+
+Arguments
+---------
+b
+    MomentumBasis.
+x0
+    Center of the Gaussian in position space.
+p0
+    Center of the Gaussian in momentum space.
+"""
 function gaussianstate(b::MomentumBasis, x0::Float64, p0::Float64, sigma::Float64)
     psi = Ket(b)
     dp = spacing(b)
@@ -58,14 +132,35 @@ function gaussianstate(b::MomentumBasis, x0::Float64, p0::Float64, sigma::Float6
     return psi
 end
 
+"""
+Length between two adjacent points of the real space basis.
+"""
 spacing(b::MomentumBasis) = (b.pmax - b.pmin)/b.N
+
+"""
+Momentum difference between two adjacent points of the momentum basis.
+"""
 spacing(b::PositionBasis) = (b.xmax - b.xmin)/b.N
 
+"""
+x values of the real space basis.
+"""
 samplepoints(b::PositionBasis) = (dx = spacing(b); Float64[b.xmin + i*dx for i=0:b.N-1])
+
+"""
+p values of the momentum basis.
+"""
 samplepoints(b::MomentumBasis) = (dp = spacing(b); Float64[b.pmin + i*dp for i=0:b.N-1])
 
+"""
+Position operator in real space.
+"""
 positionoperator(b::PositionBasis) = Operator(b, diagm(samplepoints(b)))
 
+
+"""
+Position operator in momentum space.
+"""
 function positionoperator(b::MomentumBasis)
     p_op = Operator(b)
     u = 1im/(12*spacing(b))
@@ -78,8 +173,14 @@ function positionoperator(b::MomentumBasis)
     return p_op
 end
 
+"""
+Momentum operator in momentum space.
+"""
 momentumoperator(b::MomentumBasis) = Operator(b, diagm(samplepoints(b)))
 
+"""
+Momentum operator in real space.
+"""
 function momentumoperator(b::PositionBasis)
     p_op = Operator(b)
     u = -1im/(12*spacing(b))
@@ -92,6 +193,9 @@ function momentumoperator(b::PositionBasis)
     return p_op
 end
 
+"""
+Second x-derivative in real space.
+"""
 function laplace_x(b::PositionBasis)
     x_op = Operator(b)
     u = 1/spacing(b)^2
@@ -104,8 +208,14 @@ function laplace_x(b::PositionBasis)
     return x_op
 end
 
+"""
+Second x-derivative in momentum space.
+"""
 laplace_x(b::MomentumBasis) = Operator(b, diagm(samplepoints(b).^2))
 
+"""
+Second p-derivative in momentum space.
+"""
 function laplace_p(b::MomentumBasis)
     p_op = Operator(b)
     u = 1/spacing(b)^2
@@ -118,6 +228,9 @@ function laplace_p(b::MomentumBasis)
     return p_op
 end
 
+"""
+Second p-derivative in real space.
+"""
 laplace_p(b::PositionBasis) = Operator(b, diagm(samplepoints(b).^2))
 
 
@@ -130,6 +243,10 @@ type FFTOperator <: LazyOperator
     mul_after::Vector{Complex128}
 end
 
+
+"""
+Operator performing a fast Fourier transformation of a state.
+"""
 function FFTOperator(basis_l::MomentumBasis, basis_r::PositionBasis)
     Lx = (basis_r.xmax - basis_r.xmin)
     dp = spacing(basis_l)

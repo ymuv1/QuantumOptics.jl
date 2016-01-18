@@ -79,7 +79,30 @@ function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOp
 end
 
 """
-Integrate master equation with given derivative function.
+Integrate master equation with the given derivative function.
+
+Arguments
+---------
+
+dmaster
+    A function f(t, rho, drho) that calculates the time-derivative of rho at
+    time t and stores the result in drho.
+tspan
+    Vector specifying the points of time for which output should be displayed.
+rho0
+    Initial density operator.
+
+
+Keyword arguments
+-----------------
+
+fout (optional)
+    If given this function fout(t, rho) is called everytime an output should
+    be displayed. To limit copying to a minimum the given density operator rho
+    is further used and therefore must not be changed.
+
+kwargs
+    Further arguments are passed on to the ode solver.
 """
 function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing, kwargs...)
     nl = prod(rho0.basis_l.shape)
@@ -126,7 +149,9 @@ function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::V
 end
 
 """
-Integrate master equation with dmaster_h as derivative function.
+Integrate the master equation with dmaster_h as derivative function.
+
+For further information look at :func:`master`
 """
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
@@ -144,7 +169,10 @@ master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h
 
 
 """
-Integrate master equation with master_nh as derivative function.
+Integrate the master equation with dmaster_nh as derivative function.
+
+In this case the given Hamiltonian is assumed to be the non-hermitian version.
+For further information look at :func:`master`
 """
 function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
@@ -163,10 +191,44 @@ master_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector; kwargs...) = maste
 
 
 """
-Integrate master equation.
+Integrate the master equation with dmaster_nh as derivative function.
 
-Hnh is first calculated from the given Hamiltonian and Jump operators and
-then dmaster_nh is used for the time evolution.
+There are two implementations for integrating the master equation:
+
+* ``master_h``: Usual formulation of the master equation.
+* ``master_nh``: Variant with non-hermitian Hamiltonian.
+
+The ``master`` function takes a normal Hamiltonian, calculates the
+non-hermitian Hamiltonian and then calls master_nh which is slightly faster.
+
+Arguments
+---------
+
+tspan
+    Vector specifying the points of time for which output should be displayed.
+rho0
+    Initial density operator (must be a dense operator). Can also be a
+    state vector which is automatically converted into a density operator.
+H
+    Operator specifying the Hamiltonian.
+J
+    Vector containing all jump operators.
+
+
+Keyword Arguments
+-----------------
+
+Gamma (optional)
+    Vector or matrix specifying the coefficients for the jump operators.
+Jdagger (optional)
+    Vector containing the hermition conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+fout (optional)
+    If given this function fout(t, rho) is called everytime an output should
+    be displayed. To limit copying to a minimum the given density operator rho
+    is further used and therefore must not be changed.
+kwargs
+    Further arguments are passed on to the ode solver.
 """
 function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
@@ -249,6 +311,15 @@ end
 
 """
 Integrate Schroedinger equation.
+
+Arguments
+---------
+tspan
+    Vector specifying the points of time for which output should be displayed.
+psi0
+    Initial state vector (can be a bra or a ket).
+H
+    Operator specifying the Hamiltonian.
 """
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
                 fout::Union{Function,Void}=nothing,
@@ -265,6 +336,38 @@ function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
     return integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
 end
 
+
+"""
+Integrate a single Monte Carlo wave function trajectory.
+
+Arguments
+---------
+
+dmcwf
+    A function f(t, psi, dpsi) that calculates the time-derivative of psi at
+    time t and stores the result in dpsi.
+jumpfun
+    A function f(rng, t, psi, dpsi) that uses the random number generator rng
+    to determine if a jump is performed and stores the result in dpsi.
+tspan
+    Vector specifying the points of time for which output should be displayed.
+psi0
+    Initial state vector.
+seed
+    Seed used for the random number generator to make trajectories repeatable.
+
+
+Keyword arguments
+-----------------
+
+fout (optional)
+    If given this function fout(t, rho) is called everytime an output should
+    be displayed. To limit copying to a minimum the given density operator rho
+    is further used and therefore must not be changed.
+
+kwargs
+    Further arguments are passed on to the ode solver.
+"""
 function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed::UInt64;
                 fout=nothing,
                 kwargs...)
@@ -302,6 +405,23 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, se
     return fout==nothing ? (tout, xout) : nothing
 end
 
+"""
+Default jump function.
+
+Arguments
+---------
+
+rng
+    Random number generator
+t
+    Point of time where the jump is performed.
+psi
+    State vector before the jump.
+J
+    List of jump operators.
+psi_new
+    Result of jump.
+"""
 function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket)
     if length(J)==1
         operators.gemv!(complex(1.), J[1], psi, complex(0.), psi_new)
@@ -325,7 +445,7 @@ function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket)
 end
 
 """
-Evaluate Schroedinger equation with non-hermitian Hamiltonian.
+Evaluate non-hermitian Schroedinger equation.
 
 The non-hermitian Hamiltonian is given in two parts - the hermitian part H and
 the jump operators J.
@@ -342,7 +462,9 @@ end
 
 
 """
-Evaluate Schroedinger equation with non-hermitian Hamiltonian.
+Evaluate non-hermitian Schroedinger equation.
+
+The given Hamiltonian is already the non-hermitian version.
 """
 function dmcwf_nh(psi::Ket, Hnh::AbstractOperator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)
@@ -381,10 +503,48 @@ function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
 end
 
 """
-Integrate master equation using MCWF method.
+Integrate the master equation using the MCWF method.
 
-Hnh is first calculated from the given Hamiltonian and Jump operators and
-then dmcwf_nh is used for the time evolution.
+There are two implementations for integrating the non-hermitian
+schroedinger equation:
+
+* ``mcwf_h``: Usual formulation with Hamiltonian + jump operators separately.
+* ``mcwf_nh``: Variant with non-hermitian Hamiltonian.
+
+The ``mcwf`` function takes a normal Hamiltonian, calculates the
+non-hermitian Hamiltonian and then calls mcwf_nh which is slightly faster.
+
+Arguments
+---------
+
+tspan
+    Vector specifying the points of time for which output should be displayed.
+psi0
+    Initial state vector.
+H
+    Operator specifying the Hamiltonian.
+J
+    Vector containing all jump operators.
+
+
+Keyword Arguments
+-----------------
+
+seed (optional)
+    Seed used for the random number generator to make trajectories repeatable.
+fout (optional)
+    If given this function fout(t, rho) is called everytime an output should
+    be displayed. To limit copying to a minimum the given density operator rho
+    is further used and therefore must not be changed.
+Jdagger (optional)
+    Vector containing the hermition conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+display_beforeevent [false]
+    fout is called before every jump.
+display_afterevent [false]
+    fout is called after every jump.
+kwargs
+    Further arguments are passed on to the ode solver.
 """
 function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
                 seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),

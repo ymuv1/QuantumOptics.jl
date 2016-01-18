@@ -12,6 +12,7 @@ Basis for a Fock space.
 
 Arguments
 ---------
+
 Nmin
     Minimal particle number included in this basis. By default it is zero, i.e.
     starting with the vacuum state.
@@ -37,22 +38,48 @@ FockBasis(Nmax::Int) = FockBasis(0, Nmax)
 
 """
 Number operator for the given Fock space.
+
+Arguments
+---------
+
+b
+    FockBasis of this operator.
 """
 number(b::FockBasis) = Operator(b, diagm([complex(x) for x=b.Nmin:b.Nmax]))
 
 """
 Annihilation operator for the given Fock space.
+
+Arguments
+---------
+
+b
+    FockBasis of this operator.
 """
 destroy(b::FockBasis) = Operator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],1))
 
 """
 Creation operator for the given Fock space.
+
+Arguments
+---------
+
+b
+    FockBasis of this operator.
 """
 create(b::FockBasis) = Operator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],-1))
 
 
 """
 Fock state for the given particle number.
+
+Arguments
+---------
+
+b
+    FockBasis for this state.
+n
+    Quantum number of the state.
 """
 function fockstate(b::FockBasis, n::Int)
     @assert b.Nmin <= n <= b.Nmax
@@ -60,7 +87,15 @@ function fockstate(b::FockBasis, n::Int)
 end
 
 """
-Coherent state |alpha> for the given Fock basis.
+Coherent state :math:`| \alpha \\rangle` for the given Fock basis.
+
+Arguments
+---------
+
+b
+    FockBasis for this state.
+alpha
+    Eigenvalue of annihilation operator.
 """
 function coherentstate(b::FockBasis, alpha::Complex128)
     x = zeros(Complex128, b.Nmax - b.Nmin + 1)
@@ -79,7 +114,7 @@ coherentstate(b::FockBasis, alpha::Number) = coherentstate(b, complex(alpha))
 
 
 """
-Husimi Q representation 1/pi * <alpha|rho|alpha>.
+Husimi Q representation :math:`1/\\pi \\langle\\alpha| \\rho |\\alpha\\rangle`.
 """
 function qfunc(rho::AbstractOperator, alpha::Complex128)
     psi = coherentstate(rho.basis_l, alpha)
