@@ -87,7 +87,7 @@ function fockstate(b::FockBasis, n::Int)
 end
 
 """
-Coherent state :math:`| \alpha \\rangle` for the given Fock basis.
+Coherent state :math:`| \\\\alpha \\\\rangle` for the given Fock basis.
 
 Arguments
 ---------

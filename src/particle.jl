@@ -75,7 +75,7 @@ Create a MomentumBasis from a PositionBasis.
 
 Since periodic boundary conditions are assumed the values for :math:`p_{min}`
 and :math:`p_{max}` are more or less arbitrary and are chosen to be
-:math:`-\\pi/dx` and :math:`\\pi/dx` with :math:`dx=(xmax-xmin)/N`.
+:math:`-\\pi/dx` and :math:`\\pi/dx` with :math:`dx=(x_{max}-x_{min})/N`.
 """
 MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi/dx, pi/dx, b.N))
 
@@ -86,6 +86,39 @@ MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi
 """
 Create a Gaussian state around x0 and p0 with width sigma in real space.
 
+This implementation is based on the definition
+
+.. math::
+
+    \\Psi(x) = \\\\frac{\\sqrt{\\Delta x}}{\\pi^{1/4}\\sqrt{\\sigma}}
+                e^{i p_0 (x-x_0) - \\\\frac{(x-x_0)^2}{2 \\sigma^2}}
+
+which has the properties
+
+* :math:`|\\Psi(p)|^2 = 1`
+* :math:`\\langle p \\\\rangle = p_0`
+* :math:`\\langle x \\\\rangle = x_0`
+* :math:`\\mathrm{Var}(x) = \\\\frac{\\sigma^2}{2}`
+* :math:`\\mathrm{Var}(p) = \\\\frac{1}{2 \\sigma^2}`
+
+and is connected to the MomentumBasis based implementation via a
+Fourier-transformation
+
+.. math::
+
+    \\Psi(p) = \\\\frac{1}{\\sqrt{2\\pi}}
+                \\int_{-\\infty}^{\\infty} e^{-ipx}\\Psi(x) \\mathrm{d}x
+
+Due to the numerically necessary discretization an additional scaling
+factor :math:`\\sqrt{\\Delta x}` is used so that
+:math:`\\Psi_i = \\sqrt{\\Delta x} \\Psi(x_i)` and the resulting state
+is normalized to
+
+.. math::
+
+    \\sum_i |\\Psi_i|^2 = 1
+
+
 Arguments
 ---------
 b
@@ -94,6 +127,8 @@ x0
     Center of the Gaussian in position space.
 p0
     Center of the Gaussian in momentum space.
+sigma
+    Width of the Gaussian.
 """
 function gaussianstate(b::PositionBasis, x0::Float64, p0::Float64, sigma::Float64)
     psi = Ket(b)
@@ -111,6 +146,40 @@ end
 """
 Create a Gaussian state around x0 and p0 with width sigma in momentum space.
 
+This implementation is based on the definition
+
+.. math::
+
+    \\Psi(p) = \\\\frac{\\sqrt{\\sigma} \\sqrt{\\Delta x}}{\\pi^{1/4}}
+                e^{-i x_0 p - \\\\frac{1}{2}(p-p_0)^2 \\sigma^2}
+
+which has the properties
+
+* :math:`|\\Psi(p)|^2 = 1`
+* :math:`\\langle p \\\\rangle = p_0`
+* :math:`\\langle x \\\\rangle = x_0`
+* :math:`\\mathrm{Var}(x) = \\\\frac{\\sigma^2}{2}`
+* :math:`\\mathrm{Var}(p) = \\\\frac{1}{2 \\sigma^2}`
+
+and is connected to the MomentumBasis based implementation via a
+Fourier-transformation
+
+.. math::
+
+    \\Psi(x) = \\\\frac{1}{\\sqrt{2\\pi}}
+                    \\int_{-\\infty}^{\\infty} e^{ipx}\\Psi(p) \\mathrm{d}p
+
+Due to the numerically necessary discretization an additional scaling
+factor :math:`\\sqrt{\\Delta x}` is used so that
+:math:`\\Psi_i = \\sqrt{\\Delta p} \\Psi(p_i)` and the resulting state
+is normalized to
+
+.. math::
+
+    \\sum_i |\\Psi_i|^2 = 1
+
+
+
 Arguments
 ---------
 b
@@ -119,6 +188,8 @@ x0
     Center of the Gaussian in position space.
 p0
     Center of the Gaussian in momentum space.
+sigma
+    Width of the Gaussian.
 """
 function gaussianstate(b::MomentumBasis, x0::Float64, p0::Float64, sigma::Float64)
     psi = Ket(b)
@@ -133,7 +204,7 @@ function gaussianstate(b::MomentumBasis, x0::Float64, p0::Float64, sigma::Float6
 end
 
 """
-Length between two adjacent points of the real space basis.
+Distance between two adjacent points of the real space basis.
 """
 spacing(b::MomentumBasis) = (b.pmax - b.pmin)/b.N
 

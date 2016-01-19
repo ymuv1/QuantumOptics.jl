@@ -12,6 +12,11 @@ export StateVector, Bra, Ket,
 
 """
 Abstract base class for Bra and Ket.
+
+The state vector class stores the coefficients of an abstract state
+in respect to a certain basis. These coefficients are stored in the
+``data`` attribute and the basis is defined in the ``basis``
+attribute.
 """
 abstract StateVector
 
@@ -56,7 +61,7 @@ tensor() = error("Tensor function needs at least one argument.")
 ⊗(a,b) = tensor(a,b)
 
 """
-Hermitian conjugate of given state vector.
+Hermitian conjugate of the given state vector.
 """
 dagger(x::Bra) = Ket(x.basis, conj(x.data))
 dagger(x::Ket) = Bra(x.basis, conj(x.data))
@@ -64,7 +69,7 @@ dagger(x::Ket) = Bra(x.basis, conj(x.data))
 
 # Normalization functions
 """
-Norm of given state vector.
+Norm of the given state vector.
 """
 Base.norm(x::StateVector, p=2) = norm(x.data, p)
 

@@ -33,7 +33,7 @@ end
 ==(b1::SpinBasis, b2::SpinBasis) = b1.spinnumber==b2.spinnumber
 
 """
-Pauli sigma_x operator for the given SpinBasis.
+Pauli :math:`\\sigma_x` operator for the given SpinBasis.
 """
 function sigmax(b::SpinBasis)
     d = [complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
@@ -41,7 +41,7 @@ function sigmax(b::SpinBasis)
 end
 
 """
-Pauli sigma_y operator for the given SpinBasis.
+Pauli :math:`\\sigma_y` operator for the given SpinBasis.
 """
 function sigmay(b::SpinBasis)
     d = [1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
@@ -49,7 +49,7 @@ function sigmay(b::SpinBasis)
 end
 
 """
-Pauli sigma_z operator for the given SpinBasis.
+Pauli :math:`\\sigma_z` operator for the given SpinBasis.
 """
 function sigmaz(b::SpinBasis)
     Operator(b, diagm([complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]))
