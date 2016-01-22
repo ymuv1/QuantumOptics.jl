@@ -7,7 +7,21 @@ using ..bases, ..operators, ..operators_sparse
 
 export SuperOperator, SparseSuperOperator, spre, spost, liouvillian
 
+"""
+Base class for all super operator classes.
 
+Super operators are bijective mappings from operators given in one specific
+basis to operators, possibly given in respect to another, different basis.
+To embed super operators in an algebraic framework they are defined with a
+left hand basis ``basis_l`` and a right hand basis ``basis_r`` where each of
+them again consists of a left and right hand basis.
+
+.. math::
+
+    A_{bl_1,bl_2} &= S_{(bl_1,bl_2)<->(br_1,br_2)} B_{br_1,br_2}
+    \\\\
+    A_{br_1,br_2} &= B_{bl_1,bl_2} S_{(bl_1,bl_2)<->(br_1,br_2)} 
+"""
 abstract AbstractSuperOperator
 
 type SuperOperator <: AbstractSuperOperator
@@ -60,10 +74,31 @@ end
 -{T<:AbstractSuperOperator}(a::T, b::T) = (operators.check_samebases(a, b); T(a.basis_l, a.basis_r, a.data-b.data))
 -{T<:AbstractSuperOperator}(a::T) = T(a.basis_l, a.basis_r, -a.data)
 
+"""
+Create a super-operator equivalent for right side operator multiplication.
 
+For operators :math:`A`, :math:`B` the relation
+
+.. math::
+
+    \\mathrm{spre}(A) B = A B
+
+holds.
+"""
 spre(op::Operator) = SuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), tensor(identity(op), op).data)
 spre(op::SparseOperator) = SparseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), tensor(identity(op), op).data)
 
+"""
+Create a super-operator equivalent for left side operator multiplication.
+
+For operators :math:`A`, :math:`B` the relation
+
+.. math::
+
+    \\mathrm{spost}(A) B = B A
+
+holds.
+"""
 spost(op::Operator) = SuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), kron(transpose(op.data), identity(op).data))
 spost(op::SparseOperator) = SparseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r),  kron(transpose(op.data), identity(op).data))
 
@@ -87,6 +122,34 @@ function _check_input(H::AbstractOperator, J::Vector, Jdagger::Vector, Gamma::Un
     end
 end
 
+
+"""
+Create a super-operator equivalent to the master equation.
+
+The  so that :math:`\\dot \\\\rho = S \\\\rho`
+
+The super-operator :math:`S` is defined by
+
+.. math::
+
+    \\dot \\\\rho = S \\\\rho = -\\\\frac{i}{\\hbar} [H,\\\\rho]
+            + 2 J \\\\rho J^\\\\dagger - J^\\\\dagger J \\\\rho - \\\\rho J^\\\\dagger J
+
+Arguments
+---------
+H
+    Hamiltonian
+J
+    Vector of jump operators
+
+Keyword Arguments
+-----------------
+Gamma (optional)
+    Vector or matrix specifying the coefficients for the jump operators.
+Jdagger (optional)
+    Vector containing the hermitian conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+"""
 function liouvillian{T<:AbstractOperator}(H::T, J::Vector{T};
             Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
             Jdagger::Vector{T}=map(dagger, J))
