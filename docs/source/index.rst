@@ -7,7 +7,7 @@ Contents:
 .. toctree::
     introduction
     bases
-    statevectors
+    states
     operators
     superoperators
     timeevolution

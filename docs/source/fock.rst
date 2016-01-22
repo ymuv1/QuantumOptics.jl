@@ -1,19 +1,30 @@
 Fock Basis
 ==========
 
+**Basis definition**
 
-**Operators**
+.. epigraph::
 
-.. jl:autofunction:: fock.jl number
-
-.. jl:autofunction:: fock.jl destroy
-
-.. jl:autofunction:: fock.jl create
+    .. jl:autotype:: fock.jl FockBasis
 
 
-**States**
 
-.. jl:autofunction:: fock.jl fockstate
+**Default operators**
 
-.. jl:autofunction:: fock.jl coherentstate
+.. epigraph::
+
+    .. jl:autofunction:: fock.jl number
+
+    .. jl:autofunction:: fock.jl destroy
+
+    .. jl:autofunction:: fock.jl create
+
+
+**Default states**
+
+.. epigraph::
+
+    .. jl:autofunction:: fock.jl fockstate
+
+    .. jl:autofunction:: fock.jl coherentstate
 
