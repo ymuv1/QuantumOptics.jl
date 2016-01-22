@@ -97,7 +97,7 @@ Keyword arguments
 -----------------
 
 fout (optional)
-    If given this function fout(t, rho) is called everytime an output should
+    If given this function fout(t, rho) is called every time an output should
     be displayed. To limit copying to a minimum the given density operator rho
     is further used and therefore must not be changed.
 
@@ -221,10 +221,10 @@ Keyword Arguments
 Gamma (optional)
     Vector or matrix specifying the coefficients for the jump operators.
 Jdagger (optional)
-    Vector containing the hermition conjugates of the jump operators. If they
+    Vector containing the hermitian conjugates of the jump operators. If they
     are not given they are calculated automatically.
 fout (optional)
-    If given this function fout(t, rho) is called everytime an output should
+    If given this function fout(t, rho) is called every time an output should
     be displayed. To limit copying to a minimum the given density operator rho
     is further used and therefore must not be changed.
 kwargs
@@ -361,7 +361,7 @@ Keyword arguments
 -----------------
 
 fout (optional)
-    If given this function fout(t, rho) is called everytime an output should
+    If given this function fout(t, rho) is called every time an output should
     be displayed. To limit copying to a minimum the given density operator rho
     is further used and therefore must not be changed.
 
@@ -533,11 +533,11 @@ Keyword Arguments
 seed (optional)
     Seed used for the random number generator to make trajectories repeatable.
 fout (optional)
-    If given this function fout(t, rho) is called everytime an output should
+    If given this function fout(t, rho) is called every time an output should
     be displayed. To limit copying to a minimum the given density operator rho
     is further used and therefore must not be changed.
 Jdagger (optional)
-    Vector containing the hermition conjugates of the jump operators. If they
+    Vector containing the hermitian conjugates of the jump operators. If they
     are not given they are calculated automatically.
 display_beforeevent [false]
     fout is called before every jump.
