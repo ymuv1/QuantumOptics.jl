@@ -12,7 +12,7 @@ Contents:
     superoperators
     timeevolution
     steadystate
-..  correlations
+    correlations
     spectralanalysis
 
 
