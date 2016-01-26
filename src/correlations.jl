@@ -6,6 +6,41 @@ using ..metrics
 using ..steadystate
 
 
+"""
+Calculate two time correlation values :math:`\\langle A(t) B(0) \\\\rangle`
+
+The calculation is done by multiplying the initial density operator
+with :math:`B` performing a time evolution according to a master equation
+and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\\\rho \\}`
+
+Arguments
+---------
+
+tspan
+    Points of time at which the correlation should be calculated.
+rho0
+    Initial density operator.
+H
+    AbstractOperator specifying the Hamiltonian.
+J
+    Vector of jump operators.
+op1
+    AbstractOperator at time t.
+op2
+    AbstractOperator at time t=0.
+
+
+Keyword Arguments
+-----------------
+
+Gamma
+    Vector or matrix specifying the coefficients for the jump operators.
+Jdagger (optional)
+    Vector containing the hermitian conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+kwargs
+    Further arguments are passed on to the ode solver.
+"""
 function correlation(tspan::Vector{Float64}, rho0::Operator, H::AbstractOperator, J::Vector,
                      op1::AbstractOperator, op2::AbstractOperator;
                      Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
@@ -22,6 +57,46 @@ function correlation(tspan::Vector{Float64}, rho0::Operator, H::AbstractOperator
 end
 
 
+"""
+Calculate two time correlation values :math:`\\langle A(t) B(0) \\\\rangle`
+
+The calculation is done by multiplying the initial density operator
+with :math:`B` performing a time evolution according to a master equation
+and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\\\rho \\}`.
+The points of time are chosen automatically from the ode solver and the final
+time is determined by the steady state termination criterion specified in
+:func:`steadystate.master`.
+
+Arguments
+---------
+
+rho0
+    Initial density operator.
+H
+    AbstractOperator specifying the Hamiltonian.
+J
+    Vector of jump operators.
+op1
+    AbstractOperator at time t.
+op2
+    AbstractOperator at time t=0.
+
+
+Keyword Arguments
+-----------------
+
+eps
+    Tracedistance used as termination criterion.
+h0
+    Initial time step used in the time evolution.
+Gamma
+    Vector or matrix specifying the coefficients for the jump operators.
+Jdagger (optional)
+    Vector containing the hermitian conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+kwargs
+    Further arguments are passed on to the ode solver.
+"""
 function correlation(rho0::Operator, H::AbstractOperator, J::Vector,
                      op1::AbstractOperator, op2::AbstractOperator;
                      eps::Float64=1e-4, h0=10.,

@@ -4,6 +4,22 @@ using ..states, ..operators, ..operators_sparse
 
 export operatorspectrum, operatorspectrum_hermitian, eigenbasis, eigenbasis_hermitian, groundstate
 
+
+"""
+Calculate the spectrum of a Hermitian operator.
+
+Arguments
+---------
+
+H
+    Sparse or dense operator.
+
+Keyword arguments
+-----------------
+
+Nmax (optional)
+    Number of eigenvalues that should be calculated.
+"""
 function operatorspectrum_hermitian(H::Operator; Nmax::Union{Int, Void}=nothing)
     h = Hermitian(H.data)
     return Nmax == nothing ? eigvals(h) : eigvals(h, 1:Nmax)
@@ -11,6 +27,25 @@ end
 
 operatorspectrum_hermitian(H::SparseOperator; Nmax::Union{Int, Void}=nothing) = real(operatorspectrum(H; Nmax=Nmax))
 
+
+"""
+Calculate the spectrum of a not necessarily Hermitian operator.
+
+If the operator is known to be Hermitian use
+:func:`operatorspectrum_hermitian` instead.
+
+Arguments
+---------
+
+H
+    Sparse or dense operator.
+
+Keyword arguments
+-----------------
+
+Nmax (optional)
+    Number of eigenvalues that should be calculated.
+"""
 function operatorspectrum(H::Operator; Nmax::Union{Int, Void}=nothing)
     if ishermitian(H.data)
         return operatorspectrum_hermitian(H; Nmax=Nmax)
@@ -27,6 +62,25 @@ function operatorspectrum(H::SparseOperator; Nmax::Union{Int, Void}=nothing)
     return d
 end
 
+
+"""
+Calculate the eigenstates of a Hermitian operator.
+
+If the operator is known to be Hermitian use
+:func:`operatorspectrum_hermitian` instead.
+
+Arguments
+---------
+
+H
+    Sparse or dense operator.
+
+Keyword arguments
+-----------------
+
+Nmax (optional)
+    Number of eigenstates that should be calculated.
+"""
 function eigenbasis_hermitian(H::Operator; Nmax::Union{Int, Void}=nothing)
     h = Hermitian(H.data)
     M = Nmax == nothing ? eigvecs(h) : eigvecs(h, 1:Nmax)
@@ -37,6 +91,25 @@ function eigenbasis_hermitian(H::Operator; Nmax::Union{Int, Void}=nothing)
     return b
 end
 
+
+"""
+Calculate the eigenstates of a not necessarily Hermitian operator.
+
+If the operator is known to be Hermitian use
+:func:`operatorspectrum_hermitian` instead.
+
+Arguments
+---------
+
+H
+    Sparse or dense operator.
+
+Keyword arguments
+-----------------
+
+Nmax (optional)
+    Number of eigenstates that should be calculated.
+"""
 function eigenbasis(H::Operator; Nmax::Union{Int, Void}=nothing)
     if ishermitian(H.data)
         return eigenbasis_hermitian(H; Nmax=Nmax)
@@ -54,6 +127,7 @@ end
 
 eigenbasis_hermitian(H::SparseOperator; Nmax::Union{Int, Void}=nothing) = eigenbasis(H; Nmax=Nmax)
 
+
 function eigenbasis(H::SparseOperator; Nmax::Union{Int, Void}=nothing)
     if Nmax == nothing
         Nmax = size(H.data, 2) - 2
@@ -66,6 +140,24 @@ function eigenbasis(H::SparseOperator; Nmax::Union{Int, Void}=nothing)
     return b
 end
 
+
+"""
+Calculate the ground-state of a Hermitian operator.
+
+This is just a shortcut for :func:`eigenbasis_hermitian(H, Nmax=1)`
+
+Arguments
+---------
+
+H
+    Sparse or dense operator.
+
+Keyword arguments
+-----------------
+
+Nmax (optional)
+    Number of eigenstates that should be calculated.
+"""
 groundstate(H::Union{Operator, SparseOperator}) = eigenbasis_hermitian(H; Nmax=1)
 
 end # module
