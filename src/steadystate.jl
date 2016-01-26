@@ -9,6 +9,40 @@ using ..metrics
 
 type ConvergenceReached <: Exception end
 
+
+"""
+Calculate steady state using long time master equation evolution.
+
+Arguments
+---------
+
+H
+    AbstractOperator specifying the Hamiltonian.
+J
+    Vector of jump operators.
+
+Keyword Arguments
+-----------------
+
+rho0
+    Initial density operator. If not given the :math:`|0 \\rangle\\langle0|`
+    state in respect to the used basis.
+eps
+    Tracedistance used as termination criterion.
+hmin
+    Minimal time step used in the time evolution.
+Gamma
+    Vector or matrix specifying the coefficients for the jump operators.
+Jdagger (optional)
+    Vector containing the hermitian conjugates of the jump operators. If they
+    are not given they are calculated automatically.
+fout (optional)
+    If given this function fout(t, rho) is called every time an output should
+    be displayed. To limit copying to a minimum the given density operator rho
+    is further used and therefore must not be changed.
+kwargs
+    Further arguments are passed on to the ode solver.
+"""
 function master(H::AbstractOperator, J::Vector;
                 rho0::Operator=tensor(basis_ket(H.basis_l, 1), basis_bra(H.basis_r, 1)),
                 eps::Float64=1e-3, hmin=1e-7,
@@ -47,22 +81,39 @@ function master(H::AbstractOperator, J::Vector;
     return rho0
 end
 
+"""
+Find steady state by calculating the eigenstate of the Liouvillian matrix.
 
-function eigenvector(L::SparseSuperOperator;
-              rho0::Operator=tensor(basis_ket(L.basis_r[1], 1), basis_bra(L.basis_r[2], 1)),)
+Arguments
+---------
+
+L
+    Dense or sparse super-operator.
+"""
+function eigenvector(L::SuperOperator)
+    d, v = Base.eig(L.data)
+    data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
+    return Operator(L.basis_r[1], L.basis_r[2], data)
+end
+
+function eigenvector(L::SparseSuperOperator)
     d, v, nconv, niter, nmult, resid = Base.eigs(L.data; nev=1, sigma=1e-30)
     data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
     op = Operator(L.basis_r[1], L.basis_r[2], data)
     return op/trace(op)
 end
 
-function eigenvector(L::SuperOperator;
-              rho0::Operator=tensor(basis_ket(L.basis_r[1], 1), basis_bra(L.basis_r[2], 1)),)
-    d, v = Base.eig(L.data)
-    data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
-    return Operator(L.basis_r[1], L.basis_r[2], data)
-end
+"""
+Find steady state by calculating the eigenstate of the Liouvillian matrix.
 
+Arguments
+---------
+
+H
+    AbstractOperator specifying the Hamiltonian.
+J
+    Vector of jump operators.
+"""
 eigenvector(H::AbstractOperator, J::Vector; kwargs...) = eigenvector(liouvillian(H, J); kwargs...)
 
 
