@@ -1,3 +1,5 @@
+.. _section-spectralanalysis:
+
 Spectral Analysis
 =================
 

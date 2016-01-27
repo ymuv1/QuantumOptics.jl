@@ -1,3 +1,5 @@
+.. _section-fock:
+
 Fock Basis
 ==========
 

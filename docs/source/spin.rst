@@ -1,3 +1,5 @@
+.. _section-spin:
+
 Spin basis
 ==========
 

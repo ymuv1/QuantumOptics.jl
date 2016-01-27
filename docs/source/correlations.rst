@@ -1,3 +1,5 @@
+.. _section-correlationfunctions:
+
 Two-time correlation functions
 ==============================
 

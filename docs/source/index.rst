@@ -6,6 +6,7 @@ Contents:
 
 .. toctree::
     introduction
+    installation
     bases
     states
     operators

@@ -1,3 +1,5 @@
+.. _section-steadystate:
+
 Steady state
 ============
 
