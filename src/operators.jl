@@ -85,13 +85,13 @@ gemv!(alpha, a::Bra, b::Operator, beta, result::Bra) = gemv!(alpha, a.data, b.da
 """
 Tensor product of operators.
 """
-states.tensor(a::Operator, b::Operator) = Operator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
-states.tensor(ops::Operator...) = reduce(tensor, ops)
+bases.tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(a.data, b.data))
+bases.tensor(ops::Operator...) = reduce(tensor, ops)
 
 """
 Tensor product of a ket and a bra results in an operator.
 """
-states.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+bases.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 """
 Hermitian conjugate of the given operator.

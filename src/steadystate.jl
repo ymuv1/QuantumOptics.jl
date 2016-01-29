@@ -114,7 +114,7 @@ H
 J
     Vector of jump operators.
 """
-eigenvector(H::AbstractOperator, J::Vector; kwargs...) = eigenvector(liouvillian(H, J); kwargs...)
+eigenvector(H::AbstractOperator, J::Vector) = eigenvector(liouvillian(H, J))
 
 
 end # module

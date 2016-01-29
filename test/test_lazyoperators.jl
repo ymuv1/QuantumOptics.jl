@@ -15,7 +15,7 @@ sy = sigmay(spinbasis)
 sz = sigmaz(spinbasis)
 
 # LazyTensor
-basis = compose(spinbasis, fockbasis, spinbasis)
+basis = tensor(spinbasis, fockbasis, spinbasis)
 psi_ket = tensor(basis_ket(spinbasis, 2), coherentstate(fockbasis, alpha), basis_ket(spinbasis, 1))
 psi_bra = dagger(psi_ket)
 op1 = LazyTensor(basis, basis, 2, a)

@@ -1,11 +1,12 @@
 module states
 
 import Base: ==, +, -, *, /
+import ..bases
 
 using ..bases
 
 export StateVector, Bra, Ket,
-       tensor, dagger, ⊗,
+       tensor, dagger,
        basis_bra, basis_ket, basis,
        normalize, normalize!
 
@@ -55,10 +56,9 @@ Base.zero{T<:StateVector}(x::T) = T(x.basis)
 """
 Tensor product of given bras or kets.
 """
-tensor{T<:StateVector}(a::T, b::T) = T(compose(a.basis, b.basis), kron(a.data, b.data))
-tensor{T<:StateVector}(states::T...) = reduce(tensor, states)
-tensor() = error("Tensor function needs at least one argument.")
-⊗(a,b) = tensor(a,b)
+bases.tensor{T<:StateVector}(a::T, b::T) = T(tensor(a.basis, b.basis), kron(a.data, b.data))
+bases.tensor{T<:StateVector}(states::T...) = reduce(tensor, states)
+
 
 """
 Hermitian conjugate of the given state vector.

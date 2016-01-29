@@ -12,17 +12,17 @@ b2 = GenericBasis(shape2)
 @test b1 != b2
 @test b1 == b1
 
-comp_b1 = compose(b1, b2)
-comp_b2 = compose(b1, b1, b2)
+comp_b1 = tensor(b1, b2)
+comp_b2 = tensor(b1, b1, b2)
 @test comp_b1.shape == [prod(shape1), prod(shape2)]
 @test comp_b2.shape == [prod(shape1), prod(shape1), prod(shape2)]
 
-comp_b1_b2 = compose(comp_b1, comp_b2)
+comp_b1_b2 = tensor(comp_b1, comp_b2)
 @test comp_b1_b2.shape == [prod(shape1), prod(shape2), prod(shape1), prod(shape1), prod(shape2)]
 @test comp_b1_b2 == CompositeBasis(b1, b2, b1, b1, b2)
 
-@test comp_b2.shape == compose(b1, comp_b1).shape
-@test comp_b2 == compose(b1, comp_b1)
+@test comp_b2.shape == tensor(b1, comp_b1).shape
+@test comp_b2 == tensor(b1, comp_b1)
 
 @test ptrace(comp_b2, [1]) == ptrace(comp_b2, [2]) == comp_b1
 @test ptrace(comp_b2, [1, 2]) == ptrace(comp_b1, [1])

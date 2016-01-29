@@ -49,7 +49,7 @@ operators.gemv!{T<:Complex}(alpha::T, M::SparseOperator, b::Ket, beta::T, result
 operators.gemv!{T<:Complex}(alpha::T, b::Bra, M::SparseOperator, beta::T, result::Bra) = sparsematrix.gemv!(alpha, b.data, M.data, beta, result.data)
 
 
-operators.tensor(a::SparseOperator, b::SparseOperator) = SparseOperator(compose(a.basis_l, b.basis_l), compose(a.basis_r, b.basis_r), kron(a.data, b.data))
+operators.tensor(a::SparseOperator, b::SparseOperator) = SparseOperator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(a.data, b.data))
 
 operators.dagger(x::SparseOperator) = SparseOperator(x.basis_r, x.basis_l, x.data')
 

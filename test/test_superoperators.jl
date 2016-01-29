@@ -12,7 +12,7 @@ T = Float64[0.,1.]
 
 fockbasis = FockBasis(7)
 spinbasis = SpinBasis(1//2)
-basis = compose(spinbasis, fockbasis)
+basis = tensor(spinbasis, fockbasis)
 
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)

@@ -2,8 +2,8 @@ __precompile__()
 
 module quantumoptics
 
-export bases, Basis, GenericBasis, CompositeBasis, compose,
-        states, StateVector, Bra, Ket, tensor, dagger, ⊗, basis_bra, basis_ket, coherentstate, basis,
+export bases, Basis, GenericBasis, CompositeBasis, tensor, ⊗,
+        states, StateVector, Bra, Ket, tensor, dagger, basis_bra, basis_ket, coherentstate, basis,
         normalize, normalize!,
         operators, AbstractOperator, Operator, expect, identity, ptrace, embed,
         operators_lazy, LazyOperator,LazyTensor, LazySum, LazyProduct,

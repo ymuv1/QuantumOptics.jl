@@ -3,7 +3,7 @@ module bases
 import Base.==
 
 export Basis, GenericBasis, CompositeBasis,
-       compose, ptrace,
+       tensor, ⊗, ptrace,
        equal_shape, equal_bases, multiplicable,
        IncompatibleBases,
        check_equal, check_multiplicable
@@ -56,12 +56,13 @@ Create composite bases.
 Any given CompositeBasis is expanded so that the resulting CompositeBasis never
 has another CompositeBasis as subbasis.
 """
-compose(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
-compose(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases..., b2.bases...)
-compose(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
-compose(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
-compose(bases::Basis...) = reduce(compose, bases)
-
+tensor() = error("Tensor function needs at least one argument.")
+tensor(b1::Basis, b2::Basis) = CompositeBasis(b1, b2)
+tensor(b1::CompositeBasis, b2::CompositeBasis) = CompositeBasis(b1.bases..., b2.bases...)
+tensor(b1::CompositeBasis, b2::Basis) = CompositeBasis(b1.bases..., b2)
+tensor(b1::Basis, b2::CompositeBasis) = CompositeBasis(b1, b2.bases...)
+tensor(bases::Basis...) = reduce(tensor, bases)
+⊗(a,b) = tensor(a,b)
 
 """
 Total dimension of the Hilbert space.

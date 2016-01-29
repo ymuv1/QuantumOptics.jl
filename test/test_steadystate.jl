@@ -12,7 +12,7 @@ T = Float64[0.,1.]
 
 fockbasis = FockBasis(10)
 spinbasis = SpinBasis(1//2)
-basis = compose(spinbasis, fockbasis)
+basis = tensor(spinbasis, fockbasis)
 
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)
@@ -43,5 +43,5 @@ tout, ρt = timeevolution.master([0,100], ρ₀, H, J; reltol=1e-7)
 ρss = steadystate.eigenvector(H, J)
 @test tracedistance(ρss, ρt[end]) < 1e-6
 
-ρss = steadystate.eigenvector(Hsparse, Jsparse; rho0=ρ₀)
+ρss = steadystate.eigenvector(Hsparse, Jsparse)
 @test tracedistance(ρss, ρt[end]) < 1e-3
