@@ -114,7 +114,7 @@ coherentstate(b::FockBasis, alpha::Number) = coherentstate(b, complex(alpha))
 
 
 """
-Husimi Q representation :math:`1/\\pi \\langle\\alpha| \\rho |\\alpha\\rangle`.
+Husimi Q representation :math:`\\\\frac{1}{\\pi} \\langle \\\\alpha | \\\\rho | \\\\alpha \\\\rangle`.
 """
 function qfunc(rho::AbstractOperator, alpha::Complex128)
     psi = coherentstate(rho.basis_l, alpha)
