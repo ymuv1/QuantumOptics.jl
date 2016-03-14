@@ -2,8 +2,6 @@
 Julia Quantumoptics
 ===================
 
-Contents:
-
 .. toctree::
     introduction
     installation
@@ -16,11 +14,3 @@ Contents:
     correlations
     spectralanalysis
 
-
-==================
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
