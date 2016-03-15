@@ -5,8 +5,12 @@ Fock Basis
 
 To create a :jl:type:`FockBasis` an upper cutoff and optionally a lower cutoff have to be supplied::
 
-    b1 = FockBasis(10)
-    b2 = FockBasis(2,12)
+    Nmax = 10
+    b1 = FockBasis(Nmax)
+
+    Nmin = 2
+    Nmax = 12
+    b2 = FockBasis(Nmin, Nmax)
 
 In this example even though the dimensions of the Hilbert spaces described by these bases are the same ``b1`` and ``b2`` are not and mixing operators in one bases with operators in the other basis will result in an explicit error.
 

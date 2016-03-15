@@ -5,11 +5,9 @@ Bases
 
 The primary purpose of bases in **Quantumoptics.jl** is to specify the dimension of the Hilbert space covered by them and to make sure that quantum objects which correspond to different bases can't be combined accidentally in an incorrect way. Many of the commonly used basis types like
 
-.. toctree::
-
-    spin
-    fock
-    particle
+* :ref:`section-spin`
+* :ref:`section-fock`
+* :ref:`section-particle`
 
 are already built into **Quantumoptics.jl**. Hilbert spaces of combined systems can be handled automatically with :jl:type:`quantumoptics.bases.CompositeBasis` which can for example be created using the :jl:func:`quantumoptics.tensor` function::
 
@@ -28,3 +26,11 @@ The interaction with other bases can be determined by overloading the `==` opera
 
     ==(b1::SpinBasis, b2::SpinBasis) = true
     multiplicable(b1::SpinBasis, b2::SpinBasis) = true
+
+
+.. toctree::
+    :hidden:
+
+    spin
+    fock
+    particle

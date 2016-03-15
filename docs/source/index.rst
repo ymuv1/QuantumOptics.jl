@@ -1,8 +1,10 @@
-===================
-Julia Quantumoptics
-===================
+================
+Quantumoptics.jl
+================
 
 .. toctree::
+    :includehidden:
+
     introduction
     installation
     bases

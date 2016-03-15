@@ -3,14 +3,49 @@
 States
 ======
 
-State vectors in julia-quantumoptics are always stored as coefficients in respect to a certain basis.
+State vectors in **Quantumoptics.jl** are interpreted as coefficients in respect to a certain :ref:`basis <section-bases>`. For example the state :math:`|\Psi\rangle` can be represented in a (discrete) real space basis :math:`\{|x_i\rangle\}_i` as :math:`\Psi(x_i)`. These quantities are connected by
 
-.. jl:autofunction:: states.jl tensor
+.. math::
 
-.. jl:autofunction:: states.jl dagger
+    |\Psi\rangle = \sum_i \Psi(x) |x_i\rangle
 
-.. jl:autofunction:: states.jl norm
+and the conjugate equation
 
-.. jl:autofunction:: states.jl normalize
+.. math::
 
-.. jl:autofunction:: states.jl normalize!
+    \langle\Psi| = \sum_i \Psi(x)^* \langle x_i|
+
+The distinction between coefficients in respect to bra or ket states is strictly enforced which guarantees that algebraic mistakes raise an explicit error::
+
+    basis = FockBasis(3)
+    x = Ket(basis, [1,1,1]) # Not necessarily normalized
+    y = Bra(basis, [0,1,0])
+
+Many commonly used states are already implemented for the various bases, like e.g. :jl:func:`fockstate` or :jl:func:`gaussianstate gaussianstate(::MomentumBasis, x0, p0, sigma)`.
+
+All expected arithmetic functions like \*, /, +, - are implemented::
+
+    x + x
+    x - x
+    2*x
+    y*x # Inner product
+
+The hermitian conjugate is performed by the :jl:func:`dagger(::Ket)` function which transforms a bra in a ket and vice versa::
+
+    dagger(x) # Bra(basis, [1,1,1])
+
+Composite states can be created with the :jl:func:`tensor(::Ket)` function or with the equivalent :math:`\otimes` operator::
+
+    tensor(x, x)
+    x ⊗ x
+    tensor(x, x, x)
+
+Normalization functions:
+
+.. epigraph::
+
+    .. jl:autofunction:: states.jl norm
+
+    .. jl:autofunction:: states.jl normalize
+
+    .. jl:autofunction:: states.jl normalize!
