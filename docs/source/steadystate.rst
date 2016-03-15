@@ -3,8 +3,16 @@
 Steady state
 ============
 
-.. jl:autofunction:: steadystate.jl master
+**Quantumoptics.jl** implements two different ways to calculate steady states. The first one is to perform a time evolution according to a master equation until a adequate accuracy is reached:
 
-.. jl:autofunction:: steadystate.jl eigenvector(L::SuperOperator)
+.. epigraph::
 
-.. jl:autofunction:: steadystate.jl eigenvector(H, J)
+    .. jl:autofunction:: steadystate.jl master
+
+For smaller system sizes finding eigenvectors of super-operators is the prefered method:
+
+.. epigraph::
+
+    .. jl:autofunction:: steadystate.jl eigenvector(L::SuperOperator)
+
+    .. jl:autofunction:: steadystate.jl eigenvector(H, J)

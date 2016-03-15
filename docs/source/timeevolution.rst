@@ -3,11 +3,21 @@
 Time-evolution
 ==============
 
+**Quantumoptics.jl** implements solver for dynamics of closed and open quantum systems:
+
+* :ref:`Schroedinger equation<section-schroedinger>`
+* :ref:`Master equation<section-master>`
+* :ref:`Monte Carlo wave function method (MCWF)<section-mcwf>`
+
+The interfaces are designed to be as consistent as possible to make it easy to switch between different methods.
+
 
 .. _section-schroedinger:
 
 Schroedinger time evolution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Schroedinger equation as one of the basic postulates of quantum mechanics describes the dynamics of a quantum state in a closed quantum system. In Dirac notation the Schroedinger equation and its adjoint equation read
 
 .. math::
 
@@ -15,8 +25,11 @@ Schroedinger time evolution
 
     - i\hbar\frac{\mathrm{d}}{\mathrm{d} t} \langle \Psi(t)| = \langle\Psi(t)| H
 
+Both versions are implemented and are chosen automatically depending on the type of the provided initial state (Bra or Ket).
 
-.. jl:autofunction:: timeevolution.jl schroedinger
+.. epigraph::
+
+    .. jl:autofunction:: timeevolution.jl schroedinger
 
 
 .. _section-master:
@@ -24,6 +37,8 @@ Schroedinger time evolution
 Master time evolution
 ^^^^^^^^^^^^^^^^^^^^^
 
+The dynamics of open quantum systems are governed by a master equation in Lindblad form:
+
 .. math::
 
     \dot{\rho} = -\frac{i}{\hbar} \big[H,\rho\big]
@@ -33,14 +48,20 @@ Master time evolution
                         - \frac{1}{2} \rho J_i^\dagger J_i
                     \big)
 
-Equation for non-hermitian Hamiltonian :math:`H_\mathrm{nh} = H - \frac{i\hbar}{2} \sum_i J_i^\dagger J_i`
+For performance reasons the solver internally first creates the non-hermitian Hamiltonian :math:`H_\mathrm{nh} = H - \frac{i\hbar}{2} \sum_i J_i^\dagger J_i` and solves the equation
 
 .. math::
 
     \dot{\rho} = -\frac{i}{\hbar} \big[H_\mathrm{nh},\rho\big]
                  + \sum_i J_i \rho J_i^\dagger
 
-.. jl:autofunction:: timeevolution.jl master
+If for any reason this behavior is unwanted, e.g. special operators are used that don't support addition, the function :func:`master_h` (h for hermitian) can be used.
+
+.. epigraph::
+
+    .. jl:autofunction:: timeevolution.jl master(tspan, rho0::Operator, H::AbstractOperator, J::Vector)
+
+    .. jl:autofunction:: timeevolution.jl master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector)
 
 
 .. _section-mcwf:
@@ -48,7 +69,7 @@ Equation for non-hermitian Hamiltonian :math:`H_\mathrm{nh} = H - \frac{i\hbar}{
 MCWF time evolution
 ^^^^^^^^^^^^^^^^^^^
 
-Solve the master equation
+Instead of solving the Master equation
 
 .. math::
 
@@ -59,17 +80,29 @@ Solve the master equation
                         - \frac{1}{2} \rho J_i^\dagger J_i
                     \big)
 
-using the stochastic MCWF method. Basically calculate trajectories with coherent time evolution according to
+directly, one can use the quantum jump formalism to evaluate single stochastic quantum trajectories using the Monte Carlo wave function method. For large numbers of trajectories the statistical average then approximates the result of the Master equation. The huge advantage is that instead of describing the state of the quantum system by a density matrix of size :math:`N^2` these trajectories work in terms of state vectors of size :math:`N`. This is somewhat negated by the stochastic nature of the formalism which makes it necessary to repeat the simulation until the wanted accuracy is reached. It turns out, however, that for many cases, especially for high dimensional quantum systems, the necessary number of repetitions is much smaller than the system size :math:`N` and therefore using the MCWF method is advantageous.
 
-.. math::
+Additionally this quantum jump formalism also has a very intuitive physical interpretation. It basically describes the situation where every quantum jump, e.g. the emission of a photon, is detected by a detector and therefore the time evolution can be completely reconstructed by an outside observer. Depending on the efficiency of the used detectors this might be a much better description for an actual experiment.
 
-    i\hbar\frac{\mathrm{d}}{\mathrm{d} t} |\Psi(t)\rangle = H_\mathrm{nh} |\Psi(t)\rangle
+This physical picture can be used to easily understand the actual MCWF algorithm:
 
-with jumps at randomly determined times
+#. Calculate coherent time evolution according to a Schroedinger equation with non-hermitian Hamiltonian :math:`H_\mathrm{nh} = H - \frac{i\hbar}{2} \sum_i J_i^\dagger J_i`
 
-.. math::
+    .. math::
 
-    |\Psi(t)\rangle \rightarrow \frac{J_i |\Psi(t)\rangle}{||J_i |\Psi(t)\rangle||}
+        i\hbar\frac{\mathrm{d}}{\mathrm{d} t} |\Psi(t)\rangle = H_\mathrm{nh} |\Psi(t)\rangle
+
+#. Since the Hamiltonian is non-hermitian the norm of the quantum state is not conserved and actually decreases with time. This can be interpreted in the way that the smaller the norm of the state gets the more probable it is that a quantum jump occurs. Quantitatively this means that the coherent time evolution stops when :math:`\langle \Psi(t)|\Psi(t)\rangle < p` where :math:`p` is a randomly generated number between 0 and 1.
+
+#. At these randomly determined times a quantum jump according to
+
+    .. math::
+
+        |\Psi(t)\rangle \rightarrow \frac{J_i |\Psi(t)\rangle}{||J_i |\Psi(t)\rangle||}
+
+    is performed.
+
+#. Continue with coherent time evolution.
 
 The stochastic average of these trajectories is then equal to the solution of the master equation :math:`\rho(t)`
 
@@ -85,4 +118,6 @@ and also the stochastic average of the single trajectory expectation values is e
 
 avoiding explicit calculations of density matrices.
 
-.. jl:autofunction:: timeevolution.jl mcwf
+.. epigraph::
+
+    .. jl:autofunction:: timeevolution.jl mcwf
