@@ -151,7 +151,7 @@ end
 """
 Integrate the master equation with dmaster_h as derivative function.
 
-For further information look at :func:`master`
+For further information look at :func:`master(,::Operator,::AbstractOperator,)`
 """
 function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
@@ -172,7 +172,7 @@ master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h
 Integrate the master equation with dmaster_nh as derivative function.
 
 In this case the given Hamiltonian is assumed to be the non-hermitian version.
-For further information look at :func:`master`
+For further information look at :func:`master(,::Operator,::AbstractOperator,)`
 """
 function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
@@ -320,6 +320,14 @@ psi0
     Initial state vector (can be a bra or a ket).
 H
     Operator specifying the Hamiltonian.
+
+Keyword Arguments
+-----------------
+
+fout (optional)
+    If given this function fout(t, psi) is called every time an output should
+    be displayed. To limit copying to a minimum the given state psi
+    is further used and therefore must not be changed.
 """
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
                 fout::Union{Function,Void}=nothing,
@@ -361,8 +369,8 @@ Keyword arguments
 -----------------
 
 fout (optional)
-    If given this function fout(t, rho) is called every time an output should
-    be displayed. To limit copying to a minimum the given density operator rho
+    If given this function fout(t, psi) is called every time an output should
+    be displayed. To limit copying to a minimum the given state psi
     is further used and therefore must not be changed.
 
 kwargs
@@ -533,8 +541,8 @@ Keyword Arguments
 seed (optional)
     Seed used for the random number generator to make trajectories repeatable.
 fout (optional)
-    If given this function fout(t, rho) is called every time an output should
-    be displayed. To limit copying to a minimum the given density operator rho
+    If given this function fout(t, psi) is called every time an output should
+    be displayed. To limit copying to a minimum the given state psi
     is further used and therefore must not be changed.
 Jdagger (optional)
     Vector containing the hermitian conjugates of the jump operators. If they
