@@ -97,7 +97,8 @@ b
 alpha
     Eigenvalue of annihilation operator.
 """
-function coherentstate(b::FockBasis, alpha::Complex128)
+function coherentstate(b::FockBasis, alpha::Number)
+    alpha = complex(alpha)
     x = zeros(Complex128, b.Nmax - b.Nmin + 1)
     if b.Nmin == 0
         x[1] = exp(-abs2(alpha)/2)
@@ -109,8 +110,6 @@ function coherentstate(b::FockBasis, alpha::Complex128)
     end
     return Ket(b, x)
 end
-
-coherentstate(b::FockBasis, alpha::Number) = coherentstate(b, complex(alpha))
 
 
 """
