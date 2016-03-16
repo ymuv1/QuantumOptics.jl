@@ -5,21 +5,21 @@ fockbasis = FockBasis(40)
 spinbasis = SpinBasis(1//2)
 
 alpha = 0.5
-a = destroy(fockbasis)
-at = create(fockbasis)
-n = number(fockbasis)
+a = full(destroy(fockbasis))
+at = full(create(fockbasis))
+n = full(number(fockbasis))
 
-sx = sigmax(spinbasis)
-sy = sigmay(spinbasis)
-sz = sigmaz(spinbasis)
-sp = sigmap(spinbasis)
-sm = sigmam(spinbasis)
+sx = full(sigmax(spinbasis))
+sy = full(sigmay(spinbasis))
+sz = full(sigmaz(spinbasis))
+sp = full(sigmap(spinbasis))
+sm = full(sigmam(spinbasis))
 
 xket = coherentstate(fockbasis, alpha)
 xbra = dagger(xket)
 op1 = DenseOperator(spinbasis, GenericBasis([3]), [1 1 1; 1 1 1])
 op2 = DenseOperator(GenericBasis([3]), spinbasis, [1 1; 1 1; 1 1])
-I = identity(fockbasis)
+I = dense_identity(fockbasis)
 
 
 # Test creation
@@ -59,7 +59,7 @@ op_ = normalize!(op)
 @test_approx_eq 1. trace(op)
 
 # Test identity function
-@test full(I) == identity(a)
+@test full(I) == dense_identity(a)
 
 # Test gemv implementation
 result_ket = deepcopy(xket)

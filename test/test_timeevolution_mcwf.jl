@@ -16,11 +16,11 @@ fockbasis = FockBasis(8)
 spinbasis = SpinBasis(1//2)
 basis = tensor(spinbasis, fockbasis)
 
-sx = sigmax(spinbasis)
-sy = sigmay(spinbasis)
-sz = sigmaz(spinbasis)
-sp = sigmap(spinbasis)
-sm = sigmam(spinbasis)
+sx = SparseOperator(sigmax(spinbasis))
+sy = SparseOperator(sigmay(spinbasis))
+sz = SparseOperator(sigmaz(spinbasis))
+sp = SparseOperator(sigmap(spinbasis))
+sm = SparseOperator(sigmam(spinbasis))
 
 # Hamiltonian
 Ha = embed(basis, 1, 0.5*ωa*sz)

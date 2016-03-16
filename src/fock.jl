@@ -2,7 +2,7 @@ module fock
 
 import Base.==
 
-using ..bases, ..states, ..operators
+using ..bases, ..states, ..operators, ..operators_sparse
 
 export FockBasis, number, destroy, create, fockstate, coherentstate, qfunc
 
@@ -45,7 +45,12 @@ Arguments
 b
     FockBasis of this operator.
 """
-number(b::FockBasis) = DenseOperator(b, diagm([complex(x) for x=b.Nmin:b.Nmax]))
+function number(b::FockBasis)
+    N = b.Nmax-b.Nmin+1
+    diag = Complex128[complex(x) for x=b.Nmin:b.Nmax]
+    data = spdiagm(diag, 0, N, N)
+    SparseOperator(b, data)
+end
 
 """
 Annihilation operator for the given Fock space.
@@ -56,7 +61,12 @@ Arguments
 b
     FockBasis of this operator.
 """
-destroy(b::FockBasis) = DenseOperator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],1))
+function destroy(b::FockBasis)
+    N = b.Nmax-b.Nmin+1
+    diag = Complex128[complex(sqrt(x)) for x=b.Nmin+1:b.Nmax]
+    data = spdiagm(diag, 1, N, N)
+    SparseOperator(b, data)
+end
 
 """
 Creation operator for the given Fock space.
@@ -67,8 +77,12 @@ Arguments
 b
     FockBasis of this operator.
 """
-create(b::FockBasis) = DenseOperator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],-1))
-
+function create(b::FockBasis)
+    N = b.Nmax-b.Nmin+1
+    diag = Complex128[complex(sqrt(x)) for x=b.Nmin+1:b.Nmax]
+    data = spdiagm(diag, -1, N, N)
+    SparseOperator(b, data)
+end
 
 """
 Fock state for the given particle number.

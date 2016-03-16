@@ -14,11 +14,11 @@ fockbasis = FockBasis(7)
 spinbasis = SpinBasis(1//2)
 basis = tensor(spinbasis, fockbasis)
 
-sx = sigmax(spinbasis)
-sy = sigmay(spinbasis)
-sz = sigmaz(spinbasis)
-sp = sigmap(spinbasis)
-sm = sigmam(spinbasis)
+sx = SparseOperator(sigmax(spinbasis))
+sy = SparseOperator(sigmay(spinbasis))
+sz = SparseOperator(sigmaz(spinbasis))
+sp = SparseOperator(sigmap(spinbasis))
+sm = SparseOperator(sigmam(spinbasis))
 
 Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
@@ -49,4 +49,4 @@ end
 @test tracedistance(L*ρ₀, ρ)<1e-10
 
 tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
-@test tracedistance(expm(L)*ρ₀, ρt[end])<1e-6
+@test tracedistance(expm(full(L))*ρ₀, ρt[end])<1e-6
