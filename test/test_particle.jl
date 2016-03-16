@@ -108,22 +108,22 @@ rhox0p0 = tensor(psix0, dagger(psip0))
 rhop0x0 = tensor(psip0, dagger(psix0))
 rhop0p0 = tensor(psip0, dagger(psip0))
 
-rho_ = Operator(basis_momentum, basis_position)
+rho_ = DenseOperator(basis_momentum, basis_position)
 operators.gemm!(Complex(1.), Tpx, rhox0x0, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0x0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0, rhop0x0) 1e-5
 
-rho_ = Operator(basis_position, basis_momentum)
+rho_ = DenseOperator(basis_position, basis_momentum)
 operators.gemm!(Complex(1.), rhox0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhox0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(rhox0x0*Txp, rhox0p0) 1e-5
 
-rho_ = Operator(basis_momentum, basis_momentum)
+rho_ = DenseOperator(basis_momentum, basis_momentum)
 operators.gemm!(Complex(1.), Tpx, rhox0p0, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Tpx*rhox0x0*Txp, rhop0p0) 1e-5
 
-rho_ = Operator(basis_momentum, basis_momentum)
+rho_ = DenseOperator(basis_momentum, basis_momentum)
 operators.gemm!(Complex(1.), rhop0x0, Txp, Complex(0.), rho_)
 @test_approx_eq_eps 0. tracedistance(rho_, rhop0p0) 1e-5
 @test_approx_eq_eps 0. tracedistance(Txp*rhop0p0*Tpx, rhox0x0) 1e-5
@@ -141,8 +141,8 @@ operators.gemv!(Complex(1.), LazyProduct(Txp, I, Tpx), psix0, Complex(0.), psi_)
 @test_approx_eq_eps 0. norm(Txp*I*(Tpx*psix0) - psix0) 1e-12
 
 # Test dense FFT operator
-Txp_dense = Operator(Txp)
-Tpx_dense = Operator(Tpx)
-@test typeof(Txp_dense) == Operator
-@test typeof(Tpx_dense) == Operator
+Txp_dense = DenseOperator(Txp)
+Tpx_dense = DenseOperator(Tpx)
+@test typeof(Txp_dense) == DenseOperator
+@test typeof(Tpx_dense) == DenseOperator
 @test_approx_eq_eps 0. tracedistance(Txp_dense*rhop0p0*Tpx_dense, rhox0x0) 1e-5

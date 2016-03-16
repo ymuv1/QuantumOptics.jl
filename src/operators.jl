@@ -8,7 +8,7 @@ using Base.Cartesian
 
 using ..bases, ..states
 
-export AbstractOperator, Operator,
+export Operator, DenseOperator,
        tensor, dagger, expect, embed
 
 
@@ -19,57 +19,57 @@ All deriving operator classes have to define the fields
 basis_l and basis_r defining the left and right side bases.
 
 For fast time evolution also at least the function
-gemv!(alpha, op::AbstractOperator, x::Ket, beta, result::Ket) should be
+gemv!(alpha, op::Operator, x::Ket, beta, result::Ket) should be
 implemented. Many other generic multiplication functions can be defined in
 terms of this function and are provided automatically.
 """
-abstract AbstractOperator
+abstract Operator
 
 """
-Dense array implementation of AbstractOperator.
+Dense array implementation of Operator.
 
 The matrix consisting of complex floats is stored in the data field.
 """
-type Operator <: AbstractOperator
+type DenseOperator <: Operator
     basis_l::Basis
     basis_r::Basis
     data::Matrix{Complex{Float64}}
-    Operator(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
+    DenseOperator(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
 end
 
-Operator(b::Basis, data) = Operator(b, b, data)
-Operator(b1::Basis, b2::Basis) = Operator(b1, b2, zeros(Complex, length(b1), length(b2)))
-Operator(b::Basis) = Operator(b, b)
-Operator(op::AbstractOperator) = full(op)
+DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
+DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(Complex, length(b1), length(b2)))
+DenseOperator(b::Basis) = DenseOperator(b, b)
+DenseOperator(op::Operator) = full(op)
 
 """
-Converting an arbitrary AbstractOperator into an Operator.
+Converting an arbitrary Operator into a DenseOperator.
 """
-Base.copy(x::Operator) = deepcopy(x)
-Base.full(x::Operator) = deepcopy(x)
-Base.full(op::AbstractOperator) = op*identity(op.basis_r)
+Base.copy(x::DenseOperator) = deepcopy(x)
+Base.full(x::DenseOperator) = deepcopy(x)
+Base.full(op::Operator) = op*identity(op.basis_r)
 
-Base.eltype(x::AbstractOperator) = Complex128
-Base.zero{T<:AbstractOperator}(x::T) = T(x.basis_l, x.basis_r)
+Base.eltype(x::Operator) = Complex128
+Base.zero{T<:Operator}(x::T) = T(x.basis_l, x.basis_r)
 
-==(x::Operator, y::Operator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
+==(x::DenseOperator, y::DenseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
 
 
-# Arithmetic operations for dense Operators
-check_samebases(a::AbstractOperator, b::AbstractOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
+# Arithmetic operations for dense DenseOperators
+check_samebases(a::Operator, b::Operator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
-*(a::Operator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
-*(a::Bra, b::Operator) = (check_multiplicable(a.basis, b.basis_l); Bra(b.basis_r, b.data.'*a.data))
-*(a::Operator, b::Operator) = (check_multiplicable(a.basis_r, b.basis_l); Operator(a.basis_l, b.basis_r, a.data*b.data))
-*(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, complex(b)*a.data)
-*(a::Number, b::Operator) = Operator(b.basis_l, b.basis_r, complex(a)*b.data)
+*(a::DenseOperator, b::Ket) = (check_multiplicable(a.basis_r, b.basis); Ket(a.basis_l, a.data*b.data))
+*(a::Bra, b::DenseOperator) = (check_multiplicable(a.basis, b.basis_l); Bra(b.basis_r, b.data.'*a.data))
+*(a::DenseOperator, b::DenseOperator) = (check_multiplicable(a.basis_r, b.basis_l); DenseOperator(a.basis_l, b.basis_r, a.data*b.data))
+*(a::DenseOperator, b::Number) = DenseOperator(a.basis_l, a.basis_r, complex(b)*a.data)
+*(a::Number, b::DenseOperator) = DenseOperator(b.basis_l, b.basis_r, complex(a)*b.data)
 
-/(a::Operator, b::Number) = Operator(a.basis_l, a.basis_r, a.data/complex(b))
+/(a::DenseOperator, b::Number) = DenseOperator(a.basis_l, a.basis_r, a.data/complex(b))
 
-+(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data+b.data))
++(a::DenseOperator, b::DenseOperator) = (check_samebases(a,b); DenseOperator(a.basis_l, a.basis_r, a.data+b.data))
 
--(a::Operator) = Operator(a.basis_l, a.basis_r, -a.data)
--(a::Operator, b::Operator) = (check_samebases(a,b); Operator(a.basis_l, a.basis_r, a.data-b.data))
+-(a::DenseOperator) = DenseOperator(a.basis_l, a.basis_r, -a.data)
+-(a::DenseOperator, b::DenseOperator) = (check_samebases(a,b); DenseOperator(a.basis_l, a.basis_r, a.data-b.data))
 
 
 # Fast in-place multiplication implementations
@@ -77,47 +77,47 @@ gemm!{T<:Complex}(alpha::T, a::Matrix{T}, b::Matrix{T}, beta::T, result::Matrix{
 gemv!{T<:Complex}(alpha::T, a::Matrix{T}, b::Vector{T}, beta::T, result::Vector{T}) = BLAS.gemv!('N', alpha, a, b, beta, result)
 gemv!{T<:Complex}(alpha::T, a::Vector{T}, b::Matrix{T}, beta::T, result::Vector{T}) = BLAS.gemv!('T', alpha, b, a, beta, result)
 
-gemm!(alpha, a::Operator, b::Operator, beta, result::Operator) = gemm!(alpha, a.data, b.data, beta, result.data)
-gemv!(alpha, a::Operator, b::Ket, beta, result::Ket) = gemv!(alpha, a.data, b.data, beta, result.data)
-gemv!(alpha, a::Bra, b::Operator, beta, result::Bra) = gemv!(alpha, a.data, b.data, beta, result.data)
+gemm!(alpha, a::DenseOperator, b::DenseOperator, beta, result::DenseOperator) = gemm!(alpha, a.data, b.data, beta, result.data)
+gemv!(alpha, a::DenseOperator, b::Ket, beta, result::Ket) = gemv!(alpha, a.data, b.data, beta, result.data)
+gemv!(alpha, a::Bra, b::DenseOperator, beta, result::Bra) = gemv!(alpha, a.data, b.data, beta, result.data)
 
 
 """
 Tensor product of operators.
 """
-bases.tensor(a::Operator, b::Operator) = Operator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(a.data, b.data))
-bases.tensor(ops::Operator...) = reduce(tensor, ops)
+bases.tensor(a::DenseOperator, b::DenseOperator) = DenseOperator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(a.data, b.data))
+bases.tensor(ops::DenseOperator...) = reduce(tensor, ops)
 
 """
 Tensor product of a ket and a bra results in an operator.
 """
-bases.tensor(a::Ket, b::Bra) = Operator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
+bases.tensor(a::Ket, b::Bra) = DenseOperator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 """
 Hermitian conjugate of the given operator.
 """
-states.dagger(x::Operator) = Operator(x.basis_r, x.basis_l, x.data')
+states.dagger(x::DenseOperator) = DenseOperator(x.basis_r, x.basis_l, x.data')
 
 
 """
 p-norm of given operator.
 """
-Base.norm(op::Operator, p) = norm(op.data, p)
+Base.norm(op::DenseOperator, p) = norm(op.data, p)
 
 """
 Trace of given operator.
 """
-Base.trace(op::Operator) = trace(op.data)
+Base.trace(op::DenseOperator) = trace(op.data)
 
 """
 Normalized copy of given operator (trace is 1.).
 """
-states.normalize(op::Operator) = op/trace(op)
+states.normalize(op::DenseOperator) = op/trace(op)
 
 """
 Normalize the given operator.
 """
-function states.normalize!(op::Operator)
+function states.normalize!(op::DenseOperator)
     u = 1./trace(op)
     for j=1:size(op.data,2), i=1:size(op.data,1)
         op.data[i,j] *= u
@@ -129,21 +129,21 @@ end
 """
 Expectation value of the given operator for the specified state(s).
 """
-expect(op::AbstractOperator, state::Operator) = trace(op*state)
-expect(op::AbstractOperator, states::Vector{Operator}) = [expect(op, state) for state=states]
-expect(op::AbstractOperator, state::Ket) = dagger(state)*(op*state)
-expect(op::AbstractOperator, states::Vector{Ket}) = [expect(op, state) for state=states]
+expect(op::Operator, state::DenseOperator) = trace(op*state)
+expect(op::Operator, states::Vector{DenseOperator}) = [expect(op, state) for state=states]
+expect(op::Operator, state::Ket) = dagger(state)*(op*state)
+expect(op::Operator, states::Vector{Ket}) = [expect(op, state) for state=states]
 
 """
 Identity operator.
 """
-Base.identity(b::Basis) = Operator(b, b, eye(Complex, length(b)))
-Base.identity(b1::Basis, b2::Basis) = Operator(b1, b2, eye(Complex, length(b1), length(b2)))
-Base.identity(op::Operator) = identity(op.basis_l, op.basis_r)
+Base.identity(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
+Base.identity(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
+Base.identity(op::DenseOperator) = identity(op.basis_l, op.basis_r)
 
 
-# Multiplication for AbstractOperators in terms of their gemv! implementation
-function gemm!(alpha, M::AbstractOperator, b::Operator, beta, result::Operator)
+# Multiplication for Operators in terms of their gemv! implementation
+function gemm!(alpha, M::Operator, b::DenseOperator, beta, result::DenseOperator)
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
@@ -152,7 +152,7 @@ function gemm!(alpha, M::AbstractOperator, b::Operator, beta, result::Operator)
     end
 end
 
-function gemm!(alpha, b::Operator, M::AbstractOperator, beta, result::Operator)
+function gemm!(alpha, b::DenseOperator, M::Operator, beta, result::DenseOperator)
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
@@ -161,28 +161,28 @@ function gemm!(alpha, b::Operator, M::AbstractOperator, beta, result::Operator)
     end
 end
 
-function *(op1::AbstractOperator, op2::Operator)
+function *(op1::Operator, op2::DenseOperator)
     check_multiplicable(op1.basis_r, op2.basis_l)
-    result = Operator(op1.basis_l, op2.basis_r)
+    result = DenseOperator(op1.basis_l, op2.basis_r)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
 
-function *(op1::Operator, op2::AbstractOperator)
+function *(op1::DenseOperator, op2::Operator)
     check_multiplicable(op1.basis_r, op2.basis_l)
-    result = Operator(op1.basis_l, op2.basis_r)
+    result = DenseOperator(op1.basis_l, op2.basis_r)
     gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
 
-function *(op::AbstractOperator, psi::Ket)
+function *(op::Operator, psi::Ket)
     check_multiplicable(op.basis_r, psi.basis)
     result = Ket(op.basis_l)
     gemv!(Complex(1.), op, psi, Complex(0.), result)
     return result
 end
 
-function *(psi::Bra, op::AbstractOperator)
+function *(psi::Bra, op::Operator)
     check_multiplicable(psi.basis, op.basis_l)
     result = Bra(op.basis_r)
     gemv!(Complex(1.), psi, op, Complex(0.), result)
@@ -204,7 +204,7 @@ operators
     Operators defined in the subsystems.
 """
 embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector) = tensor([prod(basis.bases[i], operators[find(indices.==i)]) for i=1:length(basis.bases)]...)
-embed{T<:AbstractOperator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
+embed{T<:Operator}(basis::CompositeBasis, index::Int, op::T) = embed(basis, Int[index], T[op])
 
 
 # Partial trace for dense operators.
@@ -248,13 +248,13 @@ end
 """
 Partial trace of the given operator over the specified indices.
 """
-function bases.ptrace(a::Operator, indices::Vector{Int})
+function bases.ptrace(a::DenseOperator, indices::Vector{Int})
     rank = zeros(Int, [0 for i=1:length(a.basis_l.shape)]...)
     result = _ptrace(rank, a.data, a.basis_l.shape, a.basis_r.shape, indices)
-    return Operator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
+    return DenseOperator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 
-bases.ptrace(a::Operator, indices::Int) = bases.ptrace(a, Int[indices])
+bases.ptrace(a::DenseOperator, indices::Int) = bases.ptrace(a, Int[indices])
 
 """
 Partial trace of the given state vector over the specified indices.

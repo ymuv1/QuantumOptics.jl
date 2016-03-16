@@ -19,7 +19,7 @@ s = tensor(sx, sy)
 s_sp = tensor(sx_sp, sy_sp)
 
 @test typeof(I) == SparseOperator
-@test typeof(I_dense) == Operator
+@test typeof(I_dense) == DenseOperator
 @test_approx_eq 0. norm((I_dense-full(I)).data)
 @test_approx_eq 0. norm((s - full(s_sp)).data)
 

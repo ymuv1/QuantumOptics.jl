@@ -86,7 +86,7 @@ tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh_sparse, Jsparse; seed=UInt64(2),
 # Test convergence to master solution
 tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J)
 
-ρ_average = Operator[0 * ρ₀ for i=1:length(T)]
+ρ_average = DenseOperator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
     tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt64(i))
     for j=1:length(T)
@@ -105,8 +105,8 @@ J2 = [Ja, 0 * Jc]
 
 tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J1)
 
-ρ_average_1 = Operator[0 * ρ₀ for i=1:length(T)]
-ρ_average_2 = Operator[0 * ρ₀ for i=1:length(T)]
+ρ_average_1 = DenseOperator[0 * ρ₀ for i=1:length(T)]
+ρ_average_2 = DenseOperator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
     tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, H, J1; seed=UInt64(i))
     tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, H, J2; seed=UInt64(i))
@@ -122,7 +122,7 @@ end
 
 
 # Test equivalence to schroedinger time evolution for no decay
-J = Operator[]
+J = DenseOperator[]
 tout_schroedinger, Ψt_schroedinger = timeevolution.schroedinger(T, Ψ₀, H)
 tout_mcwf, Ψt_mcwf = timeevolution.mcwf(T, Ψ₀, H, J)
 tout_mcwf_h, Ψt_mcwf_h = timeevolution.mcwf_h(T, Ψ₀, H, J)

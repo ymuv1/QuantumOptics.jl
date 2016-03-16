@@ -5,7 +5,7 @@ import ..operators.check_samebases
 
 using ..bases, ..operators, ..operators_sparse
 
-export SuperOperator, SparseSuperOperator, spre, spost, liouvillian
+export DenseSuperOperator, SparseSuperOperator, spre, spost, liouvillian
 
 """
 Base class for all super operator classes.
@@ -20,15 +20,16 @@ them again consists of a left and right hand basis.
 
     A_{bl_1,bl_2} &= S_{(bl_1,bl_2)<->(br_1,br_2)} B_{br_1,br_2}
     \\\\
-    A_{br_1,br_2} &= B_{bl_1,bl_2} S_{(bl_1,bl_2)<->(br_1,br_2)} 
+    A_{br_1,br_2} &= B_{bl_1,bl_2} S_{(bl_1,bl_2)<->(br_1,br_2)}
 """
-abstract AbstractSuperOperator
+abstract SuperOperator
 
-type SuperOperator <: AbstractSuperOperator
+
+type DenseSuperOperator <: SuperOperator
     basis_l::Tuple{Basis, Basis}
     basis_r::Tuple{Basis, Basis}
     data::Matrix{Complex128}
-    function SuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::Matrix{Complex128})
+    function DenseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::Matrix{Complex128})
         if length(basis_l[1])*length(basis_l[2]) != size(data, 1) || length(basis_r[1])*length(basis_r[2]) != size(data, 2)
             throw(DimensionMismatch())
         end
@@ -36,7 +37,8 @@ type SuperOperator <: AbstractSuperOperator
     end
 end
 
-type SparseSuperOperator <: AbstractSuperOperator
+
+type SparseSuperOperator <: SuperOperator
     basis_l::Tuple{Basis, Basis}
     basis_r::Tuple{Basis, Basis}
     data::SparseMatrixCSC{Complex128}
@@ -48,31 +50,31 @@ type SparseSuperOperator <: AbstractSuperOperator
     end
 end
 
-=={T<:AbstractSuperOperator}(a::T, b::T) = (a.basis_l == b.basis_l) && (a.basis_r == b.basis_r) && (a.data == b.data)
+=={T<:SuperOperator}(a::T, b::T) = (a.basis_l == b.basis_l) && (a.basis_r == b.basis_r) && (a.data == b.data)
 
-operators.check_samebases(a::AbstractSuperOperator, b::AbstractSuperOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
+operators.check_samebases(a::SuperOperator, b::SuperOperator) = ((a.basis_l!=b.basis_l) || (a.basis_r!=b.basis_r) ? throw(IncompatibleBases()) : nothing)
 
-function *{T<:AbstractSuperOperator}(a::T, b::Operator)
+function *{T<:SuperOperator}(a::T, b::DenseOperator)
     if a.basis_r[1] != b.basis_l || a.basis_r[2] != b.basis_r
         throw(DimensionMismatch())
     end
     data = a.data*reshape(b.data, length(b.data))
-    return Operator(a.basis_l[1], a.basis_l[2], reshape(data, length(a.basis_l[1]), length(a.basis_l[2])))
+    return DenseOperator(a.basis_l[1], a.basis_l[2], reshape(data, length(a.basis_l[1]), length(a.basis_l[2])))
 end
 
-function *{T<:AbstractSuperOperator}(a::T, b::T)
+function *{T<:SuperOperator}(a::T, b::T)
     if a.basis_r != b.basis_l
         throw(DimensionMismatch())
     end
     return T(a.basis_l, b.basis_r, a.data*b.data)
 end
 
-/{T<:AbstractSuperOperator}(a::T, b::Number) = T(a.basis_l, a.basis_r, a.data/complex(b))
+/{T<:SuperOperator}(a::T, b::Number) = T(a.basis_l, a.basis_r, a.data/complex(b))
 
-+{T<:AbstractSuperOperator}(a::T, b::T) = (operators.check_samebases(a, b); T(a.basis_l, a.basis_r, a.data+b.data))
++{T<:SuperOperator}(a::T, b::T) = (operators.check_samebases(a, b); T(a.basis_l, a.basis_r, a.data+b.data))
 
--{T<:AbstractSuperOperator}(a::T, b::T) = (operators.check_samebases(a, b); T(a.basis_l, a.basis_r, a.data-b.data))
--{T<:AbstractSuperOperator}(a::T) = T(a.basis_l, a.basis_r, -a.data)
+-{T<:SuperOperator}(a::T, b::T) = (operators.check_samebases(a, b); T(a.basis_l, a.basis_r, a.data-b.data))
+-{T<:SuperOperator}(a::T) = T(a.basis_l, a.basis_r, -a.data)
 
 """
 Create a super-operator equivalent for right side operator multiplication.
@@ -85,7 +87,7 @@ For operators :math:`A`, :math:`B` the relation
 
 holds.
 """
-spre(op::Operator) = SuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), tensor(identity(op), op).data)
+spre(op::DenseOperator) = DenseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), tensor(identity(op), op).data)
 spre(op::SparseOperator) = SparseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), tensor(identity(op), op).data)
 
 """
@@ -99,17 +101,17 @@ For operators :math:`A`, :math:`B` the relation
 
 holds.
 """
-spost(op::Operator) = SuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), kron(transpose(op.data), identity(op).data))
+spost(op::DenseOperator) = DenseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r), kron(transpose(op.data), identity(op).data))
 spost(op::SparseOperator) = SparseSuperOperator((op.basis_l, op.basis_r), (op.basis_l, op.basis_r),  kron(transpose(op.data), identity(op).data))
 
 
-function _check_input(H::AbstractOperator, J::Vector, Jdagger::Vector, Gamma::Union{Vector{Float64}, Matrix{Float64}})
+function _check_input(H::Operator, J::Vector, Jdagger::Vector, Gamma::Union{Vector{Float64}, Matrix{Float64}})
     for j=J
-        @assert typeof(j) <: AbstractOperator
+        @assert typeof(j) <: Operator
         operators.check_samebases(H, j)
     end
     for j=Jdagger
-        @assert typeof(j) <: AbstractOperator
+        @assert typeof(j) <: Operator
         operators.check_samebases(H, j)
     end
     @assert length(J)==length(Jdagger)
@@ -150,7 +152,7 @@ Jdagger (optional)
     Vector containing the hermitian conjugates of the jump operators. If they
     are not given they are calculated automatically.
 """
-function liouvillian{T<:AbstractOperator}(H::T, J::Vector{T};
+function liouvillian{T<:Operator}(H::T, J::Vector{T};
             Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
             Jdagger::Vector{T}=map(dagger, J))
     _check_input(H, J, Jdagger, Gamma)
@@ -173,6 +175,6 @@ function liouvillian{T<:AbstractOperator}(H::T, J::Vector{T};
     return L
 end
 
-Base.expm{T<:AbstractSuperOperator}(op::T) = T(op.basis_l, op.basis_r, expm(op.data))
+Base.expm{T<:SuperOperator}(op::T) = T(op.basis_l, op.basis_r, expm(op.data))
 
 end # module

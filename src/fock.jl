@@ -45,7 +45,7 @@ Arguments
 b
     FockBasis of this operator.
 """
-number(b::FockBasis) = Operator(b, diagm([complex(x) for x=b.Nmin:b.Nmax]))
+number(b::FockBasis) = DenseOperator(b, diagm([complex(x) for x=b.Nmin:b.Nmax]))
 
 """
 Annihilation operator for the given Fock space.
@@ -56,7 +56,7 @@ Arguments
 b
     FockBasis of this operator.
 """
-destroy(b::FockBasis) = Operator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],1))
+destroy(b::FockBasis) = DenseOperator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],1))
 
 """
 Creation operator for the given Fock space.
@@ -67,7 +67,7 @@ Arguments
 b
     FockBasis of this operator.
 """
-create(b::FockBasis) = Operator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],-1))
+create(b::FockBasis) = DenseOperator(b, diagm([complex(sqrt(x)) for x=b.Nmin+1:b.Nmax],-1))
 
 
 """
@@ -115,12 +115,12 @@ end
 """
 Husimi Q representation :math:`\\\\frac{1}{\\pi} \\langle \\\\alpha | \\\\rho | \\\\alpha \\\\rangle`.
 """
-function qfunc(rho::AbstractOperator, alpha::Complex128)
+function qfunc(rho::Operator, alpha::Complex128)
     psi = coherentstate(rho.basis_l, alpha)
     return real(dagger(psi)*rho*psi)/pi
 end
 
-function qfunc(rho::AbstractOperator, X::Vector{Float64}, Y::Vector{Float64})
+function qfunc(rho::Operator, X::Vector{Float64}, Y::Vector{Float64})
     @assert rho.basis_l == rho.basis_r
     return Float64[qfunc(rho, complex(x,y)) for x=X, y=Y]
 end

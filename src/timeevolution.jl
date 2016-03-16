@@ -11,9 +11,9 @@ export master, master_nh, master_h
 """
 Evaluate master equation for diagonal jump operators.
 """
-function dmaster_h(rho::Operator, H::AbstractOperator,
+function dmaster_h(rho::DenseOperator, H::Operator,
                     Gamma::Vector{Complex128}, J::Vector, Jdagger::Vector,
-                    drho::Operator, tmp::Operator)
+                    drho::DenseOperator, tmp::DenseOperator)
     operators.gemm!(complex(0,-1.), H, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, H, complex(1.), drho)
     for i=1:length(J)
@@ -31,9 +31,9 @@ end
 """
 Evaluate master equation for non-diagonal jump operators.
 """
-function dmaster_h(rho::Operator, H::AbstractOperator,
+function dmaster_h(rho::DenseOperator, H::Operator,
                     Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
-                    drho::Operator, tmp::Operator)
+                    drho::DenseOperator, tmp::DenseOperator)
     operators.gemm!(complex(0,-1.), H, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, H, complex(1.), drho)
     for j=1:length(J), i=1:length(J)
@@ -51,9 +51,9 @@ end
 """
 Evaluate master equation for non-hermitian Hamiltonian and diagonal jump operators.
 """
-function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
+function dmaster_nh(rho::DenseOperator, Hnh::Operator, Hnh_dagger::Operator,
                     Gamma::Vector{Complex128}, J::Vector, Jdagger::Vector,
-                    drho::Operator, tmp::Operator)
+                    drho::DenseOperator, tmp::DenseOperator)
     operators.gemm!(complex(0,-1.), Hnh, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, Hnh_dagger, complex(1.), drho)
     for i=1:length(J)
@@ -66,9 +66,9 @@ end
 """
 Evaluate master equation for non-hermitian Hamiltonian and non-diagonal jump operators.
 """
-function dmaster_nh(rho::Operator, Hnh::AbstractOperator, Hnh_dagger::AbstractOperator,
+function dmaster_nh(rho::DenseOperator, Hnh::Operator, Hnh_dagger::Operator,
                     Gamma::Matrix{Complex128}, J::Vector, Jdagger::Vector,
-                    drho::Operator, tmp::Operator)
+                    drho::DenseOperator, tmp::DenseOperator)
     operators.gemm!(complex(0,-1.), Hnh, rho, complex(0.), drho)
     operators.gemm!(complex(0,1.), rho, Hnh_dagger, complex(1.), drho)
     for j=1:length(J), i=1:length(J)
@@ -104,17 +104,17 @@ fout (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing, kwargs...)
+function integrate_master(dmaster::Function, tspan, rho0::DenseOperator; fout=nothing, kwargs...)
     nl = prod(rho0.basis_l.shape)
     nr = prod(rho0.basis_r.shape)
     N = nl*nr
-    as_operator(x::Vector{Complex128}) = Operator(rho0.basis_l, rho0.basis_r, reshape(x, nl, nr))
-    as_vector(rho::Operator) = reshape(rho.data, N)
+    as_operator(x::Vector{Complex128}) = DenseOperator(rho0.basis_l, rho0.basis_r, reshape(x, nl, nr))
+    as_vector(rho::DenseOperator) = reshape(rho.data, N)
     f = (x->x)
     if fout==nothing
         tout = Float64[]
-        xout = Operator[]
-        function fout_(t, rho::Operator)
+        xout = DenseOperator[]
+        function fout_(t, rho::DenseOperator)
             push!(tout, t)
             push!(xout, deepcopy(rho))
         end
@@ -128,14 +128,14 @@ function integrate_master(dmaster::Function, tspan, rho0::Operator; fout=nothing
     return fout==nothing ? (tout, xout) : nothing
 end
 
-function _check_input(rho0::Operator, H::AbstractOperator, J::Vector, Jdagger::Vector, Gamma::Union{Vector{Float64}, Matrix{Float64}})
+function _check_input(rho0::DenseOperator, H::Operator, J::Vector, Jdagger::Vector, Gamma::Union{Vector{Float64}, Matrix{Float64}})
     operators.check_samebases(rho0, H)
     for j=J
-        @assert typeof(j) <: AbstractOperator
+        @assert typeof(j) <: Operator
         operators.check_samebases(rho0, j)
     end
     for j=Jdagger
-        @assert typeof(j) <: AbstractOperator
+        @assert typeof(j) <: Operator
         operators.check_samebases(rho0, j)
     end
     @assert length(J)==length(Jdagger)
@@ -151,43 +151,43 @@ end
 """
 Integrate the master equation with dmaster_h as derivative function.
 
-For further information look at :func:`master(,::Operator,::AbstractOperator,)`
+For further information look at :func:`master(,::DenseOperator,::Operator,)`
 """
-function master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
+function master_h(tspan, rho0::DenseOperator, H::Operator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
-                tmp::Operator=deepcopy(rho0),
+                tmp::DenseOperator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
     Gamma = complex(Gamma)
-    dmaster_(t, rho::Operator, drho::Operator) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp)
+    dmaster_(t, rho::DenseOperator, drho::DenseOperator) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
-master_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master_h(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
+master_h(tspan, psi0::Ket, H::Operator, J::Vector; kwargs...) = master_h(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
 
 
 """
 Integrate the master equation with dmaster_nh as derivative function.
 
 In this case the given Hamiltonian is assumed to be the non-hermitian version.
-For further information look at :func:`master(,::Operator,::AbstractOperator,)`
+For further information look at :func:`master(,::DenseOperator,::Operator,)`
 """
-function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J::Vector;
+function master_nh(tspan, rho0::DenseOperator, Hnh::Operator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
-                Hnhdagger::AbstractOperator=dagger(Hnh),
+                Hnhdagger::Operator=dagger(Hnh),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
-                tmp::Operator=deepcopy(rho0),
+                tmp::DenseOperator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, Hnh, J, Jdagger, Gamma)
     Gamma = complex(Gamma)
-    dmaster_(t, rho::Operator, drho::Operator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
+    dmaster_(t, rho::DenseOperator, drho::DenseOperator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
-master_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector; kwargs...) = master_nh(tspan, tensor(psi0, dagger(psi0)), Hnh, J; kwargs...)
+master_nh(tspan, psi0::Ket, Hnh::Operator, J::Vector; kwargs...) = master_nh(tspan, tensor(psi0, dagger(psi0)), Hnh, J; kwargs...)
 
 
 """
@@ -210,7 +210,7 @@ rho0
     Initial density operator (must be a dense operator). Can also be a
     state vector which is automatically converted into a density operator.
 H
-    Operator specifying the Hamiltonian.
+    DenseOperator specifying the Hamiltonian.
 J
     Vector containing all jump operators.
 
@@ -230,23 +230,23 @@ fout (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function master(tspan, rho0::Operator, H::AbstractOperator, J::Vector;
+function master(tspan, rho0::DenseOperator, H::Operator, J::Vector;
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
-                tmp::Operator=deepcopy(rho0),
+                tmp::DenseOperator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
     Gamma = complex(Gamma)
-    dmaster_(t, rho::Operator, drho::Operator) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp)
+    dmaster_(t, rho::DenseOperator, drho::DenseOperator) = dmaster_h(rho, H, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
-function master(tspan, rho0::Operator, H::Operator, J::Vector{Operator};
+function master(tspan, rho0::DenseOperator, H::DenseOperator, J::Vector{DenseOperator};
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
-                Jdagger::Vector{Operator}=map(dagger, J),
+                Jdagger::Vector{DenseOperator}=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
-                tmp::Operator=deepcopy(rho0),
+                tmp::DenseOperator=deepcopy(rho0),
                 kwargs...)
     _check_input(rho0, H, J, Jdagger, Gamma)
     Hnh = deepcopy(H)
@@ -263,11 +263,11 @@ function master(tspan, rho0::Operator, H::Operator, J::Vector{Operator};
     end
     Hnhdagger = dagger(Hnh)
     Gamma = complex(Gamma)
-    dmaster_(t, rho::Operator, drho::Operator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
+    dmaster_(t, rho::DenseOperator, drho::DenseOperator) = dmaster_nh(rho, Hnh, Hnhdagger, Gamma, J, Jdagger, drho, tmp)
     return integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
-master(tspan, psi0::Ket, H::AbstractOperator, J::Vector; kwargs...) = master(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
+master(tspan, psi0::Ket, H::Operator, J::Vector; kwargs...) = master(tspan, tensor(psi0, dagger(psi0)), H, J; kwargs...)
 
 
 """
@@ -296,7 +296,7 @@ end
 """
 Evaluate Schroedinger equation for ket states.
 """
-function dschroedinger_ket(psi::Ket, H::AbstractOperator, dpsi::Ket)
+function dschroedinger_ket(psi::Ket, H::Operator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
     return dpsi
 end
@@ -304,7 +304,7 @@ end
 """
 Evaluate Schroedinger equation for bra states.
 """
-function dschroedinger_bra(psi::Bra, H::AbstractOperator, dpsi::Bra)
+function dschroedinger_bra(psi::Bra, H::Operator, dpsi::Bra)
     operators.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
     return dpsi
 end
@@ -319,7 +319,7 @@ tspan
 psi0
     Initial state vector (can be a bra or a ket).
 H
-    Operator specifying the Hamiltonian.
+    DenseOperator specifying the Hamiltonian.
 
 Keyword Arguments
 -----------------
@@ -329,7 +329,7 @@ fout (optional)
     be displayed. To limit copying to a minimum the given state psi
     is further used and therefore must not be changed.
 """
-function schroedinger{T<:StateVector}(tspan, psi0::T, H::AbstractOperator;
+function schroedinger{T<:StateVector}(tspan, psi0::T, H::Operator;
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
     if T==Ket
@@ -458,7 +458,7 @@ Evaluate non-hermitian Schroedinger equation.
 The non-hermitian Hamiltonian is given in two parts - the hermitian part H and
 the jump operators J.
 """
-function dmcwf_h(psi::Ket, H::AbstractOperator,
+function dmcwf_h(psi::Ket, H::Operator,
                  J::Vector, Jdagger::Vector, dpsi::Ket, tmp::Ket)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
     for i=1:length(J)
@@ -474,7 +474,7 @@ Evaluate non-hermitian Schroedinger equation.
 
 The given Hamiltonian is already the non-hermitian version.
 """
-function dmcwf_nh(psi::Ket, Hnh::AbstractOperator, dpsi::Ket)
+function dmcwf_nh(psi::Ket, Hnh::Operator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), Hnh, psi, complex(0.), dpsi)
     return dpsi
 end
@@ -482,7 +482,7 @@ end
 """
 Integrate master equation using MCWF method with mcwf_h as derivative function.
 """
-function mcwf_h(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
+function mcwf_h(tspan, psi0::Ket, H::Operator, J::Vector;
                 seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
                 tmp::Ket=deepcopy(psi0),
                 display_beforeevent=false, display_afterevent=false,
@@ -498,7 +498,7 @@ end
 """
 Integrate master equation using MCWF method with mcwf_nh as derivative function.
 """
-function mcwf_nh(tspan, psi0::Ket, Hnh::AbstractOperator, J::Vector;
+function mcwf_nh(tspan, psi0::Ket, Hnh::Operator, J::Vector;
                 seed=rand(UInt64), fout=nothing,
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
@@ -530,7 +530,7 @@ tspan
 psi0
     Initial state vector.
 H
-    Operator specifying the Hamiltonian.
+    DenseOperator specifying the Hamiltonian.
 J
     Vector containing all jump operators.
 
@@ -554,7 +554,7 @@ display_afterevent [false]
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function mcwf(tspan, psi0::Ket, H::AbstractOperator, J::Vector;
+function mcwf(tspan, psi0::Ket, H::Operator, J::Vector;
                 seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)

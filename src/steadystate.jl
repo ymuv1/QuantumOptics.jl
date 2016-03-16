@@ -17,7 +17,7 @@ Arguments
 ---------
 
 H
-    AbstractOperator specifying the Hamiltonian.
+    Operator specifying the Hamiltonian.
 J
     Vector of jump operators.
 
@@ -43,13 +43,13 @@ fout (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function master(H::AbstractOperator, J::Vector;
-                rho0::Operator=tensor(basis_ket(H.basis_l, 1), basis_bra(H.basis_r, 1)),
+function master(H::Operator, J::Vector;
+                rho0::DenseOperator=tensor(basis_ket(H.basis_l, 1), basis_bra(H.basis_r, 1)),
                 eps::Float64=1e-3, hmin=1e-7,
                 Gamma::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
                 Jdagger::Vector=map(dagger, J),
                 fout::Union{Function,Void}=nothing,
-                tmp::Operator=deepcopy(rho0),
+                tmp::DenseOperator=deepcopy(rho0),
                 kwargs...)
     t0 = 0.
     rho0 = deepcopy(rho0)
@@ -90,16 +90,16 @@ Arguments
 L
     Dense or sparse super-operator.
 """
-function eigenvector(L::SuperOperator)
+function eigenvector(L::DenseSuperOperator)
     d, v = Base.eig(L.data)
     data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
-    return Operator(L.basis_r[1], L.basis_r[2], data)
+    return DenseOperator(L.basis_r[1], L.basis_r[2], data)
 end
 
 function eigenvector(L::SparseSuperOperator)
     d, v, nconv, niter, nmult, resid = Base.eigs(L.data; nev=1, sigma=1e-30)
     data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
-    op = Operator(L.basis_r[1], L.basis_r[2], data)
+    op = DenseOperator(L.basis_r[1], L.basis_r[2], data)
     return op/trace(op)
 end
 
@@ -110,11 +110,11 @@ Arguments
 ---------
 
 H
-    AbstractOperator specifying the Hamiltonian.
+    Operator specifying the Hamiltonian.
 J
     Vector of jump operators.
 """
-eigenvector(H::AbstractOperator, J::Vector) = eigenvector(liouvillian(H, J))
+eigenvector(H::Operator, J::Vector) = eigenvector(liouvillian(H, J))
 
 
 end # module

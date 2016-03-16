@@ -21,13 +21,13 @@ tspan
 rho0
     Initial density operator.
 H
-    AbstractOperator specifying the Hamiltonian.
+    Operator specifying the Hamiltonian.
 J
     Vector of jump operators.
 op1
-    AbstractOperator at time t.
+    Operator at time t.
 op2
-    AbstractOperator at time t=0.
+    Operator at time t=0.
 
 
 Keyword Arguments
@@ -41,11 +41,11 @@ Jdagger (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function correlation(tspan::Vector{Float64}, rho0::Operator, H::AbstractOperator, J::Vector,
-                     op1::AbstractOperator, op2::AbstractOperator;
+function correlation(tspan::Vector{Float64}, rho0::DenseOperator, H::Operator, J::Vector,
+                     op1::Operator, op2::Operator;
                      Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
                      Jdagger::Vector=map(dagger, J),
-                     tmp::Operator=deepcopy(rho0),
+                     tmp::DenseOperator=deepcopy(rho0),
                      kwargs...)
     exp_values = Complex128[]
     function fout(t, rho)
@@ -73,13 +73,13 @@ Arguments
 rho0
     Initial density operator.
 H
-    AbstractOperator specifying the Hamiltonian.
+    Operator specifying the Hamiltonian.
 J
     Vector of jump operators.
 op1
-    AbstractOperator at time t.
+    Operator at time t.
 op2
-    AbstractOperator at time t=0.
+    Operator at time t=0.
 
 
 Keyword Arguments
@@ -97,12 +97,12 @@ Jdagger (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function correlation(rho0::Operator, H::AbstractOperator, J::Vector,
-                     op1::AbstractOperator, op2::AbstractOperator;
+function correlation(rho0::DenseOperator, H::Operator, J::Vector,
+                     op1::Operator, op2::Operator;
                      eps::Float64=1e-4, h0=10.,
                      Gamma::Union{Real, Vector, Matrix}=ones(Float64, length(J)),
                      Jdagger::Vector=map(dagger, J),
-                     tmp::Operator=deepcopy(rho0),
+                     tmp::DenseOperator=deepcopy(rho0),
                      kwargs...)
     op2rho0 = op2*rho0
     tout = Float64[0.]
@@ -118,9 +118,9 @@ end
 
 
 function correlationspectrum(omega_samplepoints::Vector{Float64},
-                H::AbstractOperator, J::Vector, op::AbstractOperator;
+                H::Operator, J::Vector, op::Operator;
                 eps::Float64=1e-4,
-                rho_ss::Operator=steadystate.master(H, J; eps=eps),
+                rho_ss::DenseOperator=steadystate.master(H, J; eps=eps),
                 kwargs...)
     domega = minimum(diff(omega_samplepoints))
     dt = 2*pi/(omega_samplepoints[end] - omega_samplepoints[1])
@@ -147,9 +147,9 @@ function correlationspectrum(omega_samplepoints::Vector{Float64},
 end
 
 
-function correlationspectrum(H::AbstractOperator, J::Vector, op::AbstractOperator;
+function correlationspectrum(H::Operator, J::Vector, op::Operator;
                 eps::Float64=1e-4, h0=10.,
-                rho_ss::Operator=steadystate.master(H, J; eps=eps),
+                rho_ss::DenseOperator=steadystate.master(H, J; eps=eps),
                 kwargs...)
     tspan, exp_values = correlation(rho_ss, H, J, dagger(op), op, eps=eps, h0=h0, kwargs...)
     dtmin = minimum(diff(tspan))

@@ -17,9 +17,9 @@ basis = FockBasis(2)
 
 
 # Test operators
-@test number(basis) == Operator(basis, diagm(Complex128[0, 1, 2]))
-@test destroy(basis) == Operator(basis, Complex128[0 1 0; 0 0 sqrt(2); 0 0 0])
-@test create(basis) == Operator(basis, Complex128[0 0 0; 1 0 0; 0 sqrt(2) 0])
+@test number(basis) == DenseOperator(basis, diagm(Complex128[0, 1, 2]))
+@test destroy(basis) == DenseOperator(basis, Complex128[0 1 0; 0 0 sqrt(2); 0 0 0])
+@test create(basis) == DenseOperator(basis, Complex128[0 0 0; 1 0 0; 0 sqrt(2) 0])
 @test number(basis) == dagger(number(basis))
 @test create(basis) == dagger(destroy(basis))
 @test destroy(basis) == dagger(create(basis))

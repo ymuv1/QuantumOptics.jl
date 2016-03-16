@@ -226,14 +226,14 @@ samplepoints(b::MomentumBasis) = (dp = spacing(b); Float64[b.pmin + i*dp for i=0
 """
 Position operator in real space.
 """
-positionoperator(b::PositionBasis) = Operator(b, diagm(samplepoints(b)))
+positionoperator(b::PositionBasis) = DenseOperator(b, diagm(samplepoints(b)))
 
 
 """
 Position operator in momentum space.
 """
 function positionoperator(b::MomentumBasis)
-    p_op = Operator(b)
+    p_op = DenseOperator(b)
     u = 1im/(12*spacing(b))
     for i=1:b.N-2
         p_op.data[i,i+2] = -u
@@ -247,13 +247,13 @@ end
 """
 Momentum operator in momentum space.
 """
-momentumoperator(b::MomentumBasis) = Operator(b, diagm(samplepoints(b)))
+momentumoperator(b::MomentumBasis) = DenseOperator(b, diagm(samplepoints(b)))
 
 """
 Momentum operator in real space.
 """
 function momentumoperator(b::PositionBasis)
-    p_op = Operator(b)
+    p_op = DenseOperator(b)
     u = -1im/(12*spacing(b))
     for i=1:b.N-2
         p_op.data[i,i+2] = -u
@@ -268,7 +268,7 @@ end
 Second x-derivative in real space.
 """
 function laplace_x(b::PositionBasis)
-    x_op = Operator(b)
+    x_op = DenseOperator(b)
     u = 1/spacing(b)^2
     for i=1:b.N-1
         x_op.data[i+1,i] = u
@@ -282,13 +282,13 @@ end
 """
 Second x-derivative in momentum space.
 """
-laplace_x(b::MomentumBasis) = Operator(b, diagm(samplepoints(b).^2))
+laplace_x(b::MomentumBasis) = DenseOperator(b, diagm(samplepoints(b).^2))
 
 """
 Second p-derivative in momentum space.
 """
 function laplace_p(b::MomentumBasis)
-    p_op = Operator(b)
+    p_op = DenseOperator(b)
     u = 1/spacing(b)^2
     for i=1:b.N-1
         p_op.data[i+1,i] = u
@@ -302,7 +302,7 @@ end
 """
 Second p-derivative in real space.
 """
-laplace_p(b::PositionBasis) = Operator(b, diagm(samplepoints(b).^2))
+laplace_p(b::PositionBasis) = DenseOperator(b, diagm(samplepoints(b).^2))
 
 
 type FFTOperator <: LazyOperator
@@ -316,7 +316,7 @@ end
 
 
 """
-Operator performing a fast Fourier transformation of a state.
+DenseOperator performing a fast Fourier transformation of a state.
 """
 function FFTOperator(basis_l::MomentumBasis, basis_r::PositionBasis)
     Lx = (basis_r.xmax - basis_r.xmin)

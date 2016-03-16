@@ -4,7 +4,7 @@ using quantumoptics
 for spinnumber=1//2:1//2:5//2
     spinbasis = SpinBasis(spinnumber)
     I = operators.identity(spinbasis)
-    Zero = Operator(spinbasis)
+    Zero = DenseOperator(spinbasis)
     sx = sigmax(spinbasis)
     sy = sigmay(spinbasis)
     sz = sigmaz(spinbasis)
@@ -69,7 +69,7 @@ end
 
 spinbasis = SpinBasis(1//2)
 I = operators.identity(spinbasis)
-Zero = Operator(spinbasis)
+Zero = DenseOperator(spinbasis)
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)
 sz = sigmaz(spinbasis)

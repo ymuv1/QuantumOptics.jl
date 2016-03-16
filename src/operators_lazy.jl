@@ -21,7 +21,7 @@ Lazy operations are implemented for:
     * Addition: LazySum
     * Multiplication: LazyProduct
 """
-abstract LazyOperator <: AbstractOperator
+abstract LazyOperator <: Operator
 
 
 """
@@ -35,9 +35,9 @@ type LazyTensor <: LazyOperator
     basis_l::CompositeBasis
     basis_r::CompositeBasis
     factor::Complex128
-    operators::Dict{Int,AbstractOperator}
+    operators::Dict{Int,Operator}
 
-    function LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, operators::Dict{Int,AbstractOperator}, factor::Number=1.)
+    function LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, operators::Dict{Int,Operator}, factor::Number=1.)
         N = length(basis_l)
         @assert N==length(basis_r)
         @assert maximum(keys(operators))<=N
@@ -49,12 +49,12 @@ type LazyTensor <: LazyOperator
     end
 end
 
-function LazyTensor{T<:AbstractOperator}(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::Vector{Int}, operators::Vector{T}, factor::Number=1.)
+function LazyTensor{T<:Operator}(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::Vector{Int}, operators::Vector{T}, factor::Number=1.)
     @assert length(indices) == length(Set(indices)) == length(operators)
-    LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}([i=>op for (i,op)=zip(indices, operators)]), factor)
+    LazyTensor(basis_l, basis_r, Dict{Int,Operator}([i=>op for (i,op)=zip(indices, operators)]), factor)
 end
 
-LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::AbstractOperator) = LazyTensor(basis_l, basis_r, Dict{Int,AbstractOperator}(index=>operator))
+LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::Operator) = LazyTensor(basis_l, basis_r, Dict{Int,Operator}(index=>operator))
 
 
 """
@@ -67,9 +67,9 @@ type LazySum <: LazyOperator
     basis_l::Basis
     basis_r::Basis
     factors::Vector{Complex128}
-    operators::Vector{AbstractOperator}
+    operators::Vector{Operator}
 
-    function LazySum(factors::Vector{Complex128}, operators::Vector{AbstractOperator})
+    function LazySum(factors::Vector{Complex128}, operators::Vector{Operator})
         @assert length(operators)>1
         @assert length(operators)==length(factors)
         for i = 2:length(operators)
@@ -79,7 +79,7 @@ type LazySum <: LazyOperator
         new(operators[1].basis_l, operators[1].basis_r, factors, operators)
     end
 end
-LazySum(operators::AbstractOperator...) = LazySum(ones(Complex128, length(operators)), AbstractOperator[operators...])
+LazySum(operators::Operator...) = LazySum(ones(Complex128, length(operators)), Operator[operators...])
 
 
 """
@@ -93,9 +93,9 @@ type LazyProduct <: LazyOperator
     basis_l::Basis
     basis_r::Basis
     factor::Complex128
-    operators::Vector{AbstractOperator}
+    operators::Vector{Operator}
 
-    function LazyProduct(factor::Complex128, operators::Vector{AbstractOperator})
+    function LazyProduct(factor::Complex128, operators::Vector{Operator})
         @assert length(operators)>1
         for i = 2:length(operators)
             @assert multiplicable(operators[i-1].basis_r, operators[i].basis_l)
@@ -103,10 +103,10 @@ type LazyProduct <: LazyOperator
         new(operators[1].basis_l, operators[end].basis_r, factor, operators)
     end
 end
-LazyProduct(operators::AbstractOperator...) = LazyProduct(Complex(1.), AbstractOperator[operators...])
+LazyProduct(operators::Operator...) = LazyProduct(Complex(1.), Operator[operators...])
 
 function operators.full(x::LazyTensor)
-    op_list = Operator[]
+    op_list = DenseOperator[]
     for i=1:length(x.basis_l.bases)
         if i in keys(x.operators)
             push!(op_list, full(x.operators[i]))
@@ -140,7 +140,7 @@ function *(a::LazyTensor, b::LazyTensor)
     check_multiplicable(a.basis_r, b.basis_l)
     a_indices = keys(a.operators)
     b_indices = keys(b.operators)
-    D = Dict{Int, AbstractOperator}()
+    D = Dict{Int, Operator}()
     for i=intersect(a_indices, b_indices)
         D[i] = a.operators[i]*b.operators[i]
     end
@@ -165,29 +165,29 @@ end
 *(a::Number, b::LazyProduct) = LazyProduct(a*b.factor, b.operators...)
 
 +(a::LazyOperator, b::LazyOperator) = LazySum(a, b)
-+(a::LazyOperator, b::AbstractOperator) = LazySum(a, b)
-+(a::AbstractOperator, b::LazyOperator) = LazySum(a, b)
++(a::LazyOperator, b::Operator) = LazySum(a, b)
++(a::Operator, b::LazyOperator) = LazySum(a, b)
 +(a::LazySum, b::LazySum) = LazySum([a.factors, b.factors], [a.operators, b.operators])
 +(a::LazySum, b::LazyOperator) = LazySum([a.factors, Complex(1.)], [a.operators, b])
 +(a::LazyOperator, b::LazySum) = LazySum([a.factors, Complex(1.)], [a, b.operators])
-+(a::LazySum, b::AbstractOperator) = LazySum([a.factors, Complex(1.)], [a.operators, b])
-+(a::AbstractOperator, b::LazySum) = LazySum([a.factors, Complex(1.)], [a, b.operators])
++(a::LazySum, b::Operator) = LazySum([a.factors, Complex(1.)], [a.operators, b])
++(a::Operator, b::LazySum) = LazySum([a.factors, Complex(1.)], [a, b.operators])
 
 -(a::LazyTensor) = LazyTensor(a.basis_l, a.basis_r, a.operators, -a.factor)
 -(a::LazySum) = LazySum(-a.factors, a.operators)
 -(a::LazyProduct) = LazyProduct(-a.factor, a.operators)
 
 -(a::LazyOperator, b::LazyOperator) = LazySum([Complex(1.), Complex(-1.)], [a, b])
--(a::LazyOperator, b::AbstractOperator) = LazySum([Complex(1.), Complex(-1.)], [a, b])
--(a::AbstractOperator, b::LazyOperator) = LazySum([Complex(1.), Complex(-1.)], [a, b])
+-(a::LazyOperator, b::Operator) = LazySum([Complex(1.), Complex(-1.)], [a, b])
+-(a::Operator, b::LazyOperator) = LazySum([Complex(1.), Complex(-1.)], [a, b])
 -(a::LazySum, b::LazySum) = LazySum([a.factors, -b.factors], [a.operators, b.operators])
 -(a::LazySum, b::LazyOperator) = LazySum([a.factors, -Complex(1.)], [a.operators, b])
 -(a::LazyOperator, b::LazySum) = LazySum([Complex(1.), -a.factors], [a, b.operators])
--(a::LazySum, b::AbstractOperator) = LazySum([a.factors, -Complex(1.)], [a.operators, b])
--(a::AbstractOperator, b::LazySum) = LazySum([Complex(1.), -a.factors], [a, b.operators])
+-(a::LazySum, b::Operator) = LazySum([a.factors, -Complex(1.)], [a.operators, b])
+-(a::Operator, b::LazySum) = LazySum([Complex(1.), -a.factors], [a, b.operators])
 
 @generated function _lazytensor_gemv!{RANK, INDEX}(rank::Array{Int, RANK}, index::Array{Int, INDEX},
-                                        alpha, op::AbstractOperator, b::Ket, beta, result::Ket)
+                                        alpha, op::Operator, b::Ket, beta, result::Ket)
     return quote
         x = Ket(b.basis.bases[$INDEX])
         y = Ket(result.basis.bases[$INDEX])
@@ -227,7 +227,7 @@ function operators.gemv!(alpha, a::LazyTensor, b::Ket, beta, result::Ket)
 end
 
 @generated function _lazytensor_gemv!{RANK, INDEX}(rank::Array{Int, RANK}, index::Array{Int, INDEX},
-                                        alpha, b::Bra, op::AbstractOperator, beta, result::Bra)
+                                        alpha, b::Bra, op::Operator, beta, result::Bra)
     return quote
         x = Bra(b.basis.bases[$INDEX])
         y = Bra(result.basis.bases[$INDEX])

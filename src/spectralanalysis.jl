@@ -20,7 +20,7 @@ Keyword arguments
 Nmax (optional)
     Number of eigenvalues that should be calculated.
 """
-function operatorspectrum_hermitian(H::Operator; Nmax::Union{Int, Void}=nothing)
+function operatorspectrum_hermitian(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     h = Hermitian(H.data)
     return Nmax == nothing ? eigvals(h) : eigvals(h, 1:Nmax)
 end
@@ -46,7 +46,7 @@ Keyword arguments
 Nmax (optional)
     Number of eigenvalues that should be calculated.
 """
-function operatorspectrum(H::Operator; Nmax::Union{Int, Void}=nothing)
+function operatorspectrum(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     if ishermitian(H.data)
         return operatorspectrum_hermitian(H; Nmax=Nmax)
     end
@@ -81,7 +81,7 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-function eigenbasis_hermitian(H::Operator; Nmax::Union{Int, Void}=nothing)
+function eigenbasis_hermitian(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     h = Hermitian(H.data)
     M = Nmax == nothing ? eigvecs(h) : eigvecs(h, 1:Nmax)
     b = Ket[]
@@ -110,7 +110,7 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-function eigenbasis(H::Operator; Nmax::Union{Int, Void}=nothing)
+function eigenbasis(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     if ishermitian(H.data)
         return eigenbasis_hermitian(H; Nmax=Nmax)
     end
@@ -158,6 +158,6 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-groundstate(H::Union{Operator, SparseOperator}) = eigenbasis_hermitian(H; Nmax=1)
+groundstate(H::Union{DenseOperator, SparseOperator}) = eigenbasis_hermitian(H; Nmax=1)
 
 end # module

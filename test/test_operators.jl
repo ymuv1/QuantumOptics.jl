@@ -17,14 +17,14 @@ sm = sigmam(spinbasis)
 
 xket = coherentstate(fockbasis, alpha)
 xbra = dagger(xket)
-op1 = Operator(spinbasis, GenericBasis([3]), [1 1 1; 1 1 1])
-op2 = Operator(GenericBasis([3]), spinbasis, [1 1; 1 1; 1 1])
+op1 = DenseOperator(spinbasis, GenericBasis([3]), [1 1 1; 1 1 1])
+op2 = DenseOperator(GenericBasis([3]), spinbasis, [1 1; 1 1; 1 1])
 I = identity(fockbasis)
 
 
 # Test creation
-@test_throws DimensionMismatch Operator(spinbasis, [1 1 1; 1 1 1])
-@test_throws DimensionMismatch Operator(spinbasis, FockBasis(3), [1 1; 1 1; 1 1])
+@test_throws DimensionMismatch DenseOperator(spinbasis, [1 1 1; 1 1 1])
+@test_throws DimensionMismatch DenseOperator(spinbasis, FockBasis(3), [1 1; 1 1; 1 1])
 @test_approx_eq 0. maximum(abs((dagger(op1)-op2).data))
 
 # Test addition
@@ -49,7 +49,7 @@ I = identity(fockbasis)
 @test_approx_eq_eps 0. norm((at/5.)*xket - (at*xket)/5) 1e-13
 
 # Test trace and normalize
-op = Operator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
+op = DenseOperator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
 @test_approx_eq 8. trace(op)
 op_normalized = normalize(op)
 @test_approx_eq 8. trace(op)

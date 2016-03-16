@@ -5,7 +5,7 @@ using ..operators
 export tracedistance
 
 
-function tracedistance(rho::Operator, sigma::Operator)
+function tracedistance(rho::DenseOperator, sigma::DenseOperator)
     delta = (rho - sigma).data
     @assert size(delta, 1) == size(delta, 2)
     for i=1:size(delta,1)
