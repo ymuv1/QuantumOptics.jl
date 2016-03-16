@@ -2,7 +2,7 @@ module spin
 
 import Base.==
 
-using ..bases, ..states, ..operators
+using ..bases, ..states, ..operators, ..operators_sparse
 
 export SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown
 
@@ -36,41 +36,52 @@ end
 Pauli :math:`\\sigma_x` operator for the given SpinBasis.
 """
 function sigmax(b::SpinBasis)
-    d = [complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
-    DenseOperator(b, diagm(d,1) + diagm(d,-1))
+    N = num(b.spinnumber*2 + 1)
+    diag = Complex128[complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
+    data = spdiagm(diag, 1, N, N) + spdiagm(diag, -1, N, N)
+    SparseOperator(b, data)
 end
 
 """
 Pauli :math:`\\sigma_y` operator for the given SpinBasis.
 """
 function sigmay(b::SpinBasis)
-    d = [1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
-    DenseOperator(b, diagm(d,-1) - diagm(d,1))
+    N = num(b.spinnumber*2 + 1)
+    diag = Complex128[1im*complex(sqrt(real((b.spinnumber + 1)*2*a - a*(a+1)))) for a=1:num(2*b.spinnumber)]
+    data = spdiagm(diag, -1, N, N) - spdiagm(diag, 1, N, N)
+    SparseOperator(b, data)
 end
 
 """
 Pauli :math:`\\sigma_z` operator for the given SpinBasis.
 """
 function sigmaz(b::SpinBasis)
-    DenseOperator(b, diagm([complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]))
+    N = num(b.spinnumber*2 + 1)
+    diag = Complex128[complex(2*m) for m=b.spinnumber:-1:-b.spinnumber]
+    data = spdiagm(diag, 0, N, N)
+    SparseOperator(b, data)
 end
 
 """
 Raising operator :math:`\\sigma_+` for the given SpinBasis.
 """
 function sigmap(b::SpinBasis)
+    N = num(b.spinnumber*2 + 1)
     S = (b.spinnumber + 1)*b.spinnumber
-    d = [complex(sqrt(float(S - m*(m+1)))) for m=b.spinnumber-1:-1:-b.spinnumber]
-    DenseOperator(b, diagm(d, 1))
+    diag = Complex128[complex(sqrt(float(S - m*(m+1)))) for m=b.spinnumber-1:-1:-b.spinnumber]
+    data = spdiagm(diag, 1, N, N)
+    SparseOperator(b, data)
 end
 
 """
 Lowering operator :math:`\\sigma_-` for the given SpinBasis.
 """
 function sigmam(b::SpinBasis)
+    N = num(b.spinnumber*2 + 1)
     S = (b.spinnumber + 1)*b.spinnumber
-    d = [complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
-    DenseOperator(b, diagm(d, -1))
+    diag = [complex(sqrt(float(S - m*(m-1)))) for m=b.spinnumber:-1:-b.spinnumber+1]
+    data = spdiagm(diag, -1, N, N)
+    SparseOperator(b, data)
 end
 
 

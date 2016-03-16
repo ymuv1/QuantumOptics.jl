@@ -14,34 +14,34 @@ fockbasis = FockBasis(10)
 spinbasis = SpinBasis(1//2)
 basis = tensor(spinbasis, fockbasis)
 
-sx = SparseOperator(sigmax(spinbasis))
-sy = SparseOperator(sigmay(spinbasis))
-sz = SparseOperator(sigmaz(spinbasis))
-sp = SparseOperator(sigmap(spinbasis))
-sm = SparseOperator(sigmam(spinbasis))
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
+sp = sigmap(spinbasis)
+sm = sigmam(spinbasis)
 
 Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
-Hsparse = SparseOperator(H)
+Hdense = full(H)
 
 Ja = embed(basis, 1, sqrt(γ)*sm)
 Ja2 = embed(basis, 1, sqrt(0.5*γ)*sp)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
-Jsparse = map(SparseOperator, J)
+Jdense = map(full, J)
 
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 2)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)
 
-tout, ρt = timeevolution.master([0,100], ρ₀, H, J; reltol=1e-7)
+tout, ρt = timeevolution.master([0,100], ρ₀, Hdense, Jdense; reltol=1e-7)
 
-ρss = steadystate.master(H, J; eps=1e-4)
+ρss = steadystate.master(Hdense, Jdense; eps=1e-4)
 @test tracedistance(ρss, ρt[end]) < 1e-3
 
-ρss = steadystate.eigenvector(H, J)
+ρss = steadystate.eigenvector(Hdense, Jdense)
 @test tracedistance(ρss, ρt[end]) < 1e-6
 
-ρss = steadystate.eigenvector(Hsparse, Jsparse)
+ρss = steadystate.eigenvector(H, J)
 @test tracedistance(ρss, ρt[end]) < 1e-3

@@ -4,7 +4,7 @@ using quantumoptics
 for spinnumber=1//2:1//2:5//2
     spinbasis = SpinBasis(spinnumber)
     I = operators.identity(spinbasis)
-    Zero = DenseOperator(spinbasis)
+    Zero = SparseOperator(spinbasis)
     sx = sigmax(spinbasis)
     sy = sigmay(spinbasis)
     sz = sigmaz(spinbasis)
@@ -68,8 +68,8 @@ end
 # Test special relations for spin 1/2
 
 spinbasis = SpinBasis(1//2)
-I = dense_identity(spinbasis)
-Zero = DenseOperator(spinbasis)
+I = identity(spinbasis)
+Zero = SparseOperator(spinbasis)
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)
 sz = sigmaz(spinbasis)

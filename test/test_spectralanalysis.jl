@@ -13,18 +13,17 @@ fockbasis = FockBasis(Ncutoff)
 spinbasis = SpinBasis(1//2)
 basis = tensor(spinbasis, fockbasis)
 
-sx = SparseOperator(sigmax(spinbasis))
-sy = SparseOperator(sigmay(spinbasis))
-sz = SparseOperator(sigmaz(spinbasis))
-sp = SparseOperator(sigmap(spinbasis))
-sm = SparseOperator(sigmam(spinbasis))
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
+sp = sigmap(spinbasis)
+sm = sigmam(spinbasis)
 
 Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = g/2*(sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis))
 
 H = Ha + Hc + Hint
-Hsparse = SparseOperator(H)
 
 Omega_n(n::Int) = sqrt((ωa-ωc)^2 + g^2*(n+1))
 Alpha_n(n::Int) = atan2(g*sqrt(n+1),(ωa-ωc))
@@ -47,10 +46,20 @@ P = sortperm([Emvec; Epvec])
 basisstates = Ket[basisstates_m; psi_g(-1); basisstates_p][P][1:(Ncutoff+1)]
 E = [Emvec; Epvec][P][1:(Ncutoff+1)]
 
+@test norm(operatorspectrum(full(H))[1:(Ncutoff+1)] - E) < 1e-12
+@test norm(operatorspectrum_hermitian(full(H))[1:(Ncutoff+1)] - E) < 1e-12
 @test norm(operatorspectrum(H)[1:(Ncutoff+1)] - E) < 1e-12
 @test norm(operatorspectrum_hermitian(H)[1:(Ncutoff+1)] - E) < 1e-12
-@test norm(operatorspectrum(Hsparse)[1:(Ncutoff+1)] - E) < 1e-12
-@test norm(operatorspectrum_hermitian(Hsparse)[1:(Ncutoff+1)] - E) < 1e-12
+
+b = eigenbasis(full(H))[1:(Ncutoff+1)]
+for i=1:length(b)
+    @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
+end
+
+b = eigenbasis_hermitian(full(H))[1:(Ncutoff+1)]
+for i=1:length(b)
+    @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
+end
 
 b = eigenbasis(H)[1:(Ncutoff+1)]
 for i=1:length(b)
@@ -58,16 +67,6 @@ for i=1:length(b)
 end
 
 b = eigenbasis_hermitian(H)[1:(Ncutoff+1)]
-for i=1:length(b)
-    @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
-end
-
-b = eigenbasis(Hsparse)[1:(Ncutoff+1)]
-for i=1:length(b)
-    @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
-end
-
-b = eigenbasis_hermitian(Hsparse)[1:(Ncutoff+1)]
 for i=1:length(b)
     @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
 end

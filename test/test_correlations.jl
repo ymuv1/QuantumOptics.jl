@@ -11,23 +11,21 @@ fockbasis = FockBasis(10)
 spinbasis = SpinBasis(1//2)
 basis = tensor(spinbasis, fockbasis)
 
-sx = SparseOperator(sigmax(spinbasis))
-sy = SparseOperator(sigmay(spinbasis))
-sz = SparseOperator(sigmaz(spinbasis))
-sp = SparseOperator(sigmap(spinbasis))
-sm = SparseOperator(sigmam(spinbasis))
+sx = sigmax(spinbasis)
+sy = sigmay(spinbasis)
+sz = sigmaz(spinbasis)
+sp = sigmap(spinbasis)
+sm = sigmam(spinbasis)
 
 Ha = embed(basis, 1, 0.5*ωa*sz)
 Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
-Hsparse = SparseOperator(H)
 
 Ja = embed(basis, 1, sqrt(γ)*sm)
 Ja2 = embed(basis, 1, sqrt(0.5*γ)*sp)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Ja2, Jc]
-Jsparse = map(SparseOperator, J)
 
 Ψ₀ = basis_ket(spinbasis, 2) ⊗ fockstate(fockbasis, 5)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)

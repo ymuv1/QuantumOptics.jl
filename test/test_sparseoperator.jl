@@ -5,15 +5,15 @@ using quantumoptics
 # Set up operators
 spinbasis = SpinBasis(1//2)
 
-sx = sigmax(spinbasis)
-sy = sigmay(spinbasis)
+sx_sp = sigmax(spinbasis)
+sy_sp = sigmay(spinbasis)
 
-sx_sp = SparseOperator(sx)
-sy_sp = SparseOperator(sy)
+sx = full(sx_sp)
+sy = full(sy_sp)
 
 b = FockBasis(3)
 I = identity(b)
-I_dense = DenseOperator(b, eye(Complex, length(b)))
+I_dense = dense_identity(b)
 
 
 s = tensor(sx, sy)
@@ -24,4 +24,4 @@ s_sp = tensor(sx_sp, sy_sp)
 @test_approx_eq 0. norm((I_dense-full(I)).data)
 @test_approx_eq 0. norm((s - full(s_sp)).data)
 
-@test I == identity(SparseOperator(destroy(b)))
+@test I == identity(destroy(b))
