@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# julia-quantumoptics documentation build configuration file, created by
+# Quantumoptics.jl documentation build configuration file, created by
 # sphinx-quickstart on Thu Sep 18 14:38:28 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -50,7 +50,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'julia-quantumoptics'
+project = 'Quantumoptics.jl'
 copyright = '2014, Sebastian Krämer'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -186,7 +186,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'julia-quantumopticsdoc'
+htmlhelp_basename = 'Quantumopticsdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -212,7 +212,7 @@ pngmath_latex_preamble = latex_elements['preamble']
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'julia-quantumoptics.tex', 'julia-quantumoptics Documentation',
+  ('index', 'julia-quantumoptics.tex', 'Quantumoptics.jl Documentation',
    'Sebastian Kr\\"amer', 'howto'),
 ]
 
@@ -242,7 +242,7 @@ latex_domain_indices = False
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'julia-quantumoptics', 'julia-quantumoptics Documentation',
+    ('index', 'julia-quantumoptics', 'Quantumoptics.jl Documentation',
      ['Sebastian Krämer'], 1)
 ]
 
@@ -256,8 +256,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'julia-quantumoptics', 'julia-quantumoptics Documentation',
-   'Sebastian Krämer', 'julia-quantumoptics', 'One line description of project.',
+  ('index', 'julia-quantumoptics', 'Quantumoptics.jl Documentation',
+   'Sebastian Krämer', 'Quantumoptics.jl', 'One line description of project.',
    'Miscellaneous'),
 ]
 
