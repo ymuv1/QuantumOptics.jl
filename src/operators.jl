@@ -9,7 +9,7 @@ using Base.Cartesian
 using ..bases, ..states
 
 export Operator, DenseOperator,
-       tensor, dagger, expect, embed
+       tensor, dagger, expect, dense_identity, embed
 
 
 """
@@ -47,7 +47,7 @@ Converting an arbitrary Operator into a DenseOperator.
 """
 Base.copy(x::DenseOperator) = deepcopy(x)
 Base.full(x::DenseOperator) = deepcopy(x)
-Base.full(op::Operator) = op*identity(op.basis_r)
+Base.full(op::Operator) = op*dense_identity(op.basis_r)
 
 Base.eltype(x::Operator) = Complex128
 Base.zero{T<:Operator}(x::T) = T(x.basis_l, x.basis_r)
@@ -137,9 +137,9 @@ expect(op::Operator, states::Vector{Ket}) = [expect(op, state) for state=states]
 """
 Identity operator.
 """
-Base.identity(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
-Base.identity(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
-Base.identity(op::DenseOperator) = identity(op.basis_l, op.basis_r)
+dense_identity(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
+dense_identity(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
+Base.identity(op::DenseOperator) = dense_identity(op.basis_l, op.basis_r)
 
 
 # Multiplication for Operators in terms of their gemv! implementation
@@ -189,7 +189,7 @@ function *(psi::Bra, op::Operator)
     return result
 end
 
-Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? identity(basis) : prod(operators))
+Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? dense_identity(basis) : prod(operators))
 
 """
 Tensor product of operators where all missing indices are identity operators.

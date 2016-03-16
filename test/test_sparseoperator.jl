@@ -12,8 +12,9 @@ sx_sp = SparseOperator(sx)
 sy_sp = SparseOperator(sy)
 
 b = FockBasis(3)
-I = sparse_identity(b)
-I_dense = identity(b)
+I = identity(b)
+I_dense = DenseOperator(b, eye(Complex, length(b)))
+
 
 s = tensor(sx, sy)
 s_sp = tensor(sx_sp, sy_sp)

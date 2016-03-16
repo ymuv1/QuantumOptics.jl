@@ -68,7 +68,7 @@ end
 # Test special relations for spin 1/2
 
 spinbasis = SpinBasis(1//2)
-I = operators.identity(spinbasis)
+I = dense_identity(spinbasis)
 Zero = DenseOperator(spinbasis)
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)

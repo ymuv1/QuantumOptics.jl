@@ -59,7 +59,7 @@ op_ = normalize!(op)
 @test_approx_eq 1. trace(op)
 
 # Test identity function
-@test I == identity(a)
+@test full(I) == identity(a)
 
 # Test gemv implementation
 result_ket = deepcopy(xket)
