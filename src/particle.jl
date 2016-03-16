@@ -3,7 +3,7 @@ module particle
 import Base.==
 import ..operators
 
-using ..bases, ..states, ..operators, ..operators_lazy
+using ..bases, ..states, ..operators, ..operators_sparse, ..operators_lazy
 
 export PositionBasis, MomentumBasis,
         gaussianstate,
@@ -226,7 +226,7 @@ samplepoints(b::MomentumBasis) = (dp = spacing(b); Float64[b.pmin + i*dp for i=0
 """
 Position operator in real space.
 """
-positionoperator(b::PositionBasis) = DenseOperator(b, diagm(samplepoints(b)))
+positionoperator(b::PositionBasis) = SparseOperator(b, spdiagm(complex(samplepoints(b)), 0, length(b), length(b)))
 
 
 """
@@ -241,13 +241,13 @@ function positionoperator(b::MomentumBasis)
         p_op.data[i+1,i] = -8*u
         p_op.data[i+2,i] = u
     end
-    return p_op
+    return SparseOperator(p_op)
 end
 
 """
 Momentum operator in momentum space.
 """
-momentumoperator(b::MomentumBasis) = DenseOperator(b, diagm(samplepoints(b)))
+momentumoperator(b::MomentumBasis) = SparseOperator(b, spdiagm(complex(samplepoints(b)), 0, length(b), length(b)))
 
 """
 Momentum operator in real space.
@@ -261,7 +261,7 @@ function momentumoperator(b::PositionBasis)
         p_op.data[i+1,i] = -8*u
         p_op.data[i+2,i] = u
     end
-    return p_op
+    return SparseOperator(p_op)
 end
 
 """
@@ -276,13 +276,13 @@ function laplace_x(b::PositionBasis)
         x_op.data[i,i+1] = u
     end
     x_op.data[b.N,b.N] = -2*u
-    return x_op
+    return SparseOperator(x_op)
 end
 
 """
 Second x-derivative in momentum space.
 """
-laplace_x(b::MomentumBasis) = DenseOperator(b, diagm(samplepoints(b).^2))
+laplace_x(b::MomentumBasis) = SparseOperator(b, spdiagm(complex(samplepoints(b)).^2, 0, length(b), length(b)))
 
 """
 Second p-derivative in momentum space.
@@ -296,13 +296,13 @@ function laplace_p(b::MomentumBasis)
         p_op.data[i,i+1] = u
     end
     p_op.data[b.N,b.N] = -2*u
-    return p_op
+    return SparseOperator(p_op)
 end
 
 """
 Second p-derivative in real space.
 """
-laplace_p(b::PositionBasis) = DenseOperator(b, diagm(samplepoints(b).^2))
+laplace_p(b::PositionBasis) = SparseOperator(b, spdiagm(complex(samplepoints(b)).^2, 0, length(b), length(b)))
 
 
 type FFTOperator <: LazyOperator
