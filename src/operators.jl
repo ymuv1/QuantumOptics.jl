@@ -139,6 +139,7 @@ Identity operator.
 """
 dense_identity(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
 dense_identity(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
+dense_identity(op::Operator) = dense_identity(op.basis_l, op.basis_r)
 Base.identity(op::DenseOperator) = dense_identity(op.basis_l, op.basis_r)
 
 
