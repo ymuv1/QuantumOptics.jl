@@ -1,6 +1,6 @@
 module superoperators
 
-import Base: ==, *, /, +, -, expm
+import Base: ==, *, /, +, -
 import ..operators.check_samebases
 
 using ..bases, ..operators, ..operators_sparse
@@ -49,6 +49,9 @@ type SparseSuperOperator <: SuperOperator
         new(basis_l, basis_r, data)
     end
 end
+
+Base.full(a::SparseSuperOperator) = DenseSuperOperator(a.basis_l, a.basis_r, full(a.data))
+Base.full(a::DenseSuperOperator) = deepcopy(a)
 
 =={T<:SuperOperator}(a::T, b::T) = (a.basis_l == b.basis_l) && (a.basis_r == b.basis_r) && (a.data == b.data)
 
@@ -175,6 +178,6 @@ function liouvillian{T<:Operator}(H::T, J::Vector{T};
     return L
 end
 
-Base.expm{T<:SuperOperator}(op::T) = T(op.basis_l, op.basis_r, expm(op.data))
+Base.expm(op::DenseSuperOperator) = DenseSuperOperator(op.basis_l, op.basis_r, expm(op.data))
 
 end # module
