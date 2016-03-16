@@ -7,7 +7,7 @@ using ..bases, ..states, ..operators, ..operators_sparse, ..operators_lazy
 
 export PositionBasis, MomentumBasis,
         gaussianstate,
-        spacing, samplingpoints,
+        spacing, samplepoints,
         positionoperator, momentumoperator, laplace_x, laplace_p, FFTOperator
 
 """
@@ -32,7 +32,7 @@ type PositionBasis <: Basis
     xmin::Float64
     xmax::Float64
     N::Int
-    PositionBasis(xmin::Float64, xmax::Float64, N::Int) = new([N], xmin, xmax, N)
+    PositionBasis(xmin::Real, xmax::Real, N::Int) = new([N], xmin, xmax, N)
 end
 
 
@@ -57,7 +57,7 @@ type MomentumBasis <: Basis
     pmin::Float64
     pmax::Float64
     N::Int
-    MomentumBasis(pmin::Float64, pmax::Float64, N::Int) = new([N], pmin, pmax, N)
+    MomentumBasis(pmin::Real, pmax::Real, N::Int) = new([N], pmin, pmax, N)
 end
 
 
@@ -130,7 +130,7 @@ p0
 sigma
     Width of the Gaussian.
 """
-function gaussianstate(b::PositionBasis, x0::Float64, p0::Float64, sigma::Float64)
+function gaussianstate(b::PositionBasis, x0::Real, p0::Real, sigma::Real)
     psi = Ket(b)
     dx = spacing(b)
     alpha = 1./(pi^(1/4)*sqrt(sigma))*sqrt(dx)
@@ -191,7 +191,7 @@ p0
 sigma
     Width of the Gaussian.
 """
-function gaussianstate(b::MomentumBasis, x0::Float64, p0::Float64, sigma::Float64)
+function gaussianstate(b::MomentumBasis, x0::Real, p0::Real, sigma::Real)
     psi = Ket(b)
     dp = spacing(b)
     alpha = sqrt(sigma)/pi^(1/4)*sqrt(dp)
