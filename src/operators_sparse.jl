@@ -27,7 +27,7 @@ SparseOperator(op::DenseOperator) = SparseOperator(op.basis_l, op.basis_r, spars
 SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(Complex128, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
-operators.full(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, full(a.data))
+Base.full(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, full(a.data))
 
 ==(x::SparseOperator, y::SparseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
 
