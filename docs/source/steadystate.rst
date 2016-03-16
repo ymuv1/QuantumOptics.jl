@@ -13,6 +13,6 @@ For smaller system sizes finding eigenvectors of super-operators is the prefered
 
 .. epigraph::
 
-    .. jl:autofunction:: steadystate.jl eigenvector(L::SuperOperator)
+    .. jl:autofunction:: steadystate.jl eigenvector(L::DenseSuperOperator)
 
     .. jl:autofunction:: steadystate.jl eigenvector(H, J)

@@ -59,9 +59,9 @@ If for any reason this behavior is unwanted, e.g. special operators are used tha
 
 .. epigraph::
 
-    .. jl:autofunction:: timeevolution.jl master(tspan, rho0::Operator, H::AbstractOperator, J::Vector)
+    .. jl:autofunction:: timeevolution.jl master(tspan, rho0::DenseOperator, H::Operator, J::Vector)
 
-    .. jl:autofunction:: timeevolution.jl master_h(tspan, rho0::Operator, H::AbstractOperator, J::Vector)
+    .. jl:autofunction:: timeevolution.jl master_h(tspan, rho0::DenseOperator, H::Operator, J::Vector)
 
 
 .. _section-mcwf:

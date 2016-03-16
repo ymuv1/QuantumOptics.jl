@@ -24,7 +24,7 @@ All of them have the same interface and can in most cases be used interchangeabl
     sx + sy
     sx * sy
 
-and also :jl:func:`dagger(::Operator)`, :jl:func:`normalize(::Operator)` and :jl:func:`normalize!(::Operator)` are available.
+and also :jl:func:`dagger(::DenseOperator)`, :jl:func:`normalize(::DenseOperator)` and :jl:func:`normalize!(::DenseOperator)` are available.
 
 * Expectation values can be calculated with:
 
@@ -36,7 +36,7 @@ and also :jl:func:`dagger(::Operator)`, :jl:func:`normalize(::Operator)` and :jl
 
 .. epigraph::
 
-    .. jl:autofunction:: operators.jl tensor(::Operator, ::Operator)
+    .. jl:autofunction:: operators.jl tensor(::DenseOperator, ::DenseOperator)
 
     .. jl:autofunction:: operators.jl tensor(::Ket, ::Bra)
 
@@ -44,7 +44,7 @@ and also :jl:func:`dagger(::Operator)`, :jl:func:`normalize(::Operator)` and :jl
 
 .. epigraph::
 
-    .. jl:autofunction:: operators.jl ptrace(::Operator, indices)
+    .. jl:autofunction:: operators.jl ptrace(::DenseOperator, indices)
 
 * For creating operators of the type :math:`A = I \otimes I \otimes ... a_i ... \otimes I` the very useful embed function can be used:
 
