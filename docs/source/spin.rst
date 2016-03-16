@@ -3,16 +3,15 @@
 Spin basis
 ==========
 
-Spins are implemented in a very general way, e.g. all functions can be used for arbitrary spin numbers. The first step therefore is to create a basis by specifying the appropriate spin number::
+The spin basis class and all related functions are implemented for arbitrary spin numbers. Therefore, the first step is to choose a basis by specifying the appropriate spin number::
 
     b = SpinBasis(3//2)
 
-This basis basis can be used to create operators and states::
+This basis can be used to create operators and states::
 
     sx = sigmax(b)
     state0 = spinup(b)
     state1 = sx*state0
-
 
 The definition of the SpinBasis is very simple and is more or less given by::
 
@@ -21,7 +20,7 @@ The definition of the SpinBasis is very simple and is more or less given by::
         spinnumber::Rational{Int}
     end
 
-All expected operators are already implemented:
+All expected operators are implemented:
 
 * :jl:func:`sigmax`
 * :jl:func:`sigmay`
