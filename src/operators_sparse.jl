@@ -38,9 +38,10 @@ Base.full(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, full(a.data))
 
 /(a::SparseOperator, b::Number) = SparseOperator(a.basis_l, a.basis_r, a.data/complex(b))
 
-+(a::SparseOperator, b::SparseOperator) = ((a.basis_l==b.basis_l) && (a.basis_r==b.basis_r) ? SparseOperator(a.basis_l, a.basis_r, a.data+b.data) : throw(IncompatibleBases()))
++(a::SparseOperator, b::SparseOperator) = (operators.check_samebases(a,b); SparseOperator(a.basis_l, a.basis_r, a.data+b.data))
 
--(a::SparseOperator, b::SparseOperator) = ((a.basis_l==b.basis_l) && (a.basis_r==b.basis_r) ? SparseOperator(a.basis_l, a.basis_r, a.data-b.data) : throw(IncompatibleBases()))
+-(a::SparseOperator) = SparseOperator(a.basis_l, a.basis_r, -a.data)
+-(a::SparseOperator, b::SparseOperator) = (operators.check_samebases(a,b); SparseOperator(a.basis_l, a.basis_r, a.data-b.data))
 
 # Fast in-place multiplication implementations
 operators.gemm!{T<:Complex}(alpha::T, M::SparseOperator, b::DenseOperator, beta::T, result::DenseOperator) = sparsematrix.gemm!(alpha, M.data, b.data, beta, result.data)
