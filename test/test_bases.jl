@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
 shape1 = [5]
 shape2 = [2, 3]

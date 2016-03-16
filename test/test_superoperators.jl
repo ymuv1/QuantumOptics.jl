@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
 ωc = 1.2
 ωa = 0.9

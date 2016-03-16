@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics.sparsematrix
+using Quantumoptics.sparsematrix
 
 # SparseMatrix = quantumoptics.sparsematrix.SparseMatrix
 typealias SparseMatrix SparseMatrixCSC{Complex128}

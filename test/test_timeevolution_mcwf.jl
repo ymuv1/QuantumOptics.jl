@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
 # Define parameters for spin coupled to electric field mode.
 ωc = 1.2
@@ -94,7 +94,7 @@ for i=1:Ntrajectories
     end
 end
 for i=1:length(T)
-    err = quantumoptics.tracedistance(ρt_master[i], ρ_average[i])
+    err = tracedistance(ρt_master[i], ρ_average[i])
     @test err < 0.1
 end
 
@@ -118,8 +118,8 @@ for i=1:Ntrajectories
     end
 end
 for i=1:length(T)
-    @test quantumoptics.tracedistance(ρt_master[i], ρ_average_1[i]) < 0.1
-    @test quantumoptics.tracedistance(ρt_master[i], ρ_average_2[i]) < 0.1
+    @test tracedistance(ρt_master[i], ρ_average_1[i]) < 0.1
+    @test tracedistance(ρt_master[i], ρ_average_2[i]) < 0.1
 end
 
 

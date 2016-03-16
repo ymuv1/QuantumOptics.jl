@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
 
 # Set up operators

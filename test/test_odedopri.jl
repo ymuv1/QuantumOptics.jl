@@ -1,7 +1,7 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
-const ode = quantumoptics.ode_dopri.ode
+const ode = Quantumoptics.ode_dopri.ode
 
 const ζ = 0.5
 const ω₀ = 10.0

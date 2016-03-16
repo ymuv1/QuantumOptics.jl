@@ -1,5 +1,5 @@
 using Base.Test
-using quantumoptics
+using Quantumoptics
 
 for spinnumber=1//2:1//2:5//2
     spinbasis = SpinBasis(spinnumber)
