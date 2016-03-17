@@ -376,7 +376,7 @@ fout (optional)
 kwargs
     Further arguments are passed on to the ode solver.
 """
-function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed::UInt64;
+function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, seed;
                 fout=nothing,
                 kwargs...)
     tmp = deepcopy(psi0)
