@@ -17,6 +17,7 @@ export bases, Basis, GenericBasis, CompositeBasis,
         spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
         particle, PositionBasis, MomentumBasis, gaussianstate,
                 positionoperator, momentumoperator, laplace_x, laplace_p,
+        subspace, SubspaceBasis, projector,
         metrics, tracedistance,
         spectralanalysis, operatorspectrum, operatorspectrum_hermitian, eigenbasis, eigenbasis_hermitian, groundstate,
         timeevolution_simple,
@@ -35,6 +36,7 @@ include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")
 include("particle.jl")
+include("subspace.jl")
 include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
@@ -54,6 +56,7 @@ using .superoperators
 using .spin
 using .fock
 using .particle
+using .subspace
 using .metrics
 using .spectralanalysis
 
