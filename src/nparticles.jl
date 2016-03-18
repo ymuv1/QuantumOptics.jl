@@ -36,64 +36,79 @@ function distribute_fermions(particlenumber::Int, singleparticledimension::Int, 
     return results
 end
 
+"""
+Abstract basis for n-particle systems. (Second quantization)
 
+The inheriting bosonic and fermionic bases all have the same fields:
+
+particlenumber
+    (Fixed) number of particles in the system.
+modenumber
+    Number of modes in which the particles can be distributed.
+occupations
+    Basis states that specify how many particles are in which modes.
+
+The only difference between Fermionic and Bosonic basis is which basis states
+are included. These states are created automatically if the occupation
+states are ommited when creating a FermionicNParticleBasis or a
+BosonicNParticleBasis.
+"""
 abstract NParticleBasis <: Basis
+
+function check_NParticleBasis_arguments(particlenumber::Int, modenumber::Int, occupations::Vector{Vector{Int}})
+    particlenumber < 0 && throw(ArgumentError("Can't have less than zero particles."))
+    for occupation=occupations
+        modenumber != length(occupation) && throw(ArgumentError("Dimension of single particle basis has to be equal to the dimension of the N-particle basis vector."))
+        any(occupation.<0) && throw(ArgumentError("Occupation numbers smaller than zero not possible."))
+        sum(occupation) != particlenumber && throw(ArgumentError("Total occupation has to be equal to the particle number."))
+    end
+end
 
 type BosonicNParticleBasis <: NParticleBasis
     shape::Vector{Int}
     particlenumber::Int
-    particlebasis::Basis
+    modenumber::Int
     occupations::Vector{Vector{Int}}
     occupations_hash::UInt
 
-    function BosonicNParticleBasis(particlenumber, particlebasis, occupations)
-        particlenumber < 0 && throw(ArgumentError("Can't have less than zero particles."))
-        for occupation=occupations
-            length(particlebasis) != length(occupation) && throw(ArgumentError("Dimension of single particle basis has to be equal to the dimension of the N-particle basis vector."))
-            any(occupation.<0) && throw(ArgumentError("Occupation numbers smaller than zero not possible."))
-            sum(occupation) != particlenumber && throw(ArgumentError("Total occupation has to be equal to the particle number."))
-        end
-        new([length(occupations)], particlenumber, particlebasis, occupations, hash(occupations))
+    function BosonicNParticleBasis(particlenumber::Int, modenumber::Int, occupations::Vector{Vector{Int}})
+        check_NParticleBasis_arguments(particlenumber, modenumber, occupations)
+        new([length(occupations)], particlenumber, modenumber, occupations, hash(occupations))
     end
 end
 
 type FermionicNParticleBasis <: NParticleBasis
     shape::Vector{Int}
     particlenumber::Int
-    particlebasis::Basis
+    modenumber::Int
     occupations::Vector{Vector{Int}}
     occupations_hash::UInt
 
-    function FermionicNParticleBasis(particlenumber::Int, particlebasis::Basis, occupations::Vector{Vector{Int}})
-        particlenumber < 0 && throw(ArgumentError("Can't have less than zero particles."))
+    function FermionicNParticleBasis(particlenumber::Int, modenumber::Int, occupations::Vector{Vector{Int}})
+        check_NParticleBasis_arguments(particlenumber, modenumber, occupations)
         for occupation=occupations
-            length(particlebasis) != length(occupation) && throw(ArgumentError("Dimension of single particle basis has to be equal to the dimension of the N-particle basis vector."))
-            any(occupation.<0) && throw(ArgumentError("Occupation numbers smaller than zero not possible."))
-            sum(occupation) != particlenumber && throw(ArgumentError("Total occupation has to be equal to the particle number."))
             any(occupation.>1) && throw(ArgumentError("Occupation numbers greater than zero not possible for Fermions."))
         end
-        new([length(occupations)], particlenumber, particlebasis, occupations, hash(occupations))
+        new([length(occupations)], particlenumber, modenumber, occupations, hash(occupations))
     end
 end
 
-BosonicNParticleBasis(particlenumber::Int, particlebasisdimension::Int) = BosonicNParticleBasis(particlenumber, GenericBasis([particlebasisdimension]), distribute_bosons(particlenumber, particlebasisdimension))
-FermionicNParticleBasis(particlenumber::Int, particlebasisdimension::Int) = FermionicNParticleBasis(particlenumber, GenericBasis([particlebasisdimension]), distribute_fermions(particlenumber, particlebasisdimension))
-
-BosonicNParticleBasis(particlenumber::Int, particlebasis::Basis) = BosonicNParticleBasis(particlenumber, particlebasis, distribute_bosons(particlenumber, length(particlebasis)))
-FermionicNParticleBasis(particlenumber::Int, particlebasis::Basis) = FermionicNParticleBasis(particlenumber, particlebasis, distribute_fermions(particlenumber, length(particlebasis)))
+BosonicNParticleBasis(particlenumber::Int, modenumber::Int) = BosonicNParticleBasis(particlenumber, modenumber, distribute_bosons(particlenumber, modenumber))
+FermionicNParticleBasis(particlenumber::Int, modenumber::Int) = FermionicNParticleBasis(particlenumber, modenumber, distribute_fermions(particlenumber, modenumber))
 
 
-=={T<:NParticleBasis}(b1::T, b2::T) = (b1.particlenumber==b2.particlenumber && b1.particlebasis==b2.particlebasis && b1.occupations_hash==b2.occupations_hash)
+=={T<:NParticleBasis}(b1::T, b2::T) = (b1.particlenumber==b2.particlenumber && b1.modenumber==b2.modenumber && b1.occupations_hash==b2.occupations_hash)
 
 function nparticleoperator(nparticlebasis::NParticleBasis, op::DenseOperator; rank::Int=1)
     rank<1 && throw(ArgumentError("Rank has to be greater than zero."))
-    rank<2 && throw(ArgumentError("Not yet implemented for ranks greater than one."))
-    op = Operator(nparticlebasis)
+    rank>=2 && throw(ArgumentError("Not yet implemented for ranks greater than one."))
+    result = Operator(nparticlebasis)
     N = length(nparticlebasis)
+    S = nparticlebasis.modenumber
     for m=1:N, n=1:N
         if m==n
-            for i=1:length(nparticlebasis.particlebasis)
-                op.data[m,m] += op.data[i,i]*basis.occupations[m][i]
+            for i=1:nparticlebasis.modenumber
+                result.data[m,m] += op.data[i,i]*basis.occupations[m][i]
             end
         end
         indices = indices_adaggeri_aj(basis.occupations[m], basis.occupations[n])
@@ -101,10 +116,111 @@ function nparticleoperator(nparticlebasis::NParticleBasis, op::DenseOperator; ra
             i, j = get(indices)
             Ni = basis.occupations[n][i]
             Nj = basis.occupations[n][j]+1
-            op.data[m,n] += op.data[i,j]*sqrt(Ni*Nj)
+            op.data[m,n] += result.data[i,j]*sqrt(Ni*Nj)
         end
     end
     return op
+end
+
+"""
+Create a nparticle operator from a single particle operator.
+
+The mathematical formalism is described by
+
+.. math::
+
+    X = \\\\sum_{ij} a_i^\\\\dagger a_j
+                    \\\\left\\\\langle u_i \\\\right|
+                    x
+                    \\\\left| u_j \\\\right\\\\rangle
+
+where :math:`X` is the N-particle operator, :math:`x` is the single particle operator and
+:math:`\\\\left| u \\\\right\\\\rangle` are the single particle states associated to the
+different modes of the N-particle basis.
+
+Arguments
+---------
+
+nparticlebasis
+    NParticleBasis
+op
+    An operator represented in the single particle functions associated to the
+    modes of the N-particle basis. This means the dimension of this operator has to
+    be equal to the modenumber of the N-particle basis.
+"""
+function nparticleoperator_1(nparticlebasis::NParticleBasis, op::DenseOperator)
+    result = Operator(nparticlebasis)
+    N = length(nparticlebasis)
+    S = nparticlebasis.modenumber
+    occupations = nparticlebasis.occupations
+    for m=1:N, n=1:N
+        for i=1:S, j=1:S
+            C = coeff(occupations[m], occupations[n], [i], [j])
+            result.data[m,n] += C*op.data[i,j]
+        end
+    end
+    return result
+end
+
+
+"""
+Create a nparticle operator from a single particle operator.
+
+The mathematical formalism is described by
+
+.. math::
+
+    X = \\\\sum_{ijkl} a_i^\\\\dagger a_j^\\\\dagger a_k a_l
+            \\\\left\\\\langle u_i \\\\right| \\\\left\\\\langle u_j \\\\right|
+            x
+            \\\\left| u_k \\\\right\\\\rangle \\\\left| u_l \\\\right\\\\rangle
+
+where :math:`X` is the N-particle operator, :math:`x` is the two-particle operator and
+:math:`\\\\left| u \\\\right\\\\rangle` are the single particle states associated to the
+different modes of the N-particle basis.
+
+Arguments
+---------
+
+nparticlebasis
+    NParticleBasis
+op
+    A two particle operator represented in the single particle functions associated to the
+    modes of the N-particle basis. This means the dimension of this operator has to
+    be equal to the modenumber of the N-particle basis.
+"""
+function nparticleoperator_2(nparticlebasis::NParticleBasis, op::DenseOperator)
+    result = Operator(nparticlebasis)
+    N = length(nparticlebasis)
+    S = nparticlebasis.modenumber
+    op_data = reshape(op.data, S, S, S, S)
+    occupation = nparticlebasis.occupations
+    for m=1:N, n=1:N
+        for i=1:S, j=1:S, k=1:s, l=1:s
+            C = coeff(occupation[m], occupation[n], [i, j], [k, l])
+            result.data[m,n] += C*op_data[i, j, k, l]
+        end
+    end
+    return result
+end
+
+function coeff(occ_m, occ_n, at_indices, a_indices)
+    occ_m = deepcopy(occ_m)
+    occ_n = deepcopy(occ_n)
+    C = 1.
+    for i=at_indices
+        C *= sqrt(occ_m[i])
+        occ_m[i] -= 1
+    end
+    for i=a_indices
+        C *= sqrt(occ_n[i])
+        occ_n[i] -= 1
+    end
+    if occ_m == occ_n
+        return C
+    else
+        return 0.
+    end
 end
 
 """
