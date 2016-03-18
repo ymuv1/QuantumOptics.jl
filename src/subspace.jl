@@ -20,7 +20,7 @@ type SubspaceBasis <: Basis
     shape::Vector{Int}
     superbasis::Basis
     basisstates::Vector{Ket}
-    hashvalue::UInt
+    basisstates_hash::UInt
 
     function SubspaceBasis(superbasis::Basis, basisstates::Vector{Ket})
         for state = basisstates
@@ -28,14 +28,14 @@ type SubspaceBasis <: Basis
                 raise(ArgumentError("The basis of the basisstates has to be the superbasis."))
             end
         end
-        hashvalue = hash([hash(x.data) for x=basisstates])
-        new(Int[length(basisstates)], superbasis, basisstates, hashvalue)
+        basisstates_hash = hash([hash(x.data) for x=basisstates])
+        new(Int[length(basisstates)], superbasis, basisstates, basisstates_hash)
     end
 end
 
 SubspaceBasis(basisstates::Vector{Ket}) = SubspaceBasis(basisstates[1].basis, basisstates)
 
-==(b1::SubspaceBasis, b2::SubspaceBasis) = b1.superbasis==b2.superbasis && b1.hashvalue==b2.hashvalue
+==(b1::SubspaceBasis, b2::SubspaceBasis) = b1.superbasis==b2.superbasis && b1.basisstates_hash==b2.basisstates_hash
 
 
 proj(u::Ket, v::Ket) = dagger(v)*u/(dagger(u)*u)*u
