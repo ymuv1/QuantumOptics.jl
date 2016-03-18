@@ -15,9 +15,10 @@ export bases, Basis, GenericBasis, CompositeBasis,
         fock, FockBasis, number, destroy, create,
                 fockstate, coherentstate, qfunc,
         spin, SpinBasis, sigmax, sigmay, sigmaz, sigmap, sigmam, spinup, spindown,
+        subspace, SubspaceBasis, projector,
         particle, PositionBasis, MomentumBasis, gaussianstate,
                 positionoperator, momentumoperator, laplace_x, laplace_p,
-        subspace, SubspaceBasis, projector,
+        nparticlebasis, BosonicNParticleBasis, FermionicNParticleBasis, nparticleoperator,
         metrics, tracedistance,
         spectralanalysis, operatorspectrum, operatorspectrum_hermitian, eigenbasis, eigenbasis_hermitian, groundstate,
         timeevolution_simple,
@@ -35,8 +36,9 @@ include("operators_lazy.jl")
 include("superoperators.jl")
 include("spin.jl")
 include("fock.jl")
-include("particle.jl")
 include("subspace.jl")
+include("particle.jl")
+include("nparticles.jl")
 include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
@@ -55,8 +57,9 @@ using .operators_lazy
 using .superoperators
 using .spin
 using .fock
-using .particle
 using .subspace
+using .particle
+using .nparticles
 using .metrics
 using .spectralanalysis
 
