@@ -33,4 +33,6 @@ The interaction with other bases can be determined by overloading the `==` opera
 
     spin
     fock
+    subspace
     particle
+    nparticles
