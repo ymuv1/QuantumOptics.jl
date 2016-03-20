@@ -9,7 +9,8 @@ using Base.Cartesian
 using ..bases, ..states
 
 export Operator, DenseOperator,
-       tensor, dagger, expect, dense_identity, embed
+       tensor, dagger, projector,
+       expect, dense_identity, embed
 
 
 """
@@ -98,6 +99,13 @@ Hermitian conjugate of the given operator.
 """
 states.dagger(x::DenseOperator) = DenseOperator(x.basis_r, x.basis_l, x.data')
 
+
+"""
+Create a projection operator.
+"""
+projector(a::Ket, b::Bra) = tensor(a, b)
+projector(a::Ket) = tensor(a, dagger(b))
+projector(a::Bra) = tensor(dagger(a), b)
 
 """
 p-norm of given operator.
