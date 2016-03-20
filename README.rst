@@ -21,5 +21,5 @@ Example
 Documentation
 -------------
 
-The documentation can be found at https://bastikr.github.io/Quantumoptics.jl/
+The documentation written with `Sphinx <http://www.sphinx-doc.org/>`_ with the `Sphinx-Julia <https://github.com/bastikr/sphinx-julia>`_ plugin can be found at https://bastikr.github.io/Quantumoptics.jl/
 
