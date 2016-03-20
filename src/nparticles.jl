@@ -123,7 +123,7 @@ function nparticleoperator(nparticlebasis::NParticleBasis, op::DenseOperator; ra
 end
 
 """
-Create a nparticle operator from a single particle operator.
+Create a N-particle operator from a single particle operator.
 
 The mathematical formalism is described by
 
@@ -144,7 +144,7 @@ Arguments
 nparticlebasis
     NParticleBasis
 op
-    An operator represented in the single particle functions associated to the
+    An operator represented in the single-particle functions associated to the
     modes of the N-particle basis. This means the dimension of this operator has to
     be equal to the modenumber of the N-particle basis.
 """
@@ -164,7 +164,7 @@ end
 
 
 """
-Create a nparticle operator from a single particle operator.
+Create a N-particle operator from a two-particle operator.
 
 The mathematical formalism is described by
 
@@ -204,6 +204,10 @@ function nparticleoperator_2(nparticlebasis::NParticleBasis, op::DenseOperator)
     return result
 end
 
+
+"""
+Calculate the matrix element <{m}|at_1...at_n a_1...a_n|{n}>.
+"""
 function coeff(occ_m, occ_n, at_indices, a_indices)
     occ_m = deepcopy(occ_m)
     occ_n = deepcopy(occ_n)
