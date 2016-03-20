@@ -36,6 +36,8 @@ type GenericBasis <: Basis
     shape::Vector{Int}
 end
 
+GenericBasis(N::Int) = GenericBasis(Int[N])
+
 
 """
 Basis for composite Hilbert spaces.
