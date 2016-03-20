@@ -24,14 +24,3 @@ Connection between additive two particle operator :math:`\sum_{i \neq j} V_{ij}`
             \left| u_k \right\rangle \left| u_l \right\rangle
 
 The creation of the N-particle operators is implemented in :jl:func:`nparticleoperator_1` and :jl:func:`nparticleoperator_2`.
-
-
-.. jl:autoabstract:: nparticles.jl NParticleBasis
-
-.. jl:autotype:: nparticles.jl BosonicNParticleBasis
-
-.. jl:autotype:: nparticles.jl FermionicNParticleBasis
-
-.. jl:autofunction:: nparticles.jl nparticleoperator_1
-
-.. jl:autofunction:: nparticles.jl nparticleoperator_2
