@@ -263,7 +263,7 @@ function bases.ptrace(a::DenseOperator, indices::Vector{Int})
     return DenseOperator(ptrace(a.basis_l, indices), ptrace(a.basis_r, indices), result)
 end
 
-bases.ptrace(a::DenseOperator, indices::Int) = bases.ptrace(a, Int[indices])
+bases.ptrace(a::DenseOperator, index::Int) = bases.ptrace(a, Int[index])
 
 """
 Partial trace of the given state vector over the specified indices.
