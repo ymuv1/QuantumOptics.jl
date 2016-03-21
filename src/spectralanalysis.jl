@@ -32,7 +32,7 @@ operatorspectrum_hermitian(H::SparseOperator; Nmax::Union{Int, Void}=nothing) = 
 Calculate the spectrum of a not necessarily Hermitian operator.
 
 If the operator is known to be Hermitian use
-:func:`operatorspectrum_hermitian` instead.
+:func:`operatorspectrum_hermitian(::DenseOperator)` instead.
 
 Arguments
 ---------
@@ -66,9 +66,6 @@ end
 """
 Calculate the eigenstates of a Hermitian operator.
 
-If the operator is known to be Hermitian use
-:func:`operatorspectrum_hermitian` instead.
-
 Arguments
 ---------
 
@@ -96,7 +93,7 @@ end
 Calculate the eigenstates of a not necessarily Hermitian operator.
 
 If the operator is known to be Hermitian use
-:func:`operatorspectrum_hermitian` instead.
+:func:`eigenbasis_hermitian(::DenseOperator)` instead.
 
 Arguments
 ---------
