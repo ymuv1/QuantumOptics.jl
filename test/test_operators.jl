@@ -58,6 +58,17 @@ op_ = normalize!(op)
 @test op_ === op
 @test_approx_eq 1. trace(op)
 
+# Test operator exponential
+b = GenericBasis([3])
+op = DenseOperator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
+op = op + dagger(op)
+op /= norm(op.data)
+v = SubspaceBasis(b, eigenbasis_hermitian(op))
+P = projector(v, b)
+op_diag = P*op*dagger(P)
+op_diag_exp = DenseOperator(v, diagm(exp(diag(op_diag.data))))
+@test_approx_eq_eps 0. tracedistance(expm(op), dagger(P)*op_diag_exp*P) 1e-13
+
 # Test identity function
 @test full(I) == dense_identity(a)
 

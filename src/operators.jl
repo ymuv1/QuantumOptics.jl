@@ -135,6 +135,17 @@ end
 
 
 """
+Operator exponential.
+"""
+function Base.expm(op::DenseOperator)
+    if !multiplicable(op.basis_r, op.basis_l)
+        throw(ArgumentError("Operator has to be multiplicable with itself."))
+    end
+    return DenseOperator(op.basis_l, op.basis_r, expm(op.data))
+end
+
+
+"""
 Expectation value of the given operator for the specified state(s).
 """
 expect(op::Operator, state::DenseOperator) = trace(op*state)
