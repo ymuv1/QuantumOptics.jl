@@ -5,8 +5,8 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-# BUILDDIR      = build
-BUILDDIR      = ../../julia-quantumoptics-docs
+BUILDDIR      = build
+HTMLBUILDDIR      = ../../julia-quantumoptics-docs
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
@@ -48,14 +48,15 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	rm -rf $(BUILDDIR)/*[^html]
-	rm -rf $(BUILDDIR)/html/*
-	rm $(BUILDDIR)/html/.[!.][!git][!nojekyll]*
+	rm -rf $(BUILDDIR)/*
+	rm -rf $(HTMLBUILDDIR)/*[^html]
+	rm -rf $(HTMLBUILDDIR)/html/*
+	rm $(HTMLBUILDDIR)/html/.[!.][!git][!nojekyll]*
 
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(HTMLBUILDDIR)/html
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+	@echo "Build finished. The HTML pages are in $(HTMLBUILDDIR)/html."
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
