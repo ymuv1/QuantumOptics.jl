@@ -23,7 +23,7 @@ basis = FockBasis(2)
 @test number(basis) == dagger(number(basis))
 @test create(basis) == dagger(destroy(basis))
 @test destroy(basis) == dagger(create(basis))
-@test_approx_eq_eps tracedistance(create(basis)*destroy(basis), number(basis)) 0. 1e-15
+@test_approx_eq_eps tracedistance(full(create(basis)*destroy(basis)), full(number(basis))) 0. 1e-15
 
 
 # Test application onto statevectors
