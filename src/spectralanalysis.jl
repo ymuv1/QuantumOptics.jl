@@ -2,7 +2,7 @@ module spectralanalysis
 
 using ..states, ..operators, ..operators_sparse
 
-export operatorspectrum, operatorspectrum_hermitian, eigenbasis, eigenbasis_hermitian, groundstate
+export operatorspectrum, operatorspectrum_hermitian, eigenstates, eigenstates_hermitian, groundstate
 
 
 """
@@ -78,7 +78,7 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-function eigenbasis_hermitian(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
+function eigenstates_hermitian(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     h = Hermitian(H.data)
     M = Nmax == nothing ? eigvecs(h) : eigvecs(h, 1:Nmax)
     b = Ket[]
@@ -93,7 +93,7 @@ end
 Calculate the eigenstates of a not necessarily Hermitian operator.
 
 If the operator is known to be Hermitian use
-:func:`eigenbasis_hermitian(::DenseOperator)` instead.
+:func:`eigenstates_hermitian(::DenseOperator)` instead.
 
 Arguments
 ---------
@@ -107,9 +107,9 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-function eigenbasis(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
+function eigenstates(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     if ishermitian(H.data)
-        return eigenbasis_hermitian(H; Nmax=Nmax)
+        return eigenstates_hermitian(H; Nmax=Nmax)
     end
     M = eigvecs(H.data)
     b = Ket[]
@@ -122,10 +122,10 @@ function eigenbasis(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
     return b
 end
 
-eigenbasis_hermitian(H::SparseOperator; Nmax::Union{Int, Void}=nothing) = eigenbasis(H; Nmax=Nmax)
+eigenstates_hermitian(H::SparseOperator; Nmax::Union{Int, Void}=nothing) = eigenstates(H; Nmax=Nmax)
 
 
-function eigenbasis(H::SparseOperator; Nmax::Union{Int, Void}=nothing)
+function eigenstates(H::SparseOperator; Nmax::Union{Int, Void}=nothing)
     if Nmax == nothing
         Nmax = size(H.data, 2) - 2
     end
@@ -141,7 +141,7 @@ end
 """
 Calculate the ground-state of a Hermitian operator.
 
-This is just a shortcut for :func:`eigenbasis_hermitian(H, Nmax=1)`
+This is just a shortcut for :func:`eigenstates_hermitian(H, Nmax=1)`
 
 Arguments
 ---------
@@ -155,6 +155,6 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-groundstate(H::Union{DenseOperator, SparseOperator}) = eigenbasis_hermitian(H; Nmax=1)
+groundstate(H::Union{DenseOperator, SparseOperator}) = eigenstates_hermitian(H; Nmax=1)
 
 end # module

@@ -51,22 +51,22 @@ E = [Emvec; Epvec][P][1:(Ncutoff+1)]
 @test norm(operatorspectrum(H)[1:(Ncutoff+1)] - E) < 1e-12
 @test norm(operatorspectrum_hermitian(H)[1:(Ncutoff+1)] - E) < 1e-12
 
-b = eigenbasis(full(H))[1:(Ncutoff+1)]
+b = eigenstates(full(H))[1:(Ncutoff+1)]
 for i=1:length(b)
     @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
 end
 
-b = eigenbasis_hermitian(full(H))[1:(Ncutoff+1)]
+b = eigenstates_hermitian(full(H))[1:(Ncutoff+1)]
 for i=1:length(b)
     @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
 end
 
-b = eigenbasis(H)[1:(Ncutoff+1)]
+b = eigenstates(H)[1:(Ncutoff+1)]
 for i=1:length(b)
     @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
 end
 
-b = eigenbasis_hermitian(H)[1:(Ncutoff+1)]
+b = eigenstates_hermitian(H)[1:(Ncutoff+1)]
 for i=1:length(b)
     @test 1-abs(dagger(b[i])*basisstates[i])<1e-12
 end
