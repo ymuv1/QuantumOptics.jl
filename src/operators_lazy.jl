@@ -4,7 +4,7 @@ import Base: *, /, +, -
 import ..operators
 
 using Base.Cartesian
-using ..bases, ..states, ..operators
+using ..bases, ..states, ..operators, ..operators_sparse
 
 export LazyOperator, LazyTensor, LazySum, LazyProduct
 
@@ -129,6 +129,34 @@ function operators.full(x::LazyProduct)
     result = x.factor*full(x.operators[1])
     for i=2:length(x.operators)
         result *= full(x.operators[i])
+    end
+    return result
+end
+
+function operators_sparse.sparse(x::LazyTensor)
+    op_list = SparseOperator[]
+    for i=1:length(x.basis_l.bases)
+        if i in keys(x.operators)
+            push!(op_list, sparse(x.operators[i]))
+        else
+            push!(op_list, identity(x.basis_l.bases[i], x.basis_r.bases[i]))
+        end
+    end
+    return x.factor*reduce(tensor, op_list)
+end
+
+function operators_sparse.sparse(x::LazySum)
+    result = x.factors[1]*sparse(x.operators[1])
+    for i=2:length(x.operators)
+        result += x.factors[i]*sparse(x.operators[i])
+    end
+    return result
+end
+
+function operators_sparse.sparse(x::LazyProduct)
+    result = x.factor*sparse(x.operators[1])
+    for i=2:length(x.operators)
+        result *= sparse(x.operators[i])
     end
     return result
 end

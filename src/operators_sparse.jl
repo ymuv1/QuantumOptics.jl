@@ -29,6 +29,10 @@ SparseOperator(b::Basis) = SparseOperator(b, b)
 
 Base.full(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, full(a.data))
 
+Base.sparse(a::Operator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
+Base.sparse(a::SparseOperator) = deepcopy(a)
+Base.sparse(a::DenseOperator) = SparseOperator(a.basis_l, a.basis_r, sparse(a.data))
+
 ==(x::SparseOperator, y::SparseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
 
 
