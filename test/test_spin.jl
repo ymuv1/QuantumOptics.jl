@@ -1,5 +1,5 @@
 using Base.Test
-using Quantumoptics
+using QuantumOptics
 
 distance(a::SparseOperator, b::SparseOperator) = tracedistance(full(a), full(b))
 

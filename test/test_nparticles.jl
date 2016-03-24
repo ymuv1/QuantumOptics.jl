@@ -1,5 +1,5 @@
 using Base.Test
-using Quantumoptics
+using QuantumOptics
 
 particlenumber = 12
 b_spin = SpinBasis(1//2)

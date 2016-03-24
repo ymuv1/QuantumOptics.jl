@@ -1,5 +1,5 @@
 using Base.Test
-using Quantumoptics
+using QuantumOptics
 
 fockbasis = FockBasis(40)
 spinbasis = SpinBasis(1//2)

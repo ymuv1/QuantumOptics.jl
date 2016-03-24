@@ -1,5 +1,5 @@
 using Base.Test
-using Quantumoptics
+using QuantumOptics
 
 Nmin = 2
 Nmax = 4

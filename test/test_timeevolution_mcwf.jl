@@ -1,5 +1,5 @@
 using Base.Test
-using Quantumoptics
+using QuantumOptics
 
 # Define parameters for spin coupled to electric field mode.
 ωc = 1.2

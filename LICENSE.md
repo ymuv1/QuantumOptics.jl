@@ -1,4 +1,4 @@
-The Quantumoptics.jl package is licensed under the MIT "Expat" License:
+The QuantumOptics.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2016: Sebastian Kraemer.
 >
