@@ -3,9 +3,18 @@ QuantumOptics.jl
 
 **QuantumOptics.jl** is a numerical framework written in `Julia <http://julialang.org/>`_ that makes it easy to simulate various kinds of quantum systems. It is similar to the `Quantum Optics Toolbox <http://qo.phy.auckland.ac.nz/toolbox/>`_ for MATLAB and its Python equivalent `QuTiP <http://qutip.org/>`_.
 
-[![Build Status](https://api.travis-ci.org/bastikr/QuantumOptics.jl.png?branch=master)](https://travis-ci.org/bastikr/QuantumOptics.jl)
-[![Coverage Status](https://coveralls.io/repos/bastikr/QuantumOptics.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/bastikr/QuantumOptics.jl?branch=master)
-[![Build status](https://ci.appveyor.com/api/projects/status/t83f2bqfpumn6d96/branch/master?svg=true)](https://ci.appveyor.com/project/bastikr/quantumoptics-jl/branch/master)
+.. image:: https://api.travis-ci.org/bastikr/QuantumOptics.jl.png?branch=master
+   :alt: Travis build status
+   :target: https://travis-ci.org/bastikr/QuantumOptics.jl
+
+.. image:: https://coveralls.io/repos/bastikr/QuantumOptics.jl/badge.svg?branch=master&service=github
+   :alt: Test coverage status
+   :target: https://coveralls.io/github/bastikr/QuantumOptics.jl?branch=master
+
+.. image:: https://ci.appveyor.com/api/projects/status/t83f2bqfpumn6d96/branch/master?svg=true
+   :alt: Windows build status
+   :target: https://ci.appveyor.com/project/bastikr/quantumoptics-jl/branch/master
+
 
 Example
 -------
