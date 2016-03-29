@@ -382,7 +382,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, se
     tmp = deepcopy(psi0)
     as_ket(x::Vector{Complex128}) = Ket(psi0.basis, x)
     as_vector(psi::Ket) = psi.data
-    rng = MersenneTwister(convert(UInt64, seed))
+    rng = MersenneTwister(convert(UInt, seed))
     jumpnorm = Float64[rand(rng)]
     djumpnorm(t, x::Vector{Complex128}) = norm(as_ket(x))^2 - (1-jumpnorm[1])
     function dojump(t, x::Vector{Complex128})
@@ -483,7 +483,7 @@ end
 Integrate master equation using MCWF method with mcwf_h as derivative function.
 """
 function mcwf_h(tspan, psi0::Ket, H::Operator, J::Vector;
-                seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                seed=rand(UInt), fout=nothing, Jdagger::Vector=map(dagger, J),
                 tmp::Ket=deepcopy(psi0),
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
@@ -499,7 +499,7 @@ end
 Integrate master equation using MCWF method with mcwf_nh as derivative function.
 """
 function mcwf_nh(tspan, psi0::Ket, Hnh::Operator, J::Vector;
-                seed=rand(UInt64), fout=nothing,
+                seed=rand(UInt), fout=nothing,
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
     f(t, psi, dpsi) = dmcwf_nh(psi, Hnh, dpsi)
@@ -555,7 +555,7 @@ kwargs
     Further arguments are passed on to the ode solver.
 """
 function mcwf(tspan, psi0::Ket, H::Operator, J::Vector;
-                seed=rand(UInt64), fout=nothing, Jdagger::Vector=map(dagger, J),
+                seed=rand(UInt), fout=nothing, Jdagger::Vector=map(dagger, J),
                 display_beforeevent=false, display_afterevent=false,
                 kwargs...)
     Hnh = deepcopy(H)

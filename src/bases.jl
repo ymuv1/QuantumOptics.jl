@@ -84,7 +84,7 @@ Check if two shape vectors are the same.
 This implementation handles special cases in a very fast way so that their
 overhead is very low in often performed operations.
 """
-function equal_shape(a::Vector{Int64}, b::Vector{Int64})
+function equal_shape(a::Vector{Int}, b::Vector{Int})
     if a === b
         return true
     end

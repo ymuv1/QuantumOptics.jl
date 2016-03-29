@@ -41,27 +41,27 @@ Jdense = map(full, J)
 
 
 # Test mcwf
-tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hdense, Jdense; seed=UInt64(1), reltol=1e-7)
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hdense, Jdense; seed=UInt(1), reltol=1e-7)
 Ψ = Ψt[end]
 
-tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt64(2), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt(2), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) > 0.1
 
 
 # Test mcwf_h
-tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, Jdense; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, Jdense; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, Hdense, J; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, Hdense, J; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt64(2), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt(2), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) > 0.1
 
 
@@ -69,16 +69,16 @@ tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt64(2), reltol=1e-6)
 Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
 Hnh_dense = full(Hnh)
 
-tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, J; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, J; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, Jdense; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, Jdense; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh_dense, J; seed=UInt64(1), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh_dense, J; seed=UInt(1), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) < 1e-5
 
-tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, J; seed=UInt64(2), reltol=1e-6)
+tout, Ψt = timeevolution.mcwf_nh(T, Ψ₀, Hnh, J; seed=UInt(2), reltol=1e-6)
 @test norm(Ψt[end]-Ψ) > 0.1
 
 
@@ -88,7 +88,7 @@ tout_master, ρt_master = timeevolution.master(T, ρ₀, H, J)
 
 ρ_average = DenseOperator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
-    tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hdense, Jdense; seed=UInt64(i))
+    tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hdense, Jdense; seed=UInt(i))
     for j=1:length(T)
         ρ_average[j] += (Ψt[j] ⊗ dagger(Ψt[j]))/Ntrajectories
     end
@@ -110,8 +110,8 @@ tout_master, ρt_master = timeevolution.master(T, ρ₀, Hdense, J1_dense)
 ρ_average_1 = DenseOperator[0 * ρ₀ for i=1:length(T)]
 ρ_average_2 = DenseOperator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
-    tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, Hdense, J1_dense; seed=UInt64(i))
-    tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, Hdense, J2_dense; seed=UInt64(i))
+    tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, Hdense, J1_dense; seed=UInt(i))
+    tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, Hdense, J2_dense; seed=UInt(i))
     for j=1:length(T)
         ρ_average_1[j] += (Ψt_1[j] ⊗ dagger(Ψt_1[j]))/Ntrajectories
         ρ_average_2[j] += (Ψt_2[j] ⊗ dagger(Ψt_2[j]))/Ntrajectories

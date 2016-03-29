@@ -5,7 +5,7 @@ function mul_suboperator(a, b, index::Int)
     result_data = reshape(result.data, reverse(result.shape)...)
     b_data
     for m=1:size(a.data,2)
-        
+
     end
 end
 
@@ -33,7 +33,7 @@ end
 #     end
 # end)))
 
-# println(macroexpand(:(@ngenerate N Int64 function gemm_r!{N}(alpha, a::Array{Complex128, N}, b::Array{Complex128, 2},
+# println(macroexpand(:(@ngenerate N Int function gemm_r!{N}(alpha, a::Array{Complex128, N}, b::Array{Complex128, 2},
 #                                         index::Int, beta, result::Array{Complex128, N})
 #     for n=1:size(b,1)
 #         @nloops N i d->(1:size(a,N+1-d)) d->(if d==index && i_d!=n continue end) begin
@@ -44,7 +44,7 @@ end
 #     end
 #     return 0
 # end)))
-# println(macroexpand(:(@ngenerate N Int64 function mul_suboperator_r{N}(a::Array{Complex128, N}, b::Array{Complex128, 2}, index::Int, result::Array{Complex128, N})
+# println(macroexpand(:(@ngenerate N Int function mul_suboperator_r{N}(a::Array{Complex128, N}, b::Array{Complex128, 2}, index::Int, result::Array{Complex128, N})
 #     for n=1:size(b,1)
 #         @nloops N i d->(1:size(a,N+1-d)) d->(if d==index && i_d!=n continue end) begin
 #                 (@nref N result (d->(i_{N+1-d}))) = alpha * (@nref N psi (d->(i_{N+1-d}))) * op[m,n]
@@ -69,7 +69,7 @@ Index(i::Int) = Index(Array{Int,i})
                 @nexprs RANK (d->(s = (i_d-1)*strides[d]; N_n+=s; N_m+=s))
                 result[N_m] += a[m,n]*b[N_n]
             end
-        end        
+        end
     end
     return nothing
 end
@@ -103,7 +103,7 @@ index = 2
 
 shape_reduced = [shape[1:index-1], shape[index+1:end]]
 S_reduced = [S[1:index-1], S[index+1:end]]
-stride_index = S[index] 
+stride_index = S[index]
 index_N = shape[index]
 
 
