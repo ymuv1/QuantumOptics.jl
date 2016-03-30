@@ -7,11 +7,11 @@ using ..steadystate
 
 
 """
-Calculate two time correlation values :math:`\\langle A(t) B(0) \\\\rangle`
+Calculate two time correlation values :math:`\\langle A(t) B(0) \\rangle`
 
 The calculation is done by multiplying the initial density operator
 with :math:`B` performing a time evolution according to a master equation
-and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\\\rho \\}`
+and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\rho \\}`
 
 Arguments
 ---------
@@ -58,11 +58,11 @@ end
 
 
 """
-Calculate two time correlation values :math:`\\langle A(t) B(0) \\\\rangle`
+Calculate two time correlation values :math:`\\langle A(t) B(0) \\rangle`
 
 The calculation is done by multiplying the initial density operator
 with :math:`B` performing a time evolution according to a master equation
-and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\\\rho \\}`.
+and then calculating the expectation value :math:`\\mathrm{Tr} \\{ A \\rho \\}`.
 The points of time are chosen automatically from the ode solver and the final
 time is determined by the steady state termination criterion specified in
 :func:`steadystate.master`.

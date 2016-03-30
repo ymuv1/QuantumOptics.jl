@@ -19,7 +19,7 @@ them again consists of a left and right hand basis.
 .. math::
 
     A_{bl_1,bl_2} &= S_{(bl_1,bl_2)<->(br_1,br_2)} B_{br_1,br_2}
-    \\\\\\\\
+    \\
     A_{br_1,br_2} &= B_{bl_1,bl_2} S_{(bl_1,bl_2)<->(br_1,br_2)}
 """
 abstract SuperOperator
@@ -131,14 +131,14 @@ end
 """
 Create a super-operator equivalent to the master equation.
 
-The  so that :math:`\\dot \\\\rho = S \\\\rho`
+The  so that :math:`\\dot \\rho = S \\rho`
 
 The super-operator :math:`S` is defined by
 
 .. math::
 
-    \\dot \\\\rho = S \\\\rho = -\\\\frac{i}{\\hbar} [H,\\\\rho]
-            + 2 J \\\\rho J^\\\\dagger - J^\\\\dagger J \\\\rho - \\\\rho J^\\\\dagger J
+    \\dot \\rho = S \\rho = -\\frac{i}{\\hbar} [H,\\rho]
+            + 2 J \\rho J^\\dagger - J^\\dagger J \\rho - \\rho J^\\dagger J
 
 Arguments
 ---------

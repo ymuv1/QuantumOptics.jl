@@ -129,13 +129,13 @@ The mathematical formalism is described by
 
 .. math::
 
-    X = \\\\sum_{ij} a_i^\\\\dagger a_j
-                    \\\\left\\\\langle u_i \\\\right|
+    X = \\sum_{ij} a_i^\\dagger a_j
+                    \\left\\langle u_i \\right|
                     x
-                    \\\\left| u_j \\\\right\\\\rangle
+                    \\left| u_j \\right\\rangle
 
 where :math:`X` is the N-particle operator, :math:`x` is the single particle operator and
-:math:`\\\\left| u \\\\right\\\\rangle` are the single particle states associated to the
+:math:`\\left| u \\right\\rangle` are the single particle states associated to the
 different modes of the N-particle basis.
 
 Arguments
@@ -170,13 +170,13 @@ The mathematical formalism is described by
 
 .. math::
 
-    X = \\\\sum_{ijkl} a_i^\\\\dagger a_j^\\\\dagger a_k a_l
-            \\\\left\\\\langle u_i \\\\right| \\\\left\\\\langle u_j \\\\right|
+    X = \\sum_{ijkl} a_i^\\dagger a_j^\\dagger a_k a_l
+            \\left\\langle u_i \\right| \\left\\langle u_j \\right|
             x
-            \\\\left| u_k \\\\right\\\\rangle \\\\left| u_l \\\\right\\\\rangle
+            \\left| u_k \\right\\rangle \\left| u_l \\right\\rangle
 
 where :math:`X` is the N-particle operator, :math:`x` is the two-particle operator and
-:math:`\\\\left| u \\\\right\\\\rangle` are the single particle states associated to the
+:math:`\\left| u \\right\\rangle` are the single particle states associated to the
 different modes of the N-particle basis.
 
 Arguments

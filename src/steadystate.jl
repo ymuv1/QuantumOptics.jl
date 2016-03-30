@@ -25,7 +25,7 @@ Keyword Arguments
 -----------------
 
 rho0
-    Initial density operator. If not given the :math:`|0 \\\\rangle\\\\langle0|`
+    Initial density operator. If not given the :math:`|0 \\rangle\\langle0|`
     state in respect to the choosen basis is used.
 eps
     Tracedistance used as termination criterion.

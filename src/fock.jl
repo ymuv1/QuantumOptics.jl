@@ -101,7 +101,7 @@ function fockstate(b::FockBasis, n::Int)
 end
 
 """
-Coherent state :math:`| \\\\alpha \\\\rangle` for the given Fock basis.
+Coherent state :math:`| \\alpha \\rangle` for the given Fock basis.
 
 Arguments
 ---------
@@ -127,7 +127,7 @@ end
 
 
 """
-Husimi Q representation :math:`\\\\frac{1}{\\pi} \\langle \\\\alpha | \\\\rho | \\\\alpha \\\\rangle`.
+Husimi Q representation :math:`\\frac{1}{\\pi} \\langle \\alpha | \\rho | \\alpha \\rangle`.
 """
 function qfunc(rho::Operator, alpha::Complex128)
     psi = coherentstate(rho.basis_l, alpha)

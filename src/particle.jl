@@ -90,23 +90,23 @@ This implementation is based on the definition
 
 .. math::
 
-    \\Psi(x) = \\\\frac{\\sqrt{\\Delta x}}{\\pi^{1/4}\\sqrt{\\sigma}}
-                e^{i p_0 (x-x_0) - \\\\frac{(x-x_0)^2}{2 \\sigma^2}}
+    \\Psi(x) = \\frac{\\sqrt{\\Delta x}}{\\pi^{1/4}\\sqrt{\\sigma}}
+                e^{i p_0 (x-x_0) - \\frac{(x-x_0)^2}{2 \\sigma^2}}
 
 which has the properties
 
 * :math:`|\\Psi(p)|^2 = 1`
-* :math:`\\langle p \\\\rangle = p_0`
-* :math:`\\langle x \\\\rangle = x_0`
-* :math:`\\mathrm{Var}(x) = \\\\frac{\\sigma^2}{2}`
-* :math:`\\mathrm{Var}(p) = \\\\frac{1}{2 \\sigma^2}`
+* :math:`\\langle p \\rangle = p_0`
+* :math:`\\langle x \\rangle = x_0`
+* :math:`\\mathrm{Var}(x) = \\frac{\\sigma^2}{2}`
+* :math:`\\mathrm{Var}(p) = \\frac{1}{2 \\sigma^2}`
 
 and is connected to the MomentumBasis based implementation via a
 Fourier-transformation
 
 .. math::
 
-    \\Psi(p) = \\\\frac{1}{\\sqrt{2\\pi}}
+    \\Psi(p) = \\frac{1}{\\sqrt{2\\pi}}
                 \\int_{-\\infty}^{\\infty} e^{-ipx}\\Psi(x) \\mathrm{d}x
 
 Due to the numerically necessary discretization an additional scaling
@@ -150,23 +150,23 @@ This implementation is based on the definition
 
 .. math::
 
-    \\Psi(p) = \\\\frac{\\sqrt{\\sigma} \\sqrt{\\Delta x}}{\\pi^{1/4}}
-                e^{-i x_0 p - \\\\frac{1}{2}(p-p_0)^2 \\sigma^2}
+    \\Psi(p) = \\frac{\\sqrt{\\sigma} \\sqrt{\\Delta x}}{\\pi^{1/4}}
+                e^{-i x_0 p - \\frac{1}{2}(p-p_0)^2 \\sigma^2}
 
 which has the properties
 
 * :math:`|\\Psi(p)|^2 = 1`
-* :math:`\\langle p \\\\rangle = p_0`
-* :math:`\\langle x \\\\rangle = x_0`
-* :math:`\\mathrm{Var}(x) = \\\\frac{\\sigma^2}{2}`
-* :math:`\\mathrm{Var}(p) = \\\\frac{1}{2 \\sigma^2}`
+* :math:`\\langle p \\rangle = p_0`
+* :math:`\\langle x \\rangle = x_0`
+* :math:`\\mathrm{Var}(x) = \\frac{\\sigma^2}{2}`
+* :math:`\\mathrm{Var}(p) = \\frac{1}{2 \\sigma^2}`
 
 and is connected to the MomentumBasis based implementation via a
 Fourier-transformation
 
 .. math::
 
-    \\Psi(x) = \\\\frac{1}{\\sqrt{2\\pi}}
+    \\Psi(x) = \\frac{1}{\\sqrt{2\\pi}}
                     \\int_{-\\infty}^{\\infty} e^{ipx}\\Psi(p) \\mathrm{d}p
 
 Due to the numerically necessary discretization an additional scaling
