@@ -7,7 +7,7 @@ QuantumOptics.jl
    :alt: Travis build status
    :target: https://travis-ci.org/bastikr/QuantumOptics.jl
 
-.. image:: https://coveralls.io/repos/bastikr/QuantumOptics.jl/badge.svg?branch=master&service=github
+.. image:: https://coveralls.io/repos/github/bastikr/QuantumOptics.jl/badge.svg?branch=master
    :alt: Test coverage status
    :target: https://coveralls.io/github/bastikr/QuantumOptics.jl?branch=master
 
