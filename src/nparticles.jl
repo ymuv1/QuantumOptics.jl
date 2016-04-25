@@ -1,6 +1,6 @@
 module nparticles
 
-export NParticleBasis, BosonicNParticleBasis, FermionicNParticleBasis, nparticloperator
+export NParticleBasis, BosonicNParticleBasis, FermionicNParticleBasis, nparticleoperator_1, nparticleoperator_2
 
 import Base.==
 
