@@ -149,7 +149,7 @@ op
     be equal to the modenumber of the N-particle basis.
 """
 function nparticleoperator_1(nparticlebasis::NParticleBasis, op::DenseOperator)
-    result = Operator(nparticlebasis)
+    result = DenseOperator(nparticlebasis)
     N = length(nparticlebasis)
     S = nparticlebasis.modenumber
     occupations = nparticlebasis.occupations
