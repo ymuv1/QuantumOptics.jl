@@ -4,7 +4,7 @@ export NParticleBasis, BosonicNParticleBasis, FermionicNParticleBasis, nparticle
 
 import Base.==
 
-using ..bases, ..operators
+using ..bases, ..operators, ..operators_sparse
 
 
 function distribute_bosons(particlenumber::Int, singleparticledimension::Int, index::Int=1, occupations::Vector{Int}=zeros(Int,singleparticledimension), results::Vector{Vector{Int}}=Vector{Int}[])
@@ -149,18 +149,45 @@ op
     be equal to the modenumber of the N-particle basis.
 """
 function nparticleoperator_1(nparticlebasis::NParticleBasis, op::DenseOperator)
-    result = DenseOperator(nparticlebasis)
     N = length(nparticlebasis)
     S = nparticlebasis.modenumber
+    @assert S == length(op.basis_l)
+    @assert S == length(op.basis_r)
+    result = DenseOperator(nparticlebasis)
     occupations = nparticlebasis.occupations
     for m=1:N, n=1:N
         for i=1:S, j=1:S
             C = coeff(occupations[m], occupations[n], [i], [j])
-            result.data[m,n] += C*op.data[i,j]
+            if C!=0.
+                result.data[m,n] += C*op.data[i,j]
+            end
         end
     end
     return result
 end
+
+function nparticleoperator_1(nparticlebasis::NParticleBasis, op::SparseOperator)
+    N = length(nparticlebasis)
+    S = nparticlebasis.modenumber
+    @assert S == length(op.basis_l)
+    @assert S == length(op.basis_r)
+    result = SparseOperator(nparticlebasis)
+    occupations = nparticlebasis.occupations
+    rows = rowvals(A)
+    values = nonzeros(A)
+    for column=1:S, j in nzrange(op.data, column)
+        row = rows[j]
+        value = values[j]
+        for m=1:N, n=1:N
+            C = coeff(occupations[m], occupations[n], [row], [column])
+            if C!=0.
+                result.data[m,n] += C*value
+            end
+        end
+    end
+    return result
+end
+
 
 
 """
@@ -190,19 +217,44 @@ op
     be equal to the modenumber of the N-particle basis.
 """
 function nparticleoperator_2(nparticlebasis::NParticleBasis, op::DenseOperator)
-    result = Operator(nparticlebasis)
     N = length(nparticlebasis)
     S = nparticlebasis.modenumber
+    @assert S^2 == length(op.basis_l)
+    @assert S^2 == length(op.basis_r)
+    result = DenseOperator(nparticlebasis)
     op_data = reshape(op.data, S, S, S, S)
-    occupation = nparticlebasis.occupations
+    occupations = nparticlebasis.occupations
     for m=1:N, n=1:N
-        for i=1:S, j=1:S, k=1:s, l=1:s
-            C = coeff(occupation[m], occupation[n], [i, j], [k, l])
+        for i=1:S, j=1:S, k=1:S, l=1:S
+            C = coeff(occupations[m], occupations[n], [i, j], [k, l])
             result.data[m,n] += C*op_data[i, j, k, l]
         end
     end
     return result
 end
+
+function nparticleoperator_2(nparticlebasis::NParticleBasis, op::SparseOperator)
+    N = length(nparticlebasis)
+    S = nparticlebasis.modenumber
+    @assert S^2 == length(op.basis_l)
+    @assert S^2 == length(op.basis_r)
+    result = SparseOperator(nparticlebasis)
+    occupations = nparticlebasis.occupations
+    rows = rowvals(A)
+    values = nonzeros(A)
+    for column=1:S^2, j in nzrange(op.data, column)
+        row = rows[j]
+        value = values[j]
+        for m=1:N, n=1:N
+            C = coeff(occupations[m], occupations[n], ind2sub(S, S, row), ind2sub(S, S, column))
+            if C!=0.
+                result.data[m,n] += C*value
+            end
+        end
+    end
+    return result
+end
+
 
 
 """
@@ -213,10 +265,16 @@ function coeff(occ_m, occ_n, at_indices, a_indices)
     occ_n = deepcopy(occ_n)
     C = 1.
     for i=at_indices
+        if occ_m[i] == 0
+            return 0.
+        end
         C *= sqrt(occ_m[i])
         occ_m[i] -= 1
     end
     for i=a_indices
+        if occ_n[i] == 0
+            return 0.
+        end
         C *= sqrt(occ_n[i])
         occ_n[i] -= 1
     end
