@@ -173,8 +173,8 @@ function nparticleoperator_1(nparticlebasis::NParticleBasis, op::SparseOperator)
     @assert S == length(op.basis_r)
     result = SparseOperator(nparticlebasis)
     occupations = nparticlebasis.occupations
-    rows = rowvals(A)
-    values = nonzeros(A)
+    rows = rowvals(op.data)
+    values = nonzeros(op.data)
     for column=1:S, j in nzrange(op.data, column)
         row = rows[j]
         value = values[j]
@@ -240,13 +240,15 @@ function nparticleoperator_2(nparticlebasis::NParticleBasis, op::SparseOperator)
     @assert S^2 == length(op.basis_r)
     result = SparseOperator(nparticlebasis)
     occupations = nparticlebasis.occupations
-    rows = rowvals(A)
-    values = nonzeros(A)
+    rows = rowvals(op.data)
+    values = nonzeros(op.data)
     for column=1:S^2, j in nzrange(op.data, column)
         row = rows[j]
         value = values[j]
         for m=1:N, n=1:N
-            C = coeff(occupations[m], occupations[n], ind2sub(S, S, row), ind2sub(S, S, column))
+            # println("row:", row, " column:"column, ind_left)
+            index = ind2sub((S, S, S, S), (column-1)*S^2 + row)
+            C = coeff(occupations[m], occupations[n], index[1:2], index[3:4])
             if C!=0.
                 result.data[m,n] += C*value
             end
