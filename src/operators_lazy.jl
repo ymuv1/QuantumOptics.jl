@@ -54,8 +54,8 @@ function LazyTensor{T<:Operator}(basis_l::CompositeBasis, basis_r::CompositeBasi
     LazyTensor(basis_l, basis_r, Dict{Int,Operator}([i=>op for (i,op)=zip(indices, operators)]), factor)
 end
 
-LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::Operator) = LazyTensor(basis_l, basis_r, Dict{Int,Operator}(index=>operator))
-
+LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::Operator, factor::Number=1.) = LazyTensor(basis_l, basis_r, [index], [operator], factor)
+LazyTensor(basis::CompositeBasis, indices, operators, factor::Number=1.) = LazyTensor(basis, basis, indices, operators, factor)
 
 """
 Lazy evaluation of sum of operators.
@@ -195,11 +195,11 @@ end
 +(a::LazyOperator, b::LazyOperator) = LazySum(a, b)
 +(a::LazyOperator, b::Operator) = LazySum(a, b)
 +(a::Operator, b::LazyOperator) = LazySum(a, b)
-+(a::LazySum, b::LazySum) = LazySum([a.factors, b.factors], [a.operators, b.operators])
-+(a::LazySum, b::LazyOperator) = LazySum([a.factors, Complex(1.)], [a.operators, b])
-+(a::LazyOperator, b::LazySum) = LazySum([a.factors, Complex(1.)], [a, b.operators])
-+(a::LazySum, b::Operator) = LazySum([a.factors, Complex(1.)], [a.operators, b])
-+(a::Operator, b::LazySum) = LazySum([a.factors, Complex(1.)], [a, b.operators])
++(a::LazySum, b::LazySum) = LazySum([a.factors, b.factors;], [a.operators, b.operators;])
++(a::LazySum, b::LazyOperator) = LazySum([a.factors, Complex(1.);], [a.operators, b;])
++(a::LazyOperator, b::LazySum) = LazySum([a.factors, Complex(1.);], [a, b.operators;])
++(a::LazySum, b::Operator) = LazySum([a.factors, Complex(1.);], [a.operators, b;])
++(a::Operator, b::LazySum) = LazySum([a.factors, Complex(1.);], [a, b.operators;])
 
 -(a::LazyTensor) = LazyTensor(a.basis_l, a.basis_r, a.operators, -a.factor)
 -(a::LazySum) = LazySum(-a.factors, a.operators)
