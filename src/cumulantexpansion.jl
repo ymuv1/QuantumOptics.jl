@@ -1,29 +1,52 @@
 module cumulantexpansion
 
+using ..bases
 using ..ode_dopri
 using ..operators_lazy
+using ..operators
 
-function dmaster(rho0::LazyTensor, H::LazySum,
-                J::Vector{LazySum}, Jdagger::Vector{LazySum}, JdaggerJ::Vector{LazySum},
-                drho::LazyTensor, tmp::LazyTensor)
-    for drho_alpha in values(drho.operators)
-        fill!(drho_alpha.data, 0.)
+import ..operators
+
+
+type ProductDensityOperator <: Operator
+    basis_l::CompositeBasis
+    basis_r::CompositeBasis
+    operators::Vector{DenseOperator}
+    function ProductDensityOperator(operators::DenseOperator...)
+        basis_l = tensor([op.basis_l for op in operators]...)
+        basis_r = tensor([op.basis_r for op in operators]...)
+        new(basis_l, basis_r, operators)
     end
+end
+
+dims(bl::CompositeBasis, br::CompositeBasis) = [length(bl_i)*length(br_i) for (bl_i, br_i) in zip(bl.bases, br.bases)]
+dims(x::ProductDensityOperator) = dims(x.basis_l, x.basis_r)
+
+traces(x::ProductDensityOperator) = [trace(op) for op in x.operators]
+
+function fill!(x::ProductDensityOperator, alpha::Number)
+    for op in x.operators
+        fill!(op.data, complex(alpha))
+    end
+end
+
+# Ignores the factor in the LazyTensor
+function operators.gemm!(alpha, a::LazyTensor, b::ProductDensityOperator, beta, result::ProductDensityOperator)
+    @assert abs(beta)==0.
+    for (k, a_k) in a.operators
+        operators.gemm!(1., a_k, b.operators[k], 0., result.operators[k])
+    end
+end
+
+function dmaster(rho0::ProductDensityOperator, H::LazySum,
+                 J::Vector{LazySum}, Jdagger::Vector{LazySum}, JdaggerJ::Vector{LazySum},
+                 drho::ProductDensityOperator, tmp::ProductDensityOperator)
+    fill!(drho.data, 0.)
     for (k, h_k) in H.operators
-        factors = Dict{Int,Complex128}()
-        for (gamma, h_k_gamma) in h_k.operators
-            if haskey(rho0.operators, gamma)
-                operators.gemm!(complex(1.,0.), h_k_gamma, rho0.operators[gamma], complex(0.), tmp.operators[gamma])
-                factors[gamma] = trace(tmp.operators[gamma])
-            else
-                factors[gamma] = trace(h_k_gamma)
-            end
-        end
+        operators.gemm!(1., h_k, rho0, 0., tmp)
+        subtraces = traces(tmp)
         for (alpha, h_k_alpha) in h_k.operators
-            if !haskey(rho.operators, alpha)
-                continue
-            end
-            factor = 1.
+            factor = h_k.factor
             for gamma in keys(h_k.operators)
                 if alpha!=gamma
                     factor *= factors[gamma]
@@ -34,21 +57,12 @@ function dmaster(rho0::LazyTensor, H::LazySum,
         end
     end
     for k=1:length(J.operators)
-        factors = Dict{Int,Complex128}()
-        for gamma in keys(J.operators[k].operators)
-            if haskey(rho0.operators, gamma)
-                operators.gemm!(complex(1.,0.), JdaggerJ.operators[k].operators[gamma], rho0.operators[gamma], complex(0.), tmp.operators[gamma])
-                factors[gamma] = trace(tmp.operators[gamma])
-            else
-                factors[gamma] = trace(JdaggerJ.operators[k].operators[gamma])
-            end
-        end
-        for alpha in keys(J.operators[k].operators)
-            if !haskey(rho.operators, alpha)
-                continue
-            end
-            factor = 1.
-            for gamma in keys(J.operators[k].operators)
+        operators.gemm!(1., JdaggerJ.operators[k], rho0, 0., tmp)
+        subtraces = traces(tmp)
+        subindices = keys(J.operators[k].operators)
+        for alpha in subindices
+            factor = JdaggerJ.operators[k].factor
+            for gamma in subindices
                 if alpha!=gamma
                     factor *= factors[gamma]
                 end
@@ -61,49 +75,31 @@ function dmaster(rho0::LazyTensor, H::LazySum,
     end
 end
 
-function productstatedimension(rho::LazyTensor)
-    N = 0
-    for (alpha, rho_alpha) in rho.operators
-        N += length(rho_alpha.basis_l)*length(rho_alpha.basis_r)
-    end
-end
+dims(rho::ProductDensityOperator) = [length(op.basis_l)*length(op.basis_r) for op in rho.operators]
 
-function as_vector(rho::LazyTensor, x::Vector{Complex128})
-    N = productstatedimension(rho)
-    @assert length(x) == N
+function as_vector(rho::ProductDensityOperator, x::Vector{Complex128})
     i = 1
-    for alpha in sort(alphas)
-        rho_alpha = rho.operators[alpha]
-        N = length(rho_alpha.basis_l)*length(rho_alpha.basis_r)
-        x[i:i+N] = reshape(rho_alpha.data, N)
+    for op in rho.operators
+        N = length(op.basis_l)*length(op.basis_r)
+        x[i:i+N] = reshape(op.data, N)
         i += N
     end
     x
 end
 
-function as_operator(x::Vector{Complex128}, tmp::LazyTensor)
-    N = 0
-    alphas = Int[]
-    for (alpha, rho_alpha) in tmp.operators
-        N += length(rho_alpha.basis_l)*length(rho_alpha.basis_r)
-        push!(alphas, alpha)
-    end
+function as_operator(x::Vector{Complex128}, rho::ProductDensityOperator)
     i = 1
-    for alpha in sort(alphas)
-        rho_alpha = tmp.operators[alpha]
-        nl = length(rho_alpha.basis_l)
-        nr = length(rho_alpha.basis_r)
-        N = nl*nr
-        rho_alpha.data = reshape(x[i:i+N], nl, nr)
+    for op in rho.operators
+        N = length(op.basis_l)*length(op.basis_r)
+        reshape(op.data, N)[:] = x[i:i+N]
         i += N
     end
-    tmp
 end
 
-function master(tspan, rho0::LazyTensor, H::LazySum, J::Vector{LazySum};
+function master(tspan, rho0::ProductDensityOperator, H::LazySum, J::Vector{LazySum};
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
-    N = productstatedimension(rho)
+    x0 = as_vector(rho0, zeros(Complex128, prod(dims(rho0))))
     f = (x->x)
     if fout==nothing
         tout = Float64[]
@@ -127,7 +123,7 @@ function master(tspan, rho0::LazyTensor, H::LazySum, J::Vector{LazySum};
         dmaster(as_operator(x, rho), H, J, Jdagger, JdaggerJ, drho, tmp)
         as_vector(drho, dx)
     end
-    ode(dmaster_, float(tspan), as_vector(rho0, zeros(Complex128, N)), f_; kwargs...)
+    ode(dmaster_, float(tspan), x0, f_; kwargs...)
     return fout==nothing ? (tout, xout) : nothing
 end
 
