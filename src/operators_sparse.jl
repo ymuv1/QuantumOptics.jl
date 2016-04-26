@@ -18,6 +18,12 @@ type SparseOperator <: Operator
     basis_l::Basis
     basis_r::Basis
     data::SparseMatrixCSC{Complex128}
+    function SparseOperator(b1::Basis, b2::Basis, data)
+        if length(b1) != size(data, 1) || length(b2) != size(data, 2)
+            throw(DimensionMismatch())
+        end
+        new(b1, b2, data)
+    end
 end
 
 SparseOperator(b::Basis, data::SparseMatrixCSC{Complex128}) = SparseOperator(b, b, data)
