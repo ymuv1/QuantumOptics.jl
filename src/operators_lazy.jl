@@ -166,7 +166,7 @@ function operators.dagger(op::LazyTensor)
     for (i, op_i) in op.operators
         D[i] = dagger(op_i)
     end
-    LazyTensor(op.basis_l, op.basis_r, D, conj(op.factor))
+    LazyTensor(op.basis_r, op.basis_l, D, conj(op.factor))
 end
 operators.dagger(op::LazySum) = LazySum(conj(op.factors), Operator[dagger(op_i) for op_i in op.operators])
 
