@@ -70,7 +70,7 @@ type LazySum <: LazyOperator
     operators::Vector{Operator}
 
     function LazySum(factors::Vector{Complex128}, operators::Vector{Operator})
-        @assert length(operators)>1
+        @assert length(operators)>0
         @assert length(operators)==length(factors)
         for i = 2:length(operators)
             @assert operators[1].basis_l == operators[i].basis_l
@@ -161,6 +161,15 @@ function operators_sparse.sparse(x::LazyProduct)
     return result
 end
 
+function operators.dagger(op::LazyTensor)
+    D = Dict{Int, Operator}()
+    for (i, op_i) in op.operators
+        D[i] = dagger(op_i)
+    end
+    LazyTensor(op.basis_l, op.basis_r, D, conj(op.factor))
+end
+operators.dagger(op::LazySum) = LazySum(conj(op.factors), Operator[dagger(op_i) for op_i in op.operators])
+
 operators.trace(op::LazyTensor) = op.factor*prod([(haskey(op.operators,i) ? trace(op.operators[i]): prod(op.basis_l.shape)) for i=1:length(op.basis_l)])
 operators.trace(op::LazySum) = sum([trace(x) for x=op.operators])
 
@@ -197,7 +206,7 @@ end
 +(a::Operator, b::LazyOperator) = LazySum(a, b)
 +(a::LazySum, b::LazySum) = LazySum([a.factors, b.factors;], [a.operators, b.operators;])
 +(a::LazySum, b::LazyOperator) = LazySum([a.factors, Complex(1.);], [a.operators, b;])
-+(a::LazyOperator, b::LazySum) = LazySum([a.factors, Complex(1.);], [a, b.operators;])
++(a::LazyOperator, b::LazySum) = LazySum([Complex(1.), b.factors;], [a, b.operators;])
 +(a::LazySum, b::Operator) = LazySum([a.factors, Complex(1.);], [a.operators, b;])
 +(a::Operator, b::LazySum) = LazySum([a.factors, Complex(1.);], [a, b.operators;])
 
@@ -240,17 +249,14 @@ end
 function operators.gemv!(alpha, a::LazyTensor, b::Ket, beta, result::Ket)
     rank = zeros(Int, [0 for i=1:length(a.basis_l.shape)]...)
     bases = [b for b=b.basis.bases]
-    for (n, op_index) in enumerate(keys(a.operators))
+    for op_index in keys(a.operators)
         index = zeros(Int, [0 for i=1:op_index]...)
         bases[op_index] = a.operators[op_index].basis_l
-        if n==length(a.operators)
-            _lazytensor_gemv!(rank, index, alpha, a.operators[op_index], b, beta, result)
-        else
-            tmp = Ket(CompositeBasis(bases...))
-            _lazytensor_gemv!(rank, index, Complex(1.), a.operators[op_index], b, Complex(0.), tmp)
-            b = tmp
-        end
+        tmp = Ket(CompositeBasis(bases...))
+        _lazytensor_gemv!(rank, index, Complex(1.), a.operators[op_index], b, Complex(0.), tmp)
+        b = tmp
     end
+    result.data[:] = beta*result.data[:] + b.data[:]
     nothing
 end
 
@@ -280,17 +286,14 @@ end
 function operators.gemv!(alpha, a::Bra, b::LazyTensor, beta, result::Bra)
     rank = zeros(Int, [0 for i=1:length(b.basis_r.shape)]...)
     bases = [b for b=a.basis.bases]
-    for (n, op_index) in enumerate(keys(b.operators))
+    for op_index in keys(b.operators)
         index = zeros(Int, [0 for i=1:op_index]...)
         bases[op_index] = b.operators[op_index].basis_r
-        if n==length(b.operators)
-            _lazytensor_gemv!(rank, index, alpha, a, b.operators[op_index], beta, result)
-        else
-            tmp = Bra(CompositeBasis(bases...))
-            _lazytensor_gemv!(rank, index, Complex(1.), a, b.operators[op_index], Complex(0.), tmp)
-            a = tmp
-        end
+        tmp = Bra(CompositeBasis(bases...))
+        _lazytensor_gemv!(rank, index, Complex(1.), a, b.operators[op_index], Complex(0.), tmp)
+        a = tmp
     end
+    result.data[:] = beta*result.data[:] + a.data[:]
     nothing
 end
 
