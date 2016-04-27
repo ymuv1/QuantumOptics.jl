@@ -126,10 +126,10 @@ function dmaster(rho0::ProductDensityOperator, H::LazySum,
                     factor *= subtraces[gamma]
                 end
             end
-            operators.gemm!(complex(2*factor), J[k].operators[alpha], rho0.operators[alpha], complex(0.), tmp.operators[alpha])
+            operators.gemm!(complex(factor), J[k].operators[alpha], rho0.operators[alpha], complex(0.), tmp.operators[alpha])
             operators.gemm!(complex(1.), tmp.operators[alpha], Jdagger[k].operators[alpha], complex(1.), drho.operators[alpha])
-            operators.gemm!(complex(-factor), JdaggerJ[k].operators[alpha], rho0.operators[alpha], complex(1.), drho.operators[alpha])
-            operators.gemm!(complex(-factor), rho0.operators[alpha], JdaggerJ[k].operators[alpha], complex(1.), drho.operators[alpha])
+            operators.gemm!(complex(-0.5*factor), JdaggerJ[k].operators[alpha], rho0.operators[alpha], complex(1.), drho.operators[alpha])
+            operators.gemm!(complex(-0.5*factor), rho0.operators[alpha], JdaggerJ[k].operators[alpha], complex(1.), drho.operators[alpha])
         end
     end
 end
