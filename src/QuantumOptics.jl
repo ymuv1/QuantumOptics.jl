@@ -24,6 +24,7 @@ export bases, Basis, GenericBasis, CompositeBasis,
                 eigenstates, eigenstates_hermitian, groundstate,
         timeevolution_simple,
         timeevolution,
+        cumulantexpansion,
         steadystate,
         correlations
 
