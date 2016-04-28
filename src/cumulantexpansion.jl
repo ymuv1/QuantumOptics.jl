@@ -124,6 +124,12 @@ function dmaster(rho0::ProductDensityOperator, H::LazySum,
     end
 end
 
+function dmaster_timedependent(t::Float64, rho0::ProductDensityOperator, f::Function,
+                 drho::ProductDensityOperator, tmp::ProductDensityOperator, tmp2::ProductDensityOperator)
+    H, J, Jdagger = f(t, rho0)
+    dmaster(rho0, H, J, Jdagger, drho, tmp, tmp2)
+end
+
 dims(rho::ProductDensityOperator) = [length(op.basis_l)*length(op.basis_r) for op in rho.operators]
 
 function as_vector(rho::ProductDensityOperator, x::Vector{Complex128})
@@ -148,9 +154,8 @@ function as_operator(x::Vector{Complex128}, rho::ProductDensityOperator)
     rho
 end
 
-function master(tspan, rho0::ProductDensityOperator, H::LazySum, J::Vector{LazyTensor};
-                fout::Union{Function,Void}=nothing,
-                kwargs...)
+function integrate_master(dmaster::Function, tspan, rho0::ProductDensityOperator;
+                fout::Union{Function,Void}=nothing, kwargs...)
     x0 = as_vector(rho0, zeros(Complex128, prod(dims(rho0))))
     f = (x->x)
     if fout==nothing
@@ -164,21 +169,47 @@ function master(tspan, rho0::ProductDensityOperator, H::LazySum, J::Vector{LazyT
     else
         f = fout
     end
+    tmp = deepcopy(rho0)
+    f_(t, x::Vector{Complex128}) = f(t, as_operator(x, tmp))
+    ode(dmaster, float(tspan), x0, f_; kwargs...)
+    return fout==nothing ? (tout, xout) : nothing
+end
+
+function master(tspan, rho0::ProductDensityOperator, H::LazySum, J::Vector{LazyTensor};
+                fout::Union{Function,Void}=nothing,
+                kwargs...)
+
     Jdagger = LazyTensor[dagger(j) for j=J]
     rho = deepcopy(rho0)
     drho = deepcopy(rho0)
     tmp = deepcopy(rho0)
     tmp2 = deepcopy(rho0)
-
-    f_(t, x::Vector{Complex128}) = f(t, as_operator(x, tmp))
     function dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128})
         dmaster(as_operator(x, rho), H, J, Jdagger, drho, tmp, tmp2)
         as_vector(drho, dx)
     end
-    ode(dmaster_, float(tspan), x0, f_; kwargs...)
-    return fout==nothing ? (tout, xout) : nothing
+    integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
 end
 
 master(tspan, rho0, H::LazyTensor, J; kwargs...) = master(tspan, rho0, LazySum(H), J; kwargs...)
+
+
+"""
+f
+    Function f(t, rho_t) -> (H_t, J_t, Jdagger_t)
+"""
+function master_timedependent(tspan, rho0::ProductDensityOperator, f::Function;
+                fout::Union{Function,Void}=nothing,
+                kwargs...)
+    rho = deepcopy(rho0)
+    drho = deepcopy(rho0)
+    tmp = deepcopy(rho0)
+    tmp2 = deepcopy(rho0)
+    function dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128})
+        dmaster_timedependent(t, as_operator(x, rho), f, drho, tmp, tmp2)
+        as_vector(drho, dx)
+    end
+    integrate_master(dmaster_, tspan, rho0; fout=fout, kwargs...)
+end
 
 end # module
