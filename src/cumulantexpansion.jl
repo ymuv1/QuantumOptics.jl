@@ -61,20 +61,6 @@ dims(x::ProductDensityOperator) = dims(x.basis_l, x.basis_r)
 
 operators.expect(op::Operator, rho::ProductDensityOperator) = trace(op*rho)
 operators.expect(op::LazySum, rho::ProductDensityOperator) = sum([expect(x, rho) for (f, x) in zip(op.factors, op.operators)])
-# function operators.expect(op::LazyTensor, rho::ProductDensityOperator)
-#     result = op.factor
-#     for (alpha, rho_alpha) in enumerate(rho.operators)
-#         if alpha in keys(op)
-#             result *= expect(op.operators[alpha], rho_alpha)
-#         else
-#             result *= trace(rho_alpha)
-#         end
-#     end
-#     result
-# end
-
-# operators.expect(op::LazySum, rho::ProductDensity) = sum([expect(f*x, rho) for (f, x) in zip(op.factors, op.operators)])
-
 
 traces(x::ProductDensityOperator) = [trace(op) for op in x.operators]
 operators.trace(x::ProductDensityOperator) = prod(traces(x))
@@ -98,8 +84,8 @@ function operators.gemm!(alpha, a::LazyTensor, b::ProductDensityOperator, beta, 
 end
 
 function dmaster(rho0::ProductDensityOperator, H::LazySum,
-                 J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor}, JdaggerJ::Vector{LazyTensor},
-                 drho::ProductDensityOperator, tmp::ProductDensityOperator)
+                 J::Vector{LazyTensor}, Jdagger::Vector{LazyTensor},
+                 drho::ProductDensityOperator, tmp::ProductDensityOperator, tmp2::ProductDensityOperator)
     fill!(drho, 0.)
     for h_k in H.operators
         operators.gemm!(1., h_k, rho0, 0., tmp)
@@ -116,11 +102,12 @@ function dmaster(rho0::ProductDensityOperator, H::LazySum,
         end
     end
     for k=1:length(J)
-        operators.gemm!(1., JdaggerJ[k], rho0, 0., tmp)
+        operators.gemm!(1., J[k], rho0, 0., tmp)
+        operators.gemm!(1., Jdagger[k], tmp, 0., tmp2)
         subtraces = traces(tmp)
         subindices = keys(J[k].operators)
         for alpha in subindices
-            factor = JdaggerJ[k].factor
+            factor = Jdagger[k].factor * J[k].factor
             for gamma in subindices
                 if alpha!=gamma
                     factor *= subtraces[gamma]
@@ -128,8 +115,11 @@ function dmaster(rho0::ProductDensityOperator, H::LazySum,
             end
             operators.gemm!(complex(factor), J[k].operators[alpha], rho0.operators[alpha], complex(0.), tmp.operators[alpha])
             operators.gemm!(complex(1.), tmp.operators[alpha], Jdagger[k].operators[alpha], complex(1.), drho.operators[alpha])
-            operators.gemm!(complex(-0.5*factor), JdaggerJ[k].operators[alpha], rho0.operators[alpha], complex(1.), drho.operators[alpha])
-            operators.gemm!(complex(-0.5*factor), rho0.operators[alpha], JdaggerJ[k].operators[alpha], complex(1.), drho.operators[alpha])
+
+            operators.gemm!(complex(-0.5), Jdagger[k].operators[alpha], tmp.operators[alpha], complex(1.), drho.operators[alpha])
+
+            operators.gemm!(complex(-0.5*factor), rho0.operators[alpha], Jdagger[k].operators[alpha], complex(0.), tmp.operators[alpha])
+            operators.gemm!(complex(1.), tmp.operators[alpha], J[k].operators[alpha], complex(1.), drho.operators[alpha])
         end
     end
 end
@@ -175,14 +165,14 @@ function master(tspan, rho0::ProductDensityOperator, H::LazySum, J::Vector{LazyT
         f = fout
     end
     Jdagger = LazyTensor[dagger(j) for j=J]
-    JdaggerJ = LazyTensor[dagger(j)*j for j=J]
     rho = deepcopy(rho0)
     drho = deepcopy(rho0)
     tmp = deepcopy(rho0)
+    tmp2 = deepcopy(rho0)
 
     f_(t, x::Vector{Complex128}) = f(t, as_operator(x, tmp))
     function dmaster_(t, x::Vector{Complex128}, dx::Vector{Complex128})
-        dmaster(as_operator(x, rho), H, J, Jdagger, JdaggerJ, drho, tmp)
+        dmaster(as_operator(x, rho), H, J, Jdagger, drho, tmp, tmp2)
         as_vector(drho, dx)
     end
     ode(dmaster_, float(tspan), x0, f_; kwargs...)
