@@ -1,6 +1,5 @@
 using Base.Test
 using QuantumOptics
-using ArrayViews
 
 T = [0.:0.1:0.5;]
 
@@ -59,11 +58,18 @@ function ProductState(rho::DenseOperator)
         sy[k] = f(k, sigmay)
         sz[k] = f(k, sigmaz)
     end
+    combinestate(sx, sy, sz, state.data)
     return state
 end
 
-splitstate(N::Int, data::Vector{Float64}) = view(data, 0*N+1:1*N), view(data, 1*N+1:2*N), view(data, 2*N+1:3*N)
+splitstate(N::Int, data::Vector{Float64}) = vec(data[0*N+1:1*N]), vec(data[1*N+1:2*N]), vec(data[2*N+1:3*N])
 splitstate(state::ProductState) = splitstate(state.N, state.data)
+function combinestate(sx::Vector{Float64}, sy::Vector{Float64}, sz::Vector{Float64}, state::Vector{Float64})
+    state[0*N+1:1*N] = sx
+    state[1*N+1:2*N] = sy
+    state[2*N+1:3*N] = sz
+    state
+end
 
 function f(t, y::Vector{Float64}, dy::Vector{Float64})
     sx, sy, sz = splitstate(N, y)
@@ -81,6 +87,7 @@ function f(t, y::Vector{Float64}, dy::Vector{Float64})
             dsz[k] += Ω[k,j]*(sx[j]*sy[k] - sy[j]*sx[k])
         end
     end
+    combinestate(dsx, dsy, dsz, dy)
 end
 
 t_out = Float64[]
