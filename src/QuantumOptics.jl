@@ -44,7 +44,14 @@ include("nparticles.jl")
 include("metrics.jl")
 include("ode_dopri.jl")
 include("timeevolution_simple.jl")
-include("timeevolution.jl")
+module timeevolution
+    include("master.jl")
+    include("schroedinger.jl")
+    include("mcwf.jl")
+    using .timeevolution_master
+    using .timeevolution_schroedinger
+    using .timeevolution_mcwf
+end
 include("cumulantexpansion.jl")
 include("steadystate.jl")
 include("correlations.jl")
