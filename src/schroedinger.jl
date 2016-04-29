@@ -1,6 +1,6 @@
 module timeevolution_schroedinger
 
-export schroedinger
+export schroedinger, schroedinger_timedependent
 
 using ...bases
 using ...operators
@@ -30,20 +30,30 @@ function integrate_schroedinger{T<:StateVector}(dschroedinger::Function, tspan, 
     return fout==nothing ? (tout, xout) : nothing
 end
 
-"""
-Evaluate Schroedinger equation for ket states.
-"""
-function dschroedinger_ket(psi::Ket, H::Operator, dpsi::Ket)
+function dschroedinger(psi::Ket, H::Operator, dpsi::Ket)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
     return dpsi
 end
 
-"""
-Evaluate Schroedinger equation for bra states.
-"""
-function dschroedinger_bra(psi::Bra, H::Operator, dpsi::Bra)
+function dschroedinger(psi::Bra, H::Operator, dpsi::Bra)
     operators.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
     return dpsi
+end
+
+function dschroedinger_timedependent{T<:StateVector}(t::Float64, psi0::T, f::Function, dpsi::T)
+    H = f(t, psi0)
+    _check_input(psi0, H)
+    dschroedinger(psi0, H, dpsi)
+end
+
+function _check_input(psi::Ket, H::Operator)
+    @assert psi.basis==H.basis_l
+    @assert multiplicable(H.basis_r, psi.basis)
+end
+
+function _check_input(psi::Bra, H::Operator)
+    @assert psi.basis==H.basis_r
+    @assert multiplicable(psi.basis, H.basis_l)
 end
 
 """
@@ -56,7 +66,7 @@ tspan
 psi0
     Initial state vector (can be a bra or a ket).
 H
-    DenseOperator specifying the Hamiltonian.
+    Operator specifying the Hamiltonian.
 
 Keyword Arguments
 -----------------
@@ -69,16 +79,37 @@ fout (optional)
 function schroedinger{T<:StateVector}(tspan, psi0::T, H::Operator;
                 fout::Union{Function,Void}=nothing,
                 kwargs...)
-    if T==Ket
-        @assert psi0.basis==H.basis_l
-        @assert multiplicable(H.basis_r, psi0.basis)
-        dschroedinger_(t, psi::Ket, dpsi::Ket) = dschroedinger_ket(psi, H, dpsi)
-    elseif T==Bra
-        @assert psi0.basis==H.basis_r
-        @assert multiplicable(psi0.basis, H.basis_l)
-        dschroedinger_(t, psi::Bra, dpsi::Bra) = dschroedinger_bra(psi, H, dpsi)
-    end
-    return integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
+    _check_input(psi0, H)
+    dschroedinger_(t, psi::T, dpsi::T) = dschroedinger(psi, H, dpsi)
+    integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
+end
+
+
+"""
+Integrate time-dependent Schroedinger equation.
+
+Arguments
+---------
+tspan
+    Vector specifying the points of time for which output should be displayed.
+psi0
+    Initial state vector (can be a bra or a ket).
+f
+    Function f(t, psi) -> H returning the time and or state dependent Hamiltonian.
+
+Keyword Arguments
+-----------------
+
+fout (optional)
+    If given this function fout(t, psi) is called every time an output should
+    be displayed. To limit copying to a minimum the given state psi
+    is further used and therefore must not be changed.
+"""
+function schroedinger_timedependent{T<:StateVector}(tspan, psi0::T, f::Function;
+                fout::Union{Function,Void}=nothing,
+                kwargs...)
+    dschroedinger_(t, psi::T, dpsi::T) = dschroedinger_timedependent(t, psi, f, dpsi)
+    integrate_schroedinger(dschroedinger_, tspan, psi0; fout=fout, kwargs...)
 end
 
 end
