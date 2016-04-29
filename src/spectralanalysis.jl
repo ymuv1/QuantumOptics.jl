@@ -155,6 +155,6 @@ Keyword arguments
 Nmax (optional)
     Number of eigenstates that should be calculated.
 """
-groundstate(H::Union{DenseOperator, SparseOperator}) = eigenstates_hermitian(H; Nmax=1)
+groundstate(H::Union{DenseOperator, SparseOperator}) = eigenstates_hermitian(H; Nmax=1)[1]
 
 end # module
