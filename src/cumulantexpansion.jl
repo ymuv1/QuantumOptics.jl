@@ -133,7 +133,7 @@ end
 dims(rho::ProductDensityOperator) = [length(op.basis_l)*length(op.basis_r) for op in rho.operators]
 
 function as_vector(rho::ProductDensityOperator, x::Vector{Complex128})
-    @assert length(x) == prod(dims(rho))
+    @assert length(x) == sum(dims(rho))
     i = 0
     for op in rho.operators
         N = length(op.basis_l)*length(op.basis_r)
@@ -144,7 +144,7 @@ function as_vector(rho::ProductDensityOperator, x::Vector{Complex128})
 end
 
 function as_operator(x::Vector{Complex128}, rho::ProductDensityOperator)
-    @assert length(x) == prod(dims(rho))
+    @assert length(x) == sum(dims(rho))
     i = 0
     for op in rho.operators
         N = length(op.basis_l)*length(op.basis_r)
@@ -156,7 +156,7 @@ end
 
 function integrate_master(dmaster::Function, tspan, rho0::ProductDensityOperator;
                 fout::Union{Function,Void}=nothing, kwargs...)
-    x0 = as_vector(rho0, zeros(Complex128, prod(dims(rho0))))
+    x0 = as_vector(rho0, zeros(Complex128, sum(dims(rho0))))
     f = (x->x)
     if fout==nothing
         tout = Float64[]
