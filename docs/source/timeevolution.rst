@@ -27,7 +27,7 @@ The Schroedinger equation as one of the basic postulates of quantum mechanics de
 
 Both versions are implemented and are chosen automatically depending on the type of the provided initial state (Bra or Ket):
 
-* :jl:func:`timeevolution.schroedinger`
+* :jl:func:`schroedinger`
 
 
 .. _section-master:
@@ -59,7 +59,7 @@ If for any reason this behavior is unwanted, e.g. special operators are used tha
 
 * :func:`master_h(tspan, rho0::DenseOperator, H::Operator, J::Vector)`
 
-* :func:`master_nh(tspan, rho0::DenseOperator, H::Operator, J::Vector)`
+* :func:`master_nh(tspan, rho0::DenseOperator, Hnh::Operator, J::Vector)`
 
 
 .. _section-mcwf:

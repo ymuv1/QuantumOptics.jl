@@ -284,7 +284,7 @@ Time-evolution
 Schroedinger
 ^^^^^^^^^^^^
 
-.. jl:autofunction:: timeevolution.jl schroedinger
+.. jl:autofunction:: schroedinger.jl schroedinger
 
 
 .. _section-api-master:
@@ -292,11 +292,11 @@ Schroedinger
 Master
 ^^^^^^
 
-.. jl:autofunction:: timeevolution.jl master
+.. jl:autofunction:: master.jl master
 
-.. jl:autofunction:: timeevolution.jl master_h
+.. jl:autofunction:: master.jl master_h
 
-.. jl:autofunction:: timeevolution.jl master_nh
+.. jl:autofunction:: master.jl master_nh
 
 
 .. _section-api-mcwf:
@@ -304,7 +304,7 @@ Master
 Monte Carlo wave function
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. jl:autofunction:: timeevolution.jl mcwf
+.. jl:autofunction:: mcwf.jl mcwf
 
 
 
