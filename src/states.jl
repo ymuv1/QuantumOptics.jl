@@ -7,8 +7,7 @@ using ..bases
 
 export StateVector, Bra, Ket,
        tensor, dagger,
-       basis_bra, basis_ket, basis,
-       normalize, normalize!
+       basis_bra, basis_ket, basis
 
 
 """
@@ -76,12 +75,12 @@ Base.norm(x::StateVector, p=2) = norm(x.data, p)
 """
 Normalized copy of the given state vector.
 """
-normalize(x::StateVector, p=2) = x/norm(x, p)
+Base.normalize(x::StateVector, p=2) = x/norm(x, p)
 
 """
 Normalize the given state vector.
 """
-function normalize!(x::StateVector, p=2)
+function Base.normalize!(x::StateVector, p=2)
     u = 1./norm(x, p)
     for i=1:length(x.data)
         x.data[i]*=u
