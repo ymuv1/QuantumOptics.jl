@@ -130,7 +130,6 @@ function dmaster_timedependent(t::Float64, rho0::ProductDensityOperator, f::Func
     dmaster(rho0, H, J, Jdagger, drho, tmp, tmp2)
 end
 
-dims(rho::ProductDensityOperator) = [length(op.basis_l)*length(op.basis_r) for op in rho.operators]
 
 function as_vector(rho::ProductDensityOperator, x::Vector{Complex128})
     @assert length(x) == sum(dims(rho))
