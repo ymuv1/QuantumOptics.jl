@@ -16,8 +16,8 @@ end
 
 #N = 1e10
 
-# @time f_real(1.im, 10)
-# #@time f_real(1.im, N)
+# @time f_real(1im, 10)
+# #@time f_real(1im, N)
 # @time f_real(1., 10)
 # #@time f_real(1., N)
 # @time f_compl(1., 10)
@@ -30,4 +30,4 @@ const N = 10^6
 
 f_compl(a, 1)
 @time f_compl(a, N)
-#@time f_compl(1.im, N)
+#@time f_compl(1im, N)

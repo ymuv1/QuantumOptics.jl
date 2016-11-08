@@ -49,11 +49,11 @@ function transformation!(b1::quantumoptics.particle.PositionBasis, b2::quantumop
     dp = quantumoptics.particle.spacing(b2)
     dx = quantumoptics.particle.spacing(b1)
     @inbounds for i=1:N
-        psi.data[i] .*= exp(-1im*b2.pmin*(i-1)*dx)
+        psi.data[i] *= exp(-1im*b2.pmin*(i-1)*dx)
     end
     fft!(psi.data)
     @inbounds for i=1:N
-        psi.data[i] .*= exp(-1im*b1.xmin*(b2.pmin + (i-1)*dp))/sqrt(N)
+        psi.data[i] *= exp(-1im*b1.xmin*(b2.pmin + (i-1)*dp))/sqrt(N)
     end
     return psi
 end

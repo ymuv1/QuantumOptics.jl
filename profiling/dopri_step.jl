@@ -323,8 +323,8 @@ function profile_optimized2(runs)
 end
 
 function profile(runs)
-    t = 1.+0.im
-    h = 0.1+0.im
+    t = 1.+0im
+    h = 0.1+0im
     g(t,x0_,k1_)
     for i=1:runs
         oderk_step(g, t, h,
