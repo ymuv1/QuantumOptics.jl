@@ -5,13 +5,13 @@ T = [0.:0.1:0.5;]
 
 # Define Spin 1/2 operators
 spinbasis = SpinBasis(1//2)
-I = dense_identity(spinbasis)
+I = dense_identityoperator(spinbasis)
 sigmax = full(spin.sigmax(spinbasis))
 sigmay = full(spin.sigmay(spinbasis))
 sigmaz = full(spin.sigmaz(spinbasis))
 sigmap = full(spin.sigmap(spinbasis))
 sigmam = full(spin.sigmam(spinbasis))
-I_spin = identity(spinbasis)
+I_spin = identityoperator(spinbasis)
 
 N = 2
 b = tensor([spinbasis for i=1:N]...)

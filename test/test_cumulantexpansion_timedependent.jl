@@ -16,7 +16,7 @@ basis = tensor([basis_fock for i=1:N]...)
 
 a = destroy(basis_fock)
 at = create(basis_fock)
-I = identity(basis_fock)
+I = identityoperator(basis_fock)
 
 
 rho0 = cumulantexpansion.ProductDensityOperator([coherentstate(basis_fock, i%Ncutoff) for i=1:N]...)

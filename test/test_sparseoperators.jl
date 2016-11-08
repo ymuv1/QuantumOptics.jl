@@ -16,8 +16,8 @@ sy_dense = full(sy)
 @test sparse(sx_dense) == sx
 
 b = FockBasis(3)
-I = identity(b)
-I_dense = dense_identity(b)
+I = sparse_identityoperator(b)
+I_dense = dense_identityoperator(b)
 
 
 s = tensor(sx, sy)
@@ -28,7 +28,7 @@ s_dense = tensor(sx_dense, sy_dense)
 @test_approx_eq 0. norm((I_dense-full(I)).data)
 @test_approx_eq 0. norm((s_dense - full(s)).data)
 
-@test I == identity(destroy(b))
+@test I == identityoperator(destroy(b))
 
 type A <: Operator
 end

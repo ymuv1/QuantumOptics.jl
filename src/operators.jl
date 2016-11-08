@@ -10,7 +10,8 @@ using ..bases, ..states
 
 export Operator, DenseOperator,
        tensor, dagger, projector,
-       expect, dense_identity, embed
+       expect, identityoperator, dense_identityoperator,
+       embed
 
 
 """
@@ -48,7 +49,7 @@ Converting an arbitrary Operator into a DenseOperator.
 """
 Base.copy(x::DenseOperator) = deepcopy(x)
 Base.full(x::DenseOperator) = deepcopy(x)
-Base.full(op::Operator) = op*dense_identity(op.basis_r)
+Base.full(op::Operator) = op*dense_identityoperator(op.basis_r)
 
 Base.eltype(x::Operator) = Complex128
 Base.zero{T<:Operator}(x::T) = T(x.basis_l, x.basis_r)
@@ -156,10 +157,10 @@ expect(op::Operator, states::Vector{Ket}) = [expect(op, state) for state=states]
 """
 Identity operator.
 """
-dense_identity(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
-dense_identity(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
-dense_identity(op::Operator) = dense_identity(op.basis_l, op.basis_r)
-Base.identity(op::DenseOperator) = dense_identity(op.basis_l, op.basis_r)
+dense_identityoperator(b::Basis) = DenseOperator(b, b, eye(Complex, length(b)))
+dense_identityoperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, eye(Complex, length(b1), length(b2)))
+dense_identityoperator(op::Operator) = dense_identityoperator(op.basis_l, op.basis_r)
+identityoperator(op::DenseOperator) = dense_identityoperator(op.basis_l, op.basis_r)
 
 
 # Multiplication for Operators in terms of their gemv! implementation
@@ -209,7 +210,7 @@ function *(psi::Bra, op::Operator)
     return result
 end
 
-Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? dense_identity(basis) : prod(operators))
+Base.prod{B<:Basis, T<:AbstractArray}(basis::B, operators::T) = (length(operators)==0 ? dense_identityoperator(basis) : prod(operators))
 
 """
 Tensor product of operators where all missing indices are identity operators.

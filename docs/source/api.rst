@@ -94,7 +94,7 @@ Operators
 
 .. jl:autofunction:: operators.jl normalize!
 
-.. jl:autofunction:: operators_sparse.jl identity
+.. jl:autofunction:: operators_sparse.jl sparse_identityoperator
 
 .. jl:autofunction:: operators.jl expect
 
@@ -120,7 +120,7 @@ DenseOperators
 
 .. jl:autofunction:: operators.jl full
 
-.. jl:autofunction:: operators.jl dense_identity
+.. jl:autofunction:: operators.jl dense_identityoperator
 
 
 .. _section-api-sparseoperators:

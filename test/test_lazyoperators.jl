@@ -14,8 +14,8 @@ sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)
 sz = sigmaz(spinbasis)
 
-Ispin = identity(spinbasis)
-Ifock = identity(fockbasis)
+Ispin = sparse_identityoperator(spinbasis)
+Ifock = sparse_identityoperator(fockbasis)
 
 # # LazyTensor
 # basis = tensor(spinbasis, fockbasis, spinbasis)

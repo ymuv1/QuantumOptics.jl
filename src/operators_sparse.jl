@@ -5,7 +5,7 @@ import ..operators
 
 using ..bases, ..states, ..operators, ..sparsematrix
 
-export SparseOperator
+export SparseOperator, sparse_identityoperator
 
 
 """
@@ -67,9 +67,12 @@ operators.dagger(x::SparseOperator) = SparseOperator(x.basis_r, x.basis_l, x.dat
 operators.norm(op::SparseOperator, p) = norm(op.data, p)
 operators.trace(op::SparseOperator) = trace(op.data)
 
-Base.identity(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
-Base.identity(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
-Base.identity(op::SparseOperator) = identity(op.basis_l, op.basis_r)
+sparse_identityoperator(b::Basis) = SparseOperator(b, b, speye(Complex128, length(b)))
+sparse_identityoperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
+
+operators.identityoperator(b::Basis) = sparse_identityoperator(b)
+operators.identityoperator(b1::Basis, b2::Basis) = sparse_identityoperator(b1, b2)
+operators.identityoperator(op::SparseOperator) = sparse_identityoperator(op.basis_l, op.basis_r)
 
 
 function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{SparseOperator})
@@ -78,9 +81,9 @@ function operators.embed(basis::CompositeBasis, indices::Vector{Int}, operators:
     if length(basis.bases) == 1
         return SparseOperator(basis, basis, deepcopy(operators[1].data))
     end
-    op_total = (1 in indices ? operators[findfirst(indices, 1)] : identity(basis.bases[1]))
+    op_total = (1 in indices ? operators[findfirst(indices, 1)] : sparse_identityoperator(basis.bases[1]))
     for i=2:length(basis.bases)
-        op = (i in indices ? operators[findfirst(indices, i)] : identity(basis.bases[i]))
+        op = (i in indices ? operators[findfirst(indices, i)] : sparse_identityoperator(basis.bases[i]))
         op_total = tensor(op_total, op)
     end
     return op_total

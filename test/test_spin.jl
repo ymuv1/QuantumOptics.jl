@@ -5,7 +5,7 @@ distance(a::SparseOperator, b::SparseOperator) = tracedistance(full(a), full(b))
 
 for spinnumber=1//2:1//2:5//2
     spinbasis = SpinBasis(spinnumber)
-    I = operators.identity(spinbasis)
+    I = operators.identityoperator(spinbasis)
     Zero = SparseOperator(spinbasis)
     sx = sigmax(spinbasis)
     sy = sigmay(spinbasis)
@@ -70,7 +70,7 @@ end
 # Test special relations for spin 1/2
 
 spinbasis = SpinBasis(1//2)
-I = identity(spinbasis)
+I = sparse_identityoperator(spinbasis)
 Zero = SparseOperator(spinbasis)
 sx = sigmax(spinbasis)
 sy = sigmay(spinbasis)
