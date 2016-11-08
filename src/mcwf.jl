@@ -55,18 +55,19 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan, psi0::Ket, se
         jumpnorm[1] = rand(rng)
         return ode_dopri.jump
     end
-    if fout==nothing
-        tout = Float64[]
-        xout = Ket[]
-        function fout_(t, x::Vector{Complex128})
+
+    tout = Float64[]
+    xout = Ket[]
+    function fout_(t, x::Vector{Complex128})
+        if fout==nothing
             psi = deepcopy(as_ket(x))
             psi /= norm(psi)
             push!(tout, t)
             push!(xout, psi)
-            nothing
+            return nothing
+        else
+            return fout(t, as_ket(x))
         end
-    else
-        fout_(t, x::Vector{Complex128}) = fout(t, as_ket(x))
     end
     dmcwf_(t, x::Vector{Complex128}, dx::Vector{Complex128}) = dmcwf(t, as_ket(x), as_ket(dx))
     ode_event(dmcwf_, float(tspan), as_vector(psi0), fout_,
