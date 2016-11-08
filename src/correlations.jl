@@ -163,7 +163,7 @@ function correlationspectrum(H::Operator, J::Vector, op::Operator;
     # S = Float64[]
     # for omega=omega_samplepoints
     #     y = exp(1im*omega*tspan).*exp_values/pi
-    #     I = 0.im
+    #     I = 0im
     #     for j=1:length(tspan)-1
     #         I += (tspan[j+1] - tspan[j])*(y[j+1] + y[j])
     #     end
