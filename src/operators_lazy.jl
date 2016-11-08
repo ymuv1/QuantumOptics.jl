@@ -51,7 +51,7 @@ end
 
 function LazyTensor{T<:Operator}(basis_l::CompositeBasis, basis_r::CompositeBasis, indices::Vector{Int}, operators::Vector{T}, factor::Number=1.)
     @assert length(indices) == length(Set(indices)) == length(operators)
-    LazyTensor(basis_l, basis_r, Dict{Int,Operator}([i=>op for (i,op)=zip(indices, operators)]), factor)
+    LazyTensor(basis_l, basis_r, Dict{Int,Operator}(i=>op for (i,op)=zip(indices, operators)), factor)
 end
 
 LazyTensor(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, operator::Operator, factor::Number=1.) = LazyTensor(basis_l, basis_r, [index], [operator], factor)
