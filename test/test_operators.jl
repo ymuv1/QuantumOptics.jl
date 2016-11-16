@@ -5,6 +5,8 @@ fockbasis = FockBasis(40)
 spinbasis = SpinBasis(1//2)
 
 alpha = 0.5
+beta = 1.5
+
 a = full(destroy(fockbasis))
 at = full(create(fockbasis))
 n = full(number(fockbasis))
@@ -17,6 +19,9 @@ sm = full(sigmam(spinbasis))
 
 xket = coherentstate(fockbasis, alpha)
 xbra = dagger(xket)
+yket = coherentstate(fockbasis, beta)
+ybra = dagger(yket)
+
 op1 = DenseOperator(spinbasis, GenericBasis([3]), [1 1 1; 1 1 1])
 op2 = DenseOperator(GenericBasis([3]), spinbasis, [1 1; 1 1; 1 1])
 I = dense_identityoperator(fockbasis)
@@ -47,6 +52,14 @@ I = dense_identityoperator(fockbasis)
 
 # Test division
 @test_approx_eq_eps 0. norm((at/5.)*xket - (at*xket)/5) 1e-13
+
+# Test projector
+@test_approx_eq_eps 0. norm(projector(xket)*xket - xket) 1e-13
+@test_approx_eq_eps 0. norm(xbra*projector(xket) - xbra) 1e-13
+@test_approx_eq_eps 0. norm(projector(xbra)*xket - xket) 1e-13
+@test_approx_eq_eps 0. norm(xbra*projector(xbra) - xbra) 1e-13
+@test_approx_eq_eps 0. norm(ybra*projector(yket, xbra) - xbra) 1e-13
+@test_approx_eq_eps 0. norm(projector(yket, xbra)*xket - yket) 1e-13
 
 # Test trace and normalize
 op = DenseOperator(GenericBasis([3]), [1 3 2;5 2 2;-1 2 5])
