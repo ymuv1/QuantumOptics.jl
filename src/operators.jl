@@ -105,8 +105,8 @@ states.dagger(x::DenseOperator) = DenseOperator(x.basis_r, x.basis_l, x.data')
 Create a projection operator.
 """
 projector(a::Ket, b::Bra) = tensor(a, b)
-projector(a::Ket) = tensor(a, dagger(b))
-projector(a::Bra) = tensor(dagger(a), b)
+projector(a::Ket) = tensor(a, dagger(a))
+projector(a::Bra) = tensor(dagger(a), a)
 
 """
 p-norm of given operator.
