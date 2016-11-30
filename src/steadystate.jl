@@ -92,7 +92,8 @@ L
 """
 function eigenvector(L::DenseSuperOperator)
     d, v = Base.eig(L.data)
-    data = reshape(v[:,1], length(L.basis_r[1]), length(L.basis_r[2]))
+    index = findmin(abs(d))
+    data = reshape(v[:,index], length(L.basis_r[1]), length(L.basis_r[2]))
     return DenseOperator(L.basis_r[1], L.basis_r[2], data)
 end
 
