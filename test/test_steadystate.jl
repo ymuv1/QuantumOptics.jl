@@ -6,6 +6,7 @@ using QuantumOptics
 g = 1.0
 γ = 0.5
 κ = 1.1
+η = 1.5
 
 T = Float64[0.,1.]
 
@@ -34,6 +35,8 @@ Jdense = map(full, J)
 
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 2)
 ρ₀ = Ψ₀⊗dagger(Ψ₀)
+ψ0_p = fockstate(fockbasis, 0)
+ρ0_p = ψ0_p ⊗ dagger(ψ0_p)
 
 tout, ρt = timeevolution.master([0,100], ρ₀, Hdense, Jdense; reltol=1e-7)
 
@@ -45,3 +48,19 @@ tout, ρt = timeevolution.master([0,100], ρ₀, Hdense, Jdense; reltol=1e-7)
 
 ρss = steadystate.eigenvector(H, J)
 @test tracedistance(ρss, ρt[end]) < 1e-3
+
+
+# Compute steady-state photon number of a driven cavity (analytically: η^2/κ^2)
+Hp = η*(destroy(fockbasis) + create(fockbasis))
+Jp = [sqrt(2κ)*destroy(fockbasis)]
+
+ρss = steadystate.master(Hp, Jp; rho0=ρ0_p)
+nss = [expect(create(fockbasis)*destroy(fockbasis), ρss)]
+
+ρss = steadystate.eigenvector(Hp, Jp)
+append!(nss, [expect(create(fockbasis)*destroy(fockbasis), ρss)])
+
+ρss = steadystate.eigenvector(full(Hp), map(full, Jp))
+append!(nss, [expect(create(fockbasis)*destroy(fockbasis), ρss)])
+
+n_an = η^2/κ^2
