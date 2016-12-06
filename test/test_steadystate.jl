@@ -53,14 +53,16 @@ tout, ρt = timeevolution.master([0,100], ρ₀, Hdense, Jdense; reltol=1e-7)
 # Compute steady-state photon number of a driven cavity (analytically: η^2/κ^2)
 Hp = η*(destroy(fockbasis) + create(fockbasis))
 Jp = [sqrt(2κ)*destroy(fockbasis)]
+n_an = η^2/κ^2
 
-ρss = steadystate.master(Hp, Jp; rho0=ρ0_p)
-nss = [expect(create(fockbasis)*destroy(fockbasis), ρss)]
+ρss = steadystate.master(Hp, Jp; rho0=ρ0_p, eps=1e-4)
+nss = expect(create(fockbasis)*destroy(fockbasis), ρss)
+@test n_an - real(nss) < 1e-3
 
 ρss = steadystate.eigenvector(Hp, Jp)
-append!(nss, [expect(create(fockbasis)*destroy(fockbasis), ρss)])
+nss = expect(create(fockbasis)*destroy(fockbasis), ρss)
+@test n_an - real(nss) < 1e-3
 
 ρss = steadystate.eigenvector(full(Hp), map(full, Jp))
-append!(nss, [expect(create(fockbasis)*destroy(fockbasis), ρss)])
-
-n_an = η^2/κ^2
+nss = expect(create(fockbasis)*destroy(fockbasis), ρss)
+@test n_an - real(nss) < 1e-3
