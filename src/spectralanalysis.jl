@@ -79,7 +79,8 @@ Nmax (optional)
     Number of eigenstates that should be calculated.
 """
 function eigenstates_hermitian(H::DenseOperator; Nmax::Union{Int, Void}=nothing)
-    h = Hermitian(H.data)
+    # h = Hermitian(H.data) -- In Julia v0.5 function eigfact does not support Hermitians
+    h = H.data
     M = Nmax == nothing ? eigvecs(h) : eigvecs(h, 1:Nmax)
     b = Ket[]
     for k=1:size(M,2)
