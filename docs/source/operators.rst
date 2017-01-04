@@ -62,6 +62,20 @@ For creating operators of the type :math:`A = I \otimes I \otimes ... a_i ... \o
 * :jl:func:`embed(basis, indices, operators)`
 * :jl:func:`embed(basis, index, op)`
 
+E.g. for a system consisting of 3 spins one can define the basis with::
+
+    b_spin = SpinBasis(1//2)
+    b = b_spin ⊗ b_spin ⊗ b_spin
+
+An operator in this basis b that only acts onto the second spin could be created as::
+
+    identityoperator(b_spin) ⊗ sigmap(b_spin) ⊗ identityoperator(b_spin)
+
+Equivalently, the embed function simplifies this to::
+
+    embed(b, 2, sigmap(b_spin))
+
+
 
 .. _subsection-denseoperators:
 
