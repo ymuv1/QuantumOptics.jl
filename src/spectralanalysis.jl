@@ -2,7 +2,7 @@ module spectralanalysis
 
 using ..states, ..operators, ..operators_dense, ..operators_sparse
 
-export operatorspectrum, operatorspectrum_hermitian, eigenstates, eigenstates_hermitian, groundstate
+export operatorspectrum, operatorspectrum_hermitian, eigenstates, eigenstates_hermitian, groundstate, simdiag
 
 
 """
@@ -157,5 +157,55 @@ Nmax (optional)
     Number of eigenstates that should be calculated.
 """
 groundstate(H::Union{DenseOperator, SparseOperator}) = eigenstates_hermitian(H; Nmax=1)[1]
+
+
+"""
+Simultaneously diagonalize commuting Hermitian operators.
+
+This is done by diagonalizing the sum of the operators.
+The eigenvalues are computed by :math:`a = \\langle \\psi |A|\\psi\\rangle` and
+it is checked whether the eigenvectors fulfill the equation
+:math:`A|\\psi\\rangle = a|\\psi\\rangle`.
+
+Arguments
+---------
+
+Ops
+  Vector of operators (sparse or dense).
+
+Keyword arguments
+-----------------
+
+atol (optional)
+  kwarg of Base.isapprox specifying the tolerance of the approximate check
+  Default is 1e-14.
+
+rtol (optional)
+  kwarg of Base.isapprox specifying the tolerance of the approximate check
+  Default is 1e-14.
+"""
+function simdiag{T <: DenseOperator}(Ops::Vector{T}; atol::Real=1e-14, rtol::Real=1e-14)
+
+  # Check input
+  for A=Ops
+    if !isapprox(A.data, dagger(A).data; atol=atol, rtol=rtol)
+      error("Non-hermitian operator given!")
+    end
+  end
+
+  d, v = eig(sum(Ops).data)
+
+  evals = [Vector{Complex128}(length(d)) for i=1:length(Ops)]
+  for i=1:length(Ops), j=1:length(d)
+    evals[i][j] = (v[:, j]'*Ops[i].data*v[:, j])[1]
+    if !isapprox(Ops[i].data*v[:, j], evals[i][j]*v[:, j]; atol=atol, rtol=rtol)
+      error("Simultaneous diagonalization failed!")
+    end
+  end
+
+  index = sortperm(real(evals[1][:]))
+  evals_sorted = [real(evals[i][index]) for i=1:length(Ops)]
+  evals_sorted, v[:, index]
+end
 
 end # module
