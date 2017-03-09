@@ -339,11 +339,13 @@ Steady-states
 .. jl:autofunction:: steadystate.jl eigenvector
 
 
-.. _section-api-correlations:
+.. _section-api-timecorrelations:
 
-Correlations
+Time correlations
 ------------
 
-.. jl:autofunction:: correlations.jl correlation
+.. jl:autofunction:: timecorrelations.jl correlation
 
-.. jl:autofunction:: correlations.jl correlationspectrum
+.. jl:autofunction:: timecorrelations.jl spectrum
+
+.. jl:autofunction:: timecorrelations.jl correlation2spectrum
