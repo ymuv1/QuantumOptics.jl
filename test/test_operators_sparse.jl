@@ -2,6 +2,10 @@ using Base.Test
 using QuantumOptics
 
 
+# Custom operator type for testing error msg
+type TestOperator <: Operator; end
+
+
 @testset "operators-sparse" begin
 
 srand(0)
@@ -297,5 +301,15 @@ alpha = complex(1.5)
 beta = complex(2.1)
 operators.gemm!(alpha, state, op, beta, result)
 @test 1e-11 > D(result, alpha*state*op_ + beta*result_)
+
+# Test remaining uncovered code
+@test_throws DimensionMismatch SparseOperator(b1, b2, zeros(10, 10))
+dat = sprandop(b1, b1).data
+@test SparseOperator(b1, dat) == SparseOperator(b1, Matrix{Complex128}(dat))
+
+@test_throws ArgumentError sparse(TestOperator())
+
+@test 2*SparseOperator(b1, dat) == SparseOperator(b1, dat)*2
+
 
 end # testset
