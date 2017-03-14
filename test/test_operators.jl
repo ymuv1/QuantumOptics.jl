@@ -34,6 +34,7 @@ op_test = test_operators(b, b, op_dense.data)
 @test_throws ArgumentError ptrace(op_test, [1, 2])
 
 @test expect(op_dense, [ρ, ρ]) == [expect(op_dense, ρ) for i=1:2]
+@test variance(op_dense, [ρ, ρ]) == [variance(op_dense, ρ) for i=1:2]
 
 @test_throws ArgumentError tensor(op_test, op_test)
 @test_throws ArgumentError permutesystems(op_test, [1, 2])
