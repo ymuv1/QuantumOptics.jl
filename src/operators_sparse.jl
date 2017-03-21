@@ -1,6 +1,6 @@
 module operators_sparse
 
-import Base: ==, *, /, +, -
+import Base: ==, *, /, +, -, ishermitian
 import ..operators: dagger, identityoperator,
                     trace, ptrace, normalize!, tensor, permutesystems
 
@@ -114,5 +114,10 @@ function diagonaloperator{T <: Number}(b::Basis, diag::Vector{T})
   SparseOperator(b, spdiagm(complex(float(diag))))
 end
 
+
+"""
+Check if an operator is Hermitian.
+"""
+ishermitian(A::SparseOperator) = ishermitian(A.data)
 
 end # module
