@@ -1,4 +1,4 @@
-.. _section-operators-detail:
+.. _section-operators:
 
 Operators
 =========
@@ -31,49 +31,21 @@ They have the same interface and can in most cases be used interchangeably, e.g.
     sx + sy
     sx * sy
 
-Additionally the following functions are implemented:
+Additionally, the following functions are implemented for all types of operators, if possible:
 
-* Hermitian conjugate:
-    :jl:func:`dagger(::DenseOperator)`
+* :jl:func:`dagger`
+* :jl:func:`identityoperator`
+* :jl:func:`trace`
+* :jl:func:`normalize`
+* :jl:func:`normalize!`
+* :jl:func:`expect`
+* :jl:func:`variance`
+* :jl:func:`tensor`
+* :jl:func:`permutesystems`
+* :jl:func:`embed`
+* :jl:func:`ptrace`
 
-* Normalization:
-    :jl:func:`trace(::DenseOperator)`
-    :jl:func:`norm(::DenseOperator, )`
-    :jl:func:`normalize(::DenseOperator)`
-    :jl:func:`normalize!(::DenseOperator)`
-
-* Expectation values:
-    :jl:func:`expect(::Operator, ::DenseOperator)`
-    :jl:func:`variance(::Operator, ::DenseOperator)`
-
-* Tensor product:
-    :jl:func:`tensor(::DenseOperator, ::DenseOperator)`
-    :jl:func:`tensor(::Ket, ::Bra)`
-    :jl:func:`projector(::Ket, ::Bra)`
-
-* Partial trace:
-    :jl:func:`ptrace(::DenseOperator, indices)`
-    :jl:func:`ptrace(::DenseOperator, index)`
-    :jl:func:`ptrace(::Ket, indices)`
-    :jl:func:`ptrace(::Bra, indices)`
-
-For creating operators of the type :math:`A = I \otimes I \otimes ... a_i ... \otimes I` the very useful embed function can be used:
-
-* :jl:func:`embed(basis, indices, operators)`
-* :jl:func:`embed(basis, index, op)`
-
-E.g. for a system consisting of 3 spins one can define the basis with::
-
-    b_spin = SpinBasis(1//2)
-    b = b_spin ⊗ b_spin ⊗ b_spin
-
-An operator in this basis b that only acts onto the second spin could be created as::
-
-    identityoperator(b_spin) ⊗ sigmap(b_spin) ⊗ identityoperator(b_spin)
-
-Equivalently, the embed function simplifies this to::
-
-    embed(b, 2, sigmap(b_spin))
+Conversion from one type of operator to another is also provided. I.e. to obtain a :jl:type:`DenseOperators` or :jl:type:`SparseOperator` use :jl:func:`full` and :jl:func:`sparse`, respectively.
 
 
 
@@ -116,7 +88,7 @@ To convert other operators to sparse operators the :jl:func:`sparse(::Operator)`
 Lazy operators
 ^^^^^^^^^^^^^^
 
-Lazy operators allow delayed evaluation of certain operations. This is useful when combining two operators is numerically expensive but separate multiplication with states is relatively cheap. A nice example is the :jl:type:`FFTOperator` operator implemented for particles. It allows using a fast fourier transformation to convert a state from real space to momentum space, applying a diagonal operator and converting it back. Doing this in operator notation is only fast if the the order of operations is :math:`\mathrm{IFFT}*(D*(\mathrm{FFT}*\psi))`. To create a Hamiltonian that uses this calculation order, lazy evaluation is needed::
+Lazy operators allow delayed evaluation of certain operations. This is useful when combining two operators is numerically expensive but separate multiplication with states is relatively cheap. A nice example is the :jl:type:`FFTOperator` implemented for particles. It allows using a fast fourier transformation to convert a state from real space to momentum space, applying a diagonal operator and converting it back. Doing this in operator notation is only fast if the the order of operations is :math:`\mathrm{IFFT}*(D*(\mathrm{FFT}*\psi))`. To create a Hamiltonian that uses this calculation order, lazy evaluation is needed::
 
     xmin = -5
     xmax = 5
@@ -127,13 +99,13 @@ Lazy operators allow delayed evaluation of certain operations. This is useful wh
     p = momentumoperator(b_momentum)
     x = positionoperator(b_position)
 
-    fft = particle.FFTOperator(b_momentum, b_position);
+    Tpx = particle.FFTOperator(b_momentum, b_position);
 
-    H = LazyProduct(dagger(fft), p^2/2, fft) + x^2
+    H = LazyProduct(dagger(Txp), p^2/2, Tpx) + x^2
 
 In this case the Hamiltonian :math:`H` is a lazy sum of the kinetic term :math:`p^2/2` and the potential term :math:`x^2` where the kinetic term is the lazy product mentioned before. In the end this results in a speed up from :math:`O(N^2)` to :math:`O(N \log N)`.
 
-All lazy operators inherit from the abstract :jl:abstract:`LazyOperator`. There are currently three different concrete implementations:
+There are currently three different concrete implementations:
 
 * :jl:type:`LazyTensor`
 * :jl:type:`LazySum`
