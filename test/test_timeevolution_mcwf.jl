@@ -30,12 +30,14 @@ Hc = embed(basis, 2, ωc*number(fockbasis))
 Hint = sm ⊗ create(fockbasis) + sp ⊗ destroy(fockbasis)
 H = Ha + Hc + Hint
 Hdense = full(H)
+Hlazy = LazySum(Ha, Hc, Hint)
 
 # Jump operators
 Ja = embed(basis, 1, sqrt(γ)*sm)
 Jc = embed(basis, 2, sqrt(κ)*destroy(fockbasis))
 J = [Ja, Jc]
 Jdense = map(full, J)
+Jlazy = [LazyTensor(basis, 1, sqrt(γ)*sm), LazyTensor(basis, 2, sqrt(κ)*destroy(fockbasis))]
 
 # Initial conditions
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
@@ -63,6 +65,16 @@ end
 timeevolution.mcwf(T, Ψ₀, H, J; seed=UInt(2), reltol=1e-6, fout=fout)
 @test tout == t_fout && Ψt == Ψ_fout
 
+
+# Test mcwf for irreducible input
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, Hlazy, J; seed=UInt(1), reltol=1e-6)
+@test norm(Ψt[end] - Ψ) < 1e-5
+
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, Jlazy; seed=UInt(1), reltol=1e-6)
+@test norm(Ψt[end] - Ψ) < 1e-5
+
+tout, Ψt = timeevolution.mcwf(T, Ψ₀, H, Jlazy./[sqrt(γ), sqrt(κ)]; seed=UInt(1), rates=[γ, κ], reltol=1e-6)
+@test norm(Ψt[end] - Ψ) < 1e-5
 
 # Test mcwf_h
 tout, Ψt = timeevolution.mcwf_h(T, Ψ₀, H, J; seed=UInt(1), reltol=1e-6)
@@ -122,17 +134,21 @@ tout_master, ρt_master = timeevolution.master(T, ρ₀, Hdense, J1_dense)
 
 ρ_average_1 = DenseOperator[0 * ρ₀ for i=1:length(T)]
 ρ_average_2 = DenseOperator[0 * ρ₀ for i=1:length(T)]
+ρ_average_3 = DenseOperator[0 * ρ₀ for i=1:length(T)]
 for i=1:Ntrajectories
     tout, Ψt_1 = timeevolution.mcwf(T, Ψ₀, Hdense, J1_dense; seed=UInt(i))
     tout, Ψt_2 = timeevolution.mcwf(T, Ψ₀, Hdense, J2_dense; seed=UInt(i))
+    tout, Ψt_3 = timeevolution.mcwf(T, Ψ₀, Hdense, [J1_dense[1]/sqrt(γ)]; seed=UInt(i), rates=[γ])
     for j=1:length(T)
         ρ_average_1[j] += (Ψt_1[j] ⊗ dagger(Ψt_1[j]))/Ntrajectories
         ρ_average_2[j] += (Ψt_2[j] ⊗ dagger(Ψt_2[j]))/Ntrajectories
+        ρ_average_3[j] += (Ψt_3[j] ⊗ dagger(Ψt_3[j]))/Ntrajectories
     end
 end
 for i=1:length(T)
     @test tracedistance(ρt_master[i], ρ_average_1[i]) < 0.1
     @test tracedistance(ρt_master[i], ρ_average_2[i]) < 0.1
+    @test tracedistance(ρt_master[i], ρ_average_3[i]) < 0.1
 end
 
 
@@ -160,8 +176,21 @@ d, diagJ = diagonaljumps(rates, J3)
 ψ3 = spindown(spinbasis) ⊗ spindown(spinbasis) ⊗ spindown(spinbasis)
 tout, ρ3_nondiag = timeevolution.master(T, ψ3, H, J3; rates=rates)
 tout, ρ3_diag = timeevolution.master(T, ψ3, H, diagJ; rates=d)
+
+ρ3_avg = DenseOperator[0*ρ3_diag[1] for i=1:length(T)]
+for i=1:Ntrajectories
+    tout, ψ3t = timeevolution.mcwf(T, ψ3, H, diagJ; rates=d)
+    for j=1:length(T)
+        ρ3_avg[j] += (ψ3t[j] ⊗ dagger(ψ3t[j]))/Ntrajectories
+    end
+end
+
+dist = []
 for i=1:length(tout)
   @test tracedistance(ρ3_nondiag[i], ρ3_diag[i]) < 1e-14
+  @test tracedistance(ρ3_avg[i], ρ3_diag[i]) < 0.1
 end
+
+@test_throws ArgumentError timeevolution.mcwf(T, ψ3, H, J3; rates=rates)
 
 end # testset
