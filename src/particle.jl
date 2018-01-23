@@ -209,23 +209,45 @@ function potentialoperator(b::MomentumBasis, V::Function)
     transform(b, b_pos)*full(potentialoperator(b_pos, V))*transform(b_pos, b)
 end
 
+"""
+    FFTOperator
+
+Abstract type for all implementations of FFT operators.
+"""
+abstract type FFTOperator <: Operator end
+
+PlanFFT = Base.DFT.FFTW.cFFTWPlan
 
 """
-    FFTOperator(basis_l, basis_r)
+    FFTOperators
 
-Operator performing a fast fourier transformation when multiplied with a state.
-
-One of both bases has to be a [`PositionBasis`](@ref), the other a [`MomentumBasis`](@ref).
+Operator performing a fast fourier transformation when multiplied with a state
+that is a Ket or an Operator.
 """
-type FFTOperator <: Operator
+type FFTOperators <: FFTOperator
     basis_l::Basis
     basis_r::Basis
-    fft_l!
-    fft_r!
-    fft_l2!
-    fft_r2!
-    mul_before::Vector{Complex128}
-    mul_after::Vector{Complex128}
+    fft_l!::PlanFFT
+    fft_r!::PlanFFT
+    fft_l2!::PlanFFT
+    fft_r2!::PlanFFT
+    mul_before::Array{Complex128}
+    mul_after::Array{Complex128}
+end
+
+"""
+    FFTKets
+
+Operator that can only perform fast fourier transformations on Kets.
+This is much more memory efficient when only working with Kets.
+"""
+type FFTKets <: FFTOperator
+    basis_l::Basis
+    basis_r::Basis
+    fft_l!::PlanFFT
+    fft_r!::PlanFFT
+    mul_before::Array{Complex128}
+    mul_after::Array{Complex128}
 end
 
 """
@@ -234,48 +256,180 @@ end
 
 Transformation operator between position basis and momentum basis.
 """
-function transform(basis_l::MomentumBasis, basis_r::PositionBasis)
+function transform(basis_l::MomentumBasis, basis_r::PositionBasis; ket_only::Bool=false)
     Lx = (basis_r.xmax - basis_r.xmin)
     dp = spacing(basis_l)
     dx = spacing(basis_r)
     if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
         throw(IncompatibleBases())
     end
-    x = Vector{Complex128}(length(basis_r))
-    A = Matrix{Complex128}(length(basis_r), length(basis_r))
     mul_before = exp.(-1im*basis_l.pmin*(samplepoints(basis_r)-basis_r.xmin))
     mul_after = exp.(-1im*basis_r.xmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    FFTOperator(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
+    x = Vector{Complex128}(length(basis_r))
+    if ket_only
+        FFTKets(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), mul_before, mul_after)
+    else
+        A = Matrix{Complex128}(length(basis_r), length(basis_r))
+        FFTOperators(basis_l, basis_r, plan_bfft!(x), plan_fft!(x), plan_bfft!(A, 2), plan_fft!(A, 1), mul_before, mul_after)
+    end
 end
 
-function transform(basis_l::PositionBasis, basis_r::MomentumBasis)
+"""
+    transform(b1::CompositeBasis, b2::CompositeBasis)
+
+Transformation operator between two composite bases. Each of the bases
+has to contain bases of type PositionBasis and the other one a corresponding
+MomentumBasis.
+"""
+function transform(basis_l::PositionBasis, basis_r::MomentumBasis; ket_only::Bool=false)
     Lx = (basis_l.xmax - basis_l.xmin)
     dp = spacing(basis_r)
     dx = spacing(basis_l)
     if basis_l.N != basis_r.N || abs(2*pi/dp - Lx)/Lx > 1e-12
         throw(IncompatibleBases())
     end
-    x = Vector{Complex128}(length(basis_r))
-    A = Matrix{Complex128}(length(basis_r), length(basis_r))
     mul_before = exp.(1im*basis_l.xmin*(samplepoints(basis_r)-basis_r.pmin))
     mul_after = exp.(1im*basis_r.pmin*samplepoints(basis_l))/sqrt(basis_r.N)
-    FFTOperator(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
+    x = Vector{Complex128}(length(basis_r))
+    if ket_only
+        FFTKets(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), mul_before, mul_after)
+    else
+        A = Matrix{Complex128}(length(basis_r), length(basis_r))
+        FFTOperators(basis_l, basis_r, plan_fft!(x), plan_bfft!(x), plan_fft!(A, 2), plan_bfft!(A, 1), mul_before, mul_after)
+    end
 end
 
-operators.full(op::FFTOperator) = op*identityoperator(DenseOperator, op.basis_r)
+function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::Bool=false, index::Vector{Int}=Int[])
+    @assert length(basis_l.bases) == length(basis_r.bases)
+    if length(index) == 0
+        check_pos = typeof.(basis_l.bases) .== PositionBasis
+        check_mom = typeof.(basis_l.bases) .== MomentumBasis
+        if any(check_pos) && !any(check_mom)
+            index = [1:length(basis_l.bases);][check_pos]
+        elseif any(check_mom) && !any(check_pos)
+            index = [1:length(basis_l.bases);][check_mom]
+        else
+            throw(IncompatibleBases())
+        end
+    end
+    if all(typeof.(basis_l.bases[index]) .== PositionBasis)
+        @assert all(typeof.(basis_r.bases[index]) .== MomentumBasis)
+        transform_xp(basis_l, basis_r, index; ket_only=ket_only)
+    elseif all(typeof.(basis_l.bases[index]) .== MomentumBasis)
+        @assert all(typeof.(basis_r.bases[index]) .== PositionBasis)
+        transform_px(basis_l, basis_r, index; ket_only=ket_only)
+    else
+        throw(IncompatibleBases())
+    end
+end
 
-operators.dagger(op::FFTOperator) = transform(op.basis_r, op.basis_l)
+function transform_xp(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
+    n = length(basis_l.bases)
+    Lx = [(b.xmax - b.xmin) for b=basis_l.bases[index]]
+    dp = [spacing(b) for b=basis_r.bases[index]]
+    dx = [spacing(b) for b=basis_l.bases[index]]
+    N = [length(b) for b=basis_l.bases]
+    for i=1:n
+        if N[i] != length(basis_r.bases[i])
+            throw(IncompatibleBases())
+        end
+    end
+    for i=1:length(index)
+        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
+            throw(IncompatibleBases())
+        end
+    end
 
+    if index[1] == 1
+        mul_before = exp.(1im*basis_l.bases[1].xmin*(samplepoints(basis_r.bases[1])-basis_r.bases[1].pmin))
+        mul_after = exp.(1im*basis_r.bases[1].pmin*samplepoints(basis_l.bases[1]))/sqrt(basis_r.bases[1].N)
+    else
+        mul_before = ones(N[1])
+        mul_after = ones(N[1])
+    end
+    for i=2:n
+        if any(i .== index)
+            mul_before = kron(exp.(1im*basis_l.bases[i].xmin*(samplepoints(basis_r.bases[i])-basis_r.bases[i].pmin)), mul_before)
+            mul_after = kron(exp.(1im*basis_r.bases[i].pmin*samplepoints(basis_l.bases[i]))/sqrt(basis_r.bases[i].N), mul_after)
+        else
+            mul_before = kron(ones(N[i]), mul_before)
+            mul_after = kron(ones(N[i]), mul_after)
+        end
+    end
+    mul_before = reshape(mul_before, (N...))
+    mul_after = reshape(mul_after, (N...))
+
+    x = Array{Complex128}(N...)
+    if ket_only
+        FFTKets(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), mul_before, mul_after)
+    else
+        A = Array{Complex128}([N, N;]...)
+        FFTOperators(basis_l, basis_r, plan_fft!(x, index), plan_bfft!(x, index), plan_fft!(A, [n + 1:2n;][index]), plan_bfft!(A, [1:n;][index]), mul_before, mul_after)
+    end
+end
+
+function transform_px(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Vector{Int}; ket_only::Bool=false)
+    n = length(basis_l.bases)
+    Lx = [(b.xmax - b.xmin) for b=basis_r.bases[index]]
+    dp = [spacing(b) for b=basis_l.bases[index]]
+    dx = [spacing(b) for b=basis_r.bases[index]]
+    N = [length(b) for b=basis_l.bases]
+    for i=1:n
+        if N[i] != length(basis_r.bases[i])
+            throw(IncompatibleBases())
+        end
+    end
+    for i=1:length(index)
+        if abs(2*pi/dp[i] - Lx[i])/Lx[i] > 1e-12
+            throw(IncompatibleBases())
+        end
+    end
+
+    if index[1] == 1
+        mul_before = exp.(-1im*basis_l.bases[1].pmin*(samplepoints(basis_r.bases[1])-basis_r.bases[1].xmin))
+        mul_after = exp.(-1im*basis_r.bases[1].xmin*samplepoints(basis_l.bases[1]))/sqrt(N[1])
+    else
+        mul_before = ones(N[1])
+        mul_after = ones(N[1])
+    end
+    for i=2:n
+        if i in index
+            mul_before = kron(exp.(-1im*basis_l.bases[i].pmin*(samplepoints(basis_r.bases[i])-basis_r.bases[i].xmin)), mul_before)
+            mul_after = kron(exp.(-1im*basis_r.bases[i].xmin*samplepoints(basis_l.bases[i]))/sqrt(N[i]), mul_after)
+        else
+            mul_before = kron(ones(N[i]), mul_before)
+            mul_after = kron(ones(N[i]), mul_after)
+        end
+    end
+    mul_before = reshape(mul_before, (N...))
+    mul_after = reshape(mul_after, (N...))
+
+    x = Array{Complex128}(N...)
+    if ket_only
+        FFTKets(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), mul_before, mul_after)
+    else
+        A = Array{Complex128}([N, N;]...)
+        FFTOperators(basis_l, basis_r, plan_bfft!(x, index), plan_fft!(x, index), plan_bfft!(A, [n + 1:2n;][index]), plan_fft!(A, [1:n;][index]), mul_before, mul_after)
+    end
+end
+
+operators.full(op::FFTOperators) = op*identityoperator(DenseOperator, op.basis_r)
+
+operators.dagger(op::FFTOperators) = transform(op.basis_r, op.basis_l)
+operators.dagger(op::FFTKets) = transform(op.basis_r, op.basis_l; ket_only=true)
+
+operators.tensor(A::FFTOperators, B::FFTOperators) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r))
+operators.tensor(A::FFTKets, B::FFTKets) = transform(tensor(A.basis_l, B.basis_l), tensor(A.basis_r, B.basis_r); ket_only=true)
 
 function operators.gemv!(alpha_, M::FFTOperator, b::Ket, beta_, result::Ket)
     alpha = convert(Complex128, alpha_)
     beta = convert(Complex128, beta_)
-    N::Int = M.basis_r.N
+    N::Int = length(M.basis_r)
     if beta==Complex(0.)
         @inbounds for i=1:N
             result.data[i] = M.mul_before[i] * b.data[i]
         end
-        M.fft_r! * result.data
+        M.fft_r! * reshape(result.data, size(M.mul_before))
         @inbounds for i=1:N
             result.data[i] *= M.mul_after[i] * alpha
         end
@@ -284,7 +438,7 @@ function operators.gemv!(alpha_, M::FFTOperator, b::Ket, beta_, result::Ket)
         @inbounds for i=1:N
             psi_.data[i] *= M.mul_before[i]
         end
-        M.fft_r! * psi_.data
+        M.fft_r! * reshape(psi_.data, size(M.mul_before))
         @inbounds for i=1:N
             result.data[i] = beta*result.data[i] + alpha * psi_.data[i] * M.mul_after[i]
         end
@@ -295,12 +449,12 @@ end
 function operators.gemv!(alpha_, b::Bra, M::FFTOperator, beta_, result::Bra)
     alpha = convert(Complex128, alpha_)
     beta = convert(Complex128, beta_)
-    N::Int = M.basis_l.N
+    N::Int = length(M.basis_l)
     if beta==Complex(0.)
         @inbounds for i=1:N
             result.data[i] = conj(M.mul_after[i]) * conj(b.data[i])
         end
-        M.fft_l! * result.data
+        M.fft_l! * reshape(result.data, size(M.mul_after))
         @inbounds for i=1:N
             result.data[i] = conj(result.data[i]) * M.mul_before[i] * alpha
         end
@@ -309,7 +463,7 @@ function operators.gemv!(alpha_, b::Bra, M::FFTOperator, beta_, result::Bra)
         @inbounds for i=1:N
             psi_.data[i] *= conj(M.mul_after[i])
         end
-        M.fft_l! * psi_.data
+        M.fft_l! * reshape(psi_.data, size(M.mul_after))
         @inbounds for i=1:N
             result.data[i] = beta*result.data[i] + alpha * conj(psi_.data[i]) * M.mul_before[i]
         end
@@ -317,7 +471,7 @@ function operators.gemv!(alpha_, b::Bra, M::FFTOperator, beta_, result::Bra)
     nothing
 end
 
-function operators.gemm!(alpha_, A::DenseOperator, B::particle.FFTOperator, beta_, result::DenseOperator)
+function operators.gemm!(alpha_, A::DenseOperator, B::FFTOperators, beta_, result::DenseOperator)
     alpha = convert(Complex128, alpha_)
     beta = convert(Complex128, beta_)
     if beta != Complex(0.)
@@ -326,11 +480,11 @@ function operators.gemm!(alpha_, A::DenseOperator, B::particle.FFTOperator, beta
         data = result.data
     end
     copy!(data, A.data)
-    scale!(data, B.mul_after)
+    scale!(data, B.mul_after[:])
     conj!(data)
-    B.fft_l2! * data
+    B.fft_l2! * reshape(data, [size(B.mul_after)..., size(B.mul_after)...;]...)
     conj!(data)
-    scale!(data, B.mul_before)
+    scale!(data, B.mul_before[:])
     if alpha != Complex(1.)
         scale!(alpha, data)
     end
@@ -341,7 +495,7 @@ function operators.gemm!(alpha_, A::DenseOperator, B::particle.FFTOperator, beta
     nothing
 end
 
-function operators.gemm!(alpha_, A::particle.FFTOperator, B::DenseOperator, beta_, result::DenseOperator)
+function operators.gemm!(alpha_, A::FFTOperators, B::DenseOperator, beta_, result::DenseOperator)
     alpha = convert(Complex128, alpha_)
     beta = convert(Complex128, beta_)
     if beta != Complex(0.)
@@ -350,9 +504,9 @@ function operators.gemm!(alpha_, A::particle.FFTOperator, B::DenseOperator, beta
         data = result.data
     end
     copy!(data, B.data)
-    scale!(A.mul_before, data)
-    A.fft_r2! * data
-    scale!(A.mul_after, data)
+    scale!(A.mul_before[:], data)
+    A.fft_r2! * reshape(data, [size(A.mul_before)..., size(A.mul_before)...;]...)
+    scale!(A.mul_after[:], data)
     if alpha != Complex(1.)
         scale!(alpha, data)
     end

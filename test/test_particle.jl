@@ -229,4 +229,139 @@ Tpx_dense = DenseOperator(Tpx)
 @test isa(Tpx_dense, DenseOperator)
 @test 1e-5 > D(Txp_dense*rho0_pp*Tpx_dense, rho0_xx)
 
+# Test FFT in 2D
+N = [40, 30]
+xmin = [-32.5, -10π]
+xmax = [24.1, 9π]
+
+basis_position = [PositionBasis(xmin[i], xmax[i], N[i]) for i=1:2]
+basis_momentum = MomentumBasis.(basis_position)
+
+x0 = [5.1, -0.2]
+p0 = [-3.2, 1.33]
+sigma = [1., 0.9]
+sigma_x = sigma./sqrt(2)
+sigma_p = 1./(sigma.*sqrt(2))
+
+Txp = transform(tensor(basis_position...), tensor(basis_momentum...))
+Tpx = transform(tensor(basis_momentum...), tensor(basis_position...))
+
+Txp_sub = [transform(basis_position[i], basis_momentum[i]) for i=1:2]
+Tpx_sub = dagger.(Txp_sub)
+Txp_full = full.(Txp_sub)
+Txp_comp = tensor(Txp_full...)
+
+difference = (full(Txp) - Txp_comp).data
+@test isapprox(difference, zeros(difference); atol=1e-12)
+
+psi0_x = gaussianstate.(basis_position, x0, p0, sigma_x)
+psi0_p = gaussianstate.(basis_momentum, x0, p0, sigma_p)
+
+psi_p_fft = Tpx*tensor(psi0_x...)
+psi_p_fft2 = tensor((Tpx_sub.*psi0_x)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_x_fft = Txp*tensor(psi0_p...)
+psi_x_fft2 = tensor((Txp_sub.*psi0_p)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_p_fft = dagger(tensor(psi0_x...))*Txp
+psi_p_fft2 = tensor((dagger.(psi0_x).*Txp_sub)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_x_fft = dagger(tensor(psi0_p...))*Tpx
+psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+difference = (full(Txp) - identityoperator(DenseOperator, Txp.basis_l)*Txp).data
+@test isapprox(difference, zeros(difference); atol=1e-12)
+@test_throws AssertionError transform(tensor(basis_position...), tensor(basis_position...))
+@test_throws particle.IncompatibleBases transform(SpinBasis(1//2)^2, SpinBasis(1//2)^2)
+
+@test full(Txp) == full(Txp_sub[1] ⊗ Txp_sub[2])
+
+# Test ket only FFTs
+Txp = transform(tensor(basis_position...), tensor(basis_momentum...); ket_only=true)
+Tpx = transform(tensor(basis_momentum...), tensor(basis_position...); ket_only=true)
+
+Txp_sub = [transform(basis_position[i], basis_momentum[i]; ket_only=true) for i=1:2]
+Tpx_sub = dagger.(Txp_sub)
+
+psi_p_fft = Tpx*tensor(psi0_x...)
+psi_p_fft2 = tensor((Tpx_sub.*psi0_x)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_x_fft = Txp*tensor(psi0_p...)
+psi_x_fft2 = tensor((Txp_sub.*psi0_p)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_p_fft = dagger(tensor(psi0_x...))*Txp
+psi_p_fft2 = tensor((dagger.(psi0_x).*Txp_sub)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_x_fft = dagger(tensor(psi0_p...))*Tpx
+psi_x_fft2 = tensor((dagger.(psi0_p).*Tpx_sub)...)
+@test norm(psi_p_fft - psi_p_fft2) < 1e-15
+
+psi_x_fft = Txp*tensor(psi0_p...)
+psi_x_fft2 = tensor(Txp_sub...)*tensor(psi0_p...)
+@test norm(psi_x_fft - psi_x_fft2) < 1e-15
+
+# Test composite basis of mixed type
+bc = FockBasis(2)
+psi_fock = fockstate(FockBasis(2), 1)
+psi1 = tensor(psi0_p[1], psi_fock, psi0_p[2])
+psi2 = tensor(psi0_x[1], psi_fock, psi0_x[2])
+
+basis_l = tensor(basis_position[1], bc, basis_position[2])
+basis_r = tensor(basis_momentum[1], bc, basis_momentum[2])
+Txp = transform(basis_l, basis_r; ket_only=true)
+Tpx = transform(basis_r, basis_l; ket_only=true)
+
+psi1_fft = Txp*psi1
+psi1_fft2 = tensor(Txp_sub[1]*psi0_p[1], psi_fock, Txp_sub[2]*psi0_p[2])
+@test norm(psi1_fft - psi1_fft2) < 1e-15
+
+psi2_fft = Tpx*psi2
+psi2_fft2 = tensor(Tpx_sub[1]*psi0_x[1], psi_fock, Tpx_sub[2]*psi0_x[2])
+@test norm(psi2_fft - psi2_fft2) < 1e-15
+
+Txp = transform(basis_l, basis_r)
+Txp_sub = [transform(basis_position[i], basis_momentum[i]) for i=1:2]
+difference = (full(Txp) - tensor(full(Txp_sub[1]), full(one(bc)), full(Txp_sub[2]))).data
+@test isapprox(difference, zeros(difference); atol=1e-12)
+
+basis_l = tensor(bc, basis_position[1], basis_position[2])
+basis_r = tensor(bc, basis_momentum[1], basis_momentum[2])
+Txp2 = transform(basis_l, basis_r)
+Tpx2 = transform(basis_r, basis_l)
+difference = (full(Txp) - permutesystems(full(Txp2), [2, 1, 3])).data
+@test isapprox(difference, zeros(difference); atol=1e-13)
+difference = (full(dagger(Txp)) - permutesystems(full(Tpx2), [2, 1, 3])).data
+@test isapprox(difference, zeros(difference); atol=1e-13)
+
+# Test error messages
+b1 = PositionBasis(-1, 1, 50)
+b2 = MomentumBasis(-1, 1, 30)
+@test_throws bases.IncompatibleBases transform(b1, b2)
+@test_throws bases.IncompatibleBases transform(b2, b1)
+
+bc1 = b1 ⊗ bc
+bc2 = b2 ⊗ bc
+@test_throws bases.IncompatibleBases transform(bc1, bc2)
+@test_throws bases.IncompatibleBases transform(bc2, bc1)
+
+b1 = PositionBasis(-1, 1, 50)
+b2 = MomentumBasis(-1, 1, 50)
+bc1 = b1 ⊗ bc
+bc2 = b2 ⊗ bc
+@test_throws bases.IncompatibleBases transform(bc1, bc2)
+@test_throws bases.IncompatibleBases transform(bc2, bc1)
+@test_throws bases.IncompatibleBases transform(bc1, bc2; index=[2])
+
+bc1 = b1 ⊗ b2
+bc2 = b1 ⊗ b2
+@test_throws bases.IncompatibleBases transform(bc1, bc2)
+@test_throws bases.IncompatibleBases transform(bc2, bc1)
+
 end # testset
