@@ -39,6 +39,7 @@ names = [
     "test_timecorrelations.jl",
 
     "test_semiclassical.jl",
+    "test_stochastic.jl",
 
     "test_printing.jl"
 ]
