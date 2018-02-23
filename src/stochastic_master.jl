@@ -11,7 +11,7 @@ import ...timeevolution.timeevolution_master: dmaster_h, dmaster_nh, dmaster_h_d
 const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Void}
 
 """
-    stochastic.master(tspan, rho0, H, Hs, J; <keyword arguments>)
+    stochastic.master(tspan, rho0, H, J, Js; <keyword arguments>)
 
 Time-evolution according to a stochastic master equation.
 
@@ -24,8 +24,6 @@ non-hermitian Hamiltonian and then calls master_nh which is slightly faster.
 * `rho0`: Initial density operator. Can also be a state vector which is
         automatically converted into a density operator.
 * `H`: Deterministic part of the Hamiltonian.
-* `Hs`: Operator or vector of operators specifying the stochastic part of the
-        Hamiltonian.
 * `J`: Vector containing all deterministic
         jump operators which can be of any arbitrary operator type.
 * `Js`: Vector containing the stochastic jump operators for a superoperator
