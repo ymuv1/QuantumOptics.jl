@@ -230,7 +230,7 @@ Tpx_dense = DenseOperator(Tpx)
 @test 1e-5 > D(Txp_dense*rho0_pp*Tpx_dense, rho0_xx)
 
 # Test FFT in 2D
-N = [40, 30]
+N = [21, 18]
 xmin = [-32.5, -10π]
 xmax = [24.1, 9π]
 
