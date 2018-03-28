@@ -1,5 +1,9 @@
 <img src="https://github.com/qojulia/QuantumOptics.jl-website/blob/master/src/images/logo.png" alt="QuantumOptics.jl" width="400">
 
+#
+
+[![Chat on Gitter][gitter-img]][gitter-url] [![Travis build status][travis-img]][travis-url]  [![Windows build status][appveyor-img]][appveyor-url][![Stable documentation][docs-img]][docs-url]
+
 **QuantumOptics.jl** is a numerical framework written in [Julia] that makes it easy to simulate various kinds of quantum systems. It is inspired by the [Quantum Optics Toolbox] for MATLAB and the Python framework [QuTiP].
 
 More information, documentation and examples can be found on our website http://qojulia.org.
@@ -9,10 +13,6 @@ More information, documentation and examples can be found on our website http://
 
 **Latest release:**
   * [![Status of latest release on julia 0.6][pkg-0.6-img]][pkg-0.6-url]
-
-**Master branch:**
-  * Linux/Mac build: [![Travis build status][travis-img]][travis-url]
-  * Windows build: [![Windows build status][appveyor-img]][appveyor-url]
   * Test coverage:
         [![Test coverage status on coveralls][coveralls-img]][coveralls-url]
         [![Test coverage status on codecov][codecov-img]][codecov-url]
@@ -32,8 +32,6 @@ The content associated with **QuantumOptics.jl** is distributed over several rep
 ### Questions & Contributions
 
 Contributions of any kind are always welcome! Be it as questions, ideas for new features, bug reports or, our favorite case, sending pull requests.
-
-Additionally, you can contact us on Gitter: [![Chat on Gitter][gitter-img]][gitter-url]
 
 
 [Julia]: http://julialang.org
@@ -58,3 +56,6 @@ Additionally, you can contact us on Gitter: [![Chat on Gitter][gitter-img]][gitt
 
 [gitter-url]: https://gitter.im/QuantumOptics-jl/Lobby
 [gitter-img]: https://img.shields.io/gitter/room/nwjs/nw.js.svg
+
+[docs-url]: https://qojulia.org/documentation/
+[docs-img]: https://img.shields.io/badge/docs-stable-blue.svg
