@@ -25,7 +25,7 @@ T_short = [0:dt:dt;]
 Ntraj = 100
 ρ_avg = [0*ρ0 for i=1:length(T)]
 for i=1:Ntraj
-    t, ψt = stochastic.schroedinger(T, ψ0, H, Hs; dt=1e-3)
+    t, ψt = stochastic.schroedinger(T, ψ0, H, Hs)
     ρ_avg += dm.(ψt)./Ntraj
 end
 tout, ρt = timeevolution.master(T, ρ0, H, [sz]; rates=[0.25γ^2])
@@ -46,11 +46,11 @@ function fstoch_2(t, psi)
 end
 
 # Non-dynamic Schrödinger
-tout, ψt4 = stochastic.schroedinger(T, ψ0, H, [zero_op, zero_op]; dt=dt)
-tout, ψt3 = stochastic.schroedinger(T, ψ0, H, zero_op; dt=dt)
+tout, ψt4 = stochastic.schroedinger(T, ψ0, H, [zero_op, zero_op])
+tout, ψt3 = stochastic.schroedinger(T, ψ0, H, zero_op)
 # Dynamic Schrödinger
-tout, ψt1 = stochastic.schroedinger_dynamic(T, ψ0, fdeterm, fstoch_1; dt=dt)
-tout, ψt2 = stochastic.schroedinger_dynamic(T, ψ0, fdeterm, fstoch_2; dt=dt, noise_processes=3)
+tout, ψt1 = stochastic.schroedinger_dynamic(T, ψ0, fdeterm, fstoch_1)
+tout, ψt2 = stochastic.schroedinger_dynamic(T, ψ0, fdeterm, fstoch_2; noise_processes=3)
 
 # Test equivalence to Schrödinger equation with zero noise
 # Test sharp equality for same algorithms
@@ -65,7 +65,6 @@ for i=1:length(tout)
 end
 
 # Test remaining function calls for short times to test whether they work in principle
-tout, ψt = stochastic.schroedinger(T_short, ψ0, H, noise_op; dt=dt,
-        alg=StochasticDiffEq.RKMil(interpretation=:Stratonovich))
+tout, ψt = stochastic.schroedinger(T_short, ψ0, H, noise_op; alg=StochasticDiffEq.RKMil(interpretation=:Stratonovich))
 
 end # testset

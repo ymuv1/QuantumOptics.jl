@@ -140,7 +140,7 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
         if n == 1
             alg_ = StochasticDiffEq.RKMil(interpretation=:Stratonovich)
         else
-            alg_ = StochasticDiffEq.EulerHeun()
+            alg_ = StochasticDiffEq.LambaEulerHeun()
         end
     else
         @assert isa(alg, StochasticDiffEq.StochasticDiffEqAlgorithm)
@@ -150,8 +150,8 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
     sol = StochasticDiffEq.solve(
                 prob,
                 alg_;
-                reltol = 1.0e-6,
-                abstol = 1.0e-8,
+                reltol = 1.0e-4,
+                abstol = 1.0e-4,
                 save_everystep = false, save_start = false,
                 save_end = false,
                 callback=full_cb, kwargs...)
