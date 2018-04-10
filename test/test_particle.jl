@@ -340,6 +340,46 @@ difference = (full(Txp) - permutesystems(full(Txp2), [2, 1, 3])).data
 difference = (full(dagger(Txp)) - permutesystems(full(Tpx2), [2, 1, 3])).data
 @test isapprox(difference, zeros(difference); atol=1e-13)
 
+# Test potentialoperator in more than 1D
+N = [21, 18]
+xmin = [-32.5, -10π]
+xmax = [24.1, 9π]
+
+basis_position = [PositionBasis(xmin[i], xmax[i], N[i]) for i=1:2]
+basis_momentum = MomentumBasis.(basis_position)
+
+bcomp_pos = tensor(basis_position...)
+bcomp_mom = tensor(basis_momentum...)
+V(x, y) = sin(x*y) + cos(x)
+xsample, ysample = samplepoints.(basis_position)
+V_op = diagonaloperator(bcomp_pos, [V(x, y) for y in ysample for x in xsample])
+V_op2 = potentialoperator(bcomp_pos, V)
+@test V_op == V_op2
+
+basis_position = PositionBasis.(basis_momentum)
+bcomp_pos = tensor(basis_position...)
+Txp = transform(bcomp_pos, bcomp_mom)
+Tpx = transform(bcomp_mom, bcomp_pos)
+xsample, ysample = samplepoints.(basis_position)
+V_op = Tpx*full(diagonaloperator(bcomp_pos, [V(x, y) for y in ysample for x in xsample]))*Txp
+V_op2 = potentialoperator(bcomp_mom, V)
+@test V_op == V_op2
+
+N = [17, 12, 9]
+xmin = [-32.5, -10π, -0.1]
+xmax = [24.1, 9π, 22.0]
+
+basis_position = [PositionBasis(xmin[i], xmax[i], N[i]) for i=1:3]
+basis_momentum = MomentumBasis.(basis_position)
+
+bcomp_pos = tensor(basis_position...)
+bcomp_mom = tensor(basis_momentum...)
+V(x, y, z) = exp(-z^2) + sin(x*y) + cos(x)
+xsample, ysample, zsample = samplepoints.(basis_position)
+V_op = diagonaloperator(bcomp_pos, [V(x, y, z) for z in zsample for y in ysample for x in xsample])
+V_op2 = potentialoperator(bcomp_pos, V)
+@test V_op == V_op2
+
 # Test error messages
 b1 = PositionBasis(-1, 1, 50)
 b2 = MomentumBasis(-1, 1, 30)
@@ -363,5 +403,7 @@ bc1 = b1 ⊗ b2
 bc2 = b1 ⊗ b2
 @test_throws bases.IncompatibleBases transform(bc1, bc2)
 @test_throws bases.IncompatibleBases transform(bc2, bc1)
+
+@test_throws bases.IncompatibleBases potentialoperator(bc ⊗ bc, V)
 
 end # testset

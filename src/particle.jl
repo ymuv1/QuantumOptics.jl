@@ -210,13 +210,63 @@ function potentialoperator(b::MomentumBasis, V::Function)
 end
 
 """
+    potentialoperator(b::CompositeBasis, V(x, y, z, ...))
+
+Operator representing a potential ``V`` in more than one dimension.
+
+# Arguments
+* `b`: Composite basis consisting purely either of `PositionBasis` or
+    `MomentumBasis`. Note, that calling this with a composite basis in
+    momentum space might consume a large amount of memory.
+* `V`: Function describing the potential. ATTENTION: The number of arguments
+    accepted by `V` must match the spatial dimension. Furthermore, the order
+    of the arguments has to match that of the order of the tensor product of
+    bases (e.g. if `b=bx⊗by⊗bz`, then `V(x,y,z)`).
+"""
+function potentialoperator(b::CompositeBasis, V::Function)
+    if isa(b.bases[1], PositionBasis)
+        potentialoperator_position(b, V)
+    elseif isa(b.bases[1], MomentumBasis)
+        potentialoperator_momentum(b, V)
+    else
+        throw(IncompatibleBases())
+    end
+end
+function potentialoperator_position(b::CompositeBasis, V::Function)
+    for base=b.bases
+        @assert isa(base, PositionBasis)
+    end
+
+    points = [samplepoints(b1) for b1=b.bases]
+    dims = length.(points)
+    n = length(b.bases)
+    data = Array{Complex128}(dims...)
+    @inbounds for i=1:length(data)
+        index = ind2sub(data, i)
+        args = (points[j][index[j]] for j=1:n)
+        data[i] = V(args...)
+    end
+
+    diagonaloperator(b, data[:])
+end
+function potentialoperator_momentum(b::CompositeBasis, V::Function)
+    bases_pos = []
+    for base=b.bases
+        @assert isa(base, MomentumBasis)
+        push!(bases_pos, PositionBasis(base))
+    end
+    b_pos = tensor(bases_pos...)
+    transform(b, b_pos)*full(potentialoperator_position(b_pos, V))*transform(b_pos, b)
+end
+
+"""
     FFTOperator
 
 Abstract type for all implementations of FFT operators.
 """
 abstract type FFTOperator <: Operator end
 
-PlanFFT = Base.DFT.FFTW.cFFTWPlan
+const PlanFFT = Base.DFT.FFTW.cFFTWPlan
 
 """
     FFTOperators
