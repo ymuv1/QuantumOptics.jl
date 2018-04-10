@@ -2,7 +2,7 @@
 
 #
 
-[![Chat on Gitter][gitter-img]][gitter-url] [![Travis build status][travis-img]][travis-url]  [![Windows build status][appveyor-img]][appveyor-url][![Stable documentation][docs-img]][docs-url]
+[![Chat on Gitter][gitter-img]][gitter-url] [![Travis build status][travis-img]][travis-url] [![Windows build status][appveyor-img]][appveyor-url] [![Stable documentation][docs-img]][docs-url]
 
 **QuantumOptics.jl** is a numerical framework written in [Julia] that makes it easy to simulate various kinds of quantum systems. It is inspired by the [Quantum Optics Toolbox] for MATLAB and the Python framework [QuTiP].
 
@@ -33,6 +33,9 @@ The content associated with **QuantumOptics.jl** is distributed over several rep
 
 Contributions of any kind are always welcome! Be it as questions, ideas for new features, bug reports or, our favorite case, sending pull requests.
 
+### Citing
+
+If you like **QuantumOptics.jl**, we would appreciate it if you starred the repository in order to help us increase its visibility. Furthermore, if you find the framework useful in your research, we would be grateful if you could cite our [publication](https://www.sciencedirect.com/science/article/pii/S0010465518300328).
 
 [Julia]: http://julialang.org
 [qojulia]: https://github.com/qojulia
