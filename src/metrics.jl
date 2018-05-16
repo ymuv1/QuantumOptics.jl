@@ -147,8 +147,17 @@ S(ρ) = -Tr(ρ \\log(ρ)) = -\\sum_n λ_n\\log(λ_n)
 
 where ``λ_n`` are the eigenvalues of the density matrix ``ρ``, ``\\log`` is the
 natural logarithm and ``\\log(0) ≡ 0``.
+
+# Arguments
+* `rho`: Density operator of which to calculate Von Neumann entropy.
+* `tol=1e-15`: Tolerance for rounding errors in the computed eigenvalues.
 """
-entropy_vn(rho::DenseOperator) = sum([d == 0 ? 0 : -d*log(d) for d=eigvals(rho.data)])
+function entropy_vn(rho::DenseOperator; tol::Float64=1e-15)
+    digits = Int32(round(-log10(tol), 0))
+    evals = round.(eigvals(rho.data), digits)
+
+    sum([d == 0 ? 0 : -d*log(d) for d=evals])
+end
 
 """
     fidelity(rho, sigma)
