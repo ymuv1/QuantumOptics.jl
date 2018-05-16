@@ -5,7 +5,7 @@ export tracenorm, tracenorm_h, tracenorm_nh,
         entropy_vn, fidelity, ptranspose, PPT, negativity,
         logarithmic_negativity
 
-using ..bases, ..operators, ..operators_dense
+using ..bases, ..operators, ..operators_dense, ..states
 
 """
     tracenorm(rho)
@@ -153,11 +153,11 @@ natural logarithm and ``\\log(0) ≡ 0``.
 * `tol=1e-15`: Tolerance for rounding errors in the computed eigenvalues.
 """
 function entropy_vn(rho::DenseOperator; tol::Float64=1e-15)
-    digits = Int32(round(-log10(tol), 0))
-    evals = round.(eigvals(rho.data), digits)
-
+    evals = eigvals(rho.data)
+    evals[abs.(evals) .< tol] = 0.0
     sum([d == 0 ? 0 : -d*log(d) for d=evals])
 end
+entropy_vn(psi::StateVector; kwargs...) = entropy_vn(dm(psi); kwargs...)
 
 """
     fidelity(rho, sigma)
