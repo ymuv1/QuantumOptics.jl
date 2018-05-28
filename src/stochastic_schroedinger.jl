@@ -42,7 +42,8 @@ function schroedinger(tspan, psi0::Ket, H::Operator, Hs::Vector;
     dschroedinger_stoch(dx::DiffArray,
             t::Float64, psi::Ket, dpsi::Ket, n::Int) = dschroedinger_stochastic(dx, psi, Hs, dpsi, n)
 
-    integrate_stoch(tspan_, dschroedinger_determ, dschroedinger_stoch, x0, state, dstate, fout, n; kwargs...)
+    integrate_stoch(tspan_, dschroedinger_determ, dschroedinger_stoch, x0, state, dstate, fout, n;
+                    kwargs...)
 end
 schroedinger(tspan, psi0::Ket, H::Operator, Hs::Operator; kwargs...) = schroedinger(tspan, psi0, H, [Hs]; kwargs...)
 
@@ -91,15 +92,16 @@ function schroedinger_dynamic(tspan, psi0::Ket, fdeterm::Function, fstoch::Funct
             t::Float64, psi::Ket, dpsi::Ket, n::Int) =
         dschroedinger_stochastic(dx, t, psi, fstoch, dpsi, n)
 
-    integrate_stoch(tspan, dschroedinger_determ, dschroedinger_stoch, x0, state, dstate, fout, n; kwargs...)
+    integrate_stoch(tspan, dschroedinger_determ, dschroedinger_stoch, x0, state, dstate, fout, n;
+            kwargs...)
 end
+
 
 function dschroedinger_stochastic(dx::Vector{Complex128}, psi::Ket, Hs::Vector{T},
             dpsi::Ket, index::Int) where T <: Operator
     check_schroedinger(psi, Hs[index])
     recast!(dx, dpsi)
     dschroedinger(psi, Hs[index], dpsi)
-    recast!(dpsi, dx)
 end
 function dschroedinger_stochastic(dx::Array{Complex128, 2}, psi::Ket, Hs::Vector{T},
             dpsi::Ket, n::Int) where T <: Operator
