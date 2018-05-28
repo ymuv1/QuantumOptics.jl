@@ -52,7 +52,11 @@ function fclassical_stoch2(t, psi, u, du)
     du[1,1] = 0.2*u[1]
     du[2,2] = 0.2*u[2]
 end
-
+function fclassical_stoch_ndiag(t, psi, u, du)
+    du[1,1] = 0.2*u[1]
+    du[1,2] = 0.1*u[1]
+    du[2,3] = -0.1u[2]
+end
 
 # Function definitions for master_semiclassical
 function fquantum_master(t, rho, u)
@@ -80,6 +84,10 @@ tout, ψt_sc = stochastic.schroedinger_semiclassical(T_short, ψ_sc, fquantum, f
             fstoch_quantum=fquantum_stoch, fstoch_classical=fclassical_stoch2,
             noise_processes=1,
             noise_prototype_classical=zeros(Complex128, 2,2))
+tout, ψt_sc = stochastic.schroedinger_semiclassical(T_short, ψ_sc, fquantum, fclassical;
+            fstoch_classical=fclassical_stoch_ndiag,
+            noise_prototype_classical=zeros(Complex128, 2, 3))
+
 
 # Semiclassical master
 tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;

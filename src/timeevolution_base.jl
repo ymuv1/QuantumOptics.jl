@@ -127,7 +127,7 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
         noise_ = noise
     end
     if isa(noise_rate_prototype, Void)
-        if n > 1 || (n > 0 && nc > 0)
+        if n > 1 || nc > 1 || (n > 0 && nc > 0)
             noise_rate_prototype = zeros(Complex128, length(x0), n + nc)
         end
     end
@@ -147,7 +147,7 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
                     noise_rate_prototype=noise_rate_prototype)
 
     if isa(alg, Void)
-        if n > 1 || (n > 0 && nc > 0)
+        if n > 1 || nc > 1 || (n > 0 && nc > 0)
             alg_ = StochasticDiffEq.LambaEulerHeun()
         else
             alg_ = StochasticDiffEq.RKMil{:Stratonovich}()
