@@ -96,10 +96,11 @@ Integrate using StochasticDiffEq
 function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0::Vector{Complex128},
             state::T, dstate::T, fout::Function, n::Int;
             save_everystep = false, callback=nothing,
-            alg = nothing,
+            alg::StochasticDiffEq.StochasticDiffEqAlgorithm=StochasticDiffEq.EM(),
             noise_rate_prototype = nothing,
             noise_prototype_classical = nothing,
             noise=nothing,
+            ncb=nothing,
             kwargs...) where T
 
     function df_(dx::Vector{Complex128}, x::Vector{Complex128}, p, t)
@@ -140,26 +141,15 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
                                          save_everystep=save_everystep,
                                          save_start = false)
 
-    full_cb = OrdinaryDiffEq.CallbackSet(callback, scb)
+    full_cb = OrdinaryDiffEq.CallbackSet(callback, ncb, scb)
 
     prob = StochasticDiffEq.SDEProblem{true}(df_, dg_, x0,(tspan[1],tspan[end]),
                     noise=noise_,
                     noise_rate_prototype=noise_rate_prototype)
 
-    if isa(alg, Void)
-        if n > 1 || nc > 1 || (n > 0 && nc > 0)
-            alg_ = StochasticDiffEq.LambaEulerHeun()
-        else
-            alg_ = StochasticDiffEq.RKMil{:Stratonovich}()
-        end
-    else
-        @assert isa(alg, StochasticDiffEq.StochasticDiffEqAlgorithm)
-        alg_ = alg
-    end
-
     sol = StochasticDiffEq.solve(
                 prob,
-                alg_;
+                alg;
                 reltol = 1.0e-3,
                 abstol = 1.0e-3,
                 save_everystep = false, save_start = false,

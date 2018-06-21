@@ -12,6 +12,8 @@ import ...timeevolution.timeevolution_schroedinger: dschroedinger, dschroedinger
 using ...stochastic
 import ...stochastic.stochastic_master: dneumann, dwiseman, dwiseman_nl, dlindblad
 
+import DiffEqCallbacks
+
 const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Void}
 const DiffArray = Union{Vector{Complex128}, Array{Complex128, 2}}
 
@@ -49,6 +51,8 @@ Integrate time-dependent Schrödinger equation coupled to a classical system.
         stochastic function `fstoch_classical` only. Must be set for
         non-diagonal classical noise or combinations of quantum and classical
         noise. See the documentation for details.
+* `normalize=false`: Specify whether or not to normalize (quantum part of) the
+    state after each time step taken by the solver.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function schroedinger_semiclassical(tspan, state0::State{Ket}, fquantum::Function,
@@ -57,6 +61,7 @@ function schroedinger_semiclassical(tspan, state0::State{Ket}, fquantum::Functio
                 fout::Union{Function,Void}=nothing,
                 noise_processes::Int=0,
                 noise_prototype_classical=nothing,
+                normalize_state::Bool=false,
                 kwargs...)
     tspan_ = convert(Vector{Float64}, tspan)
     dschroedinger_det(t::Float64, state::State{Ket}, dstate::State{Ket}) = semiclassical.dschroedinger_dynamic(t, state, fquantum, fclassical, dstate)
@@ -86,11 +91,24 @@ function schroedinger_semiclassical(tspan, state0::State{Ket}, fquantum::Functio
         end
     end
 
+    if normalize_state
+        len_q = length(state0.quantum)
+        function norm_func(u::Vector{Complex128}, t::Float64, integrator)
+            u .= [normalize!(u[1:len_q]), u[len_q+1:end];]
+        end
+        ncb = DiffEqCallbacks.FunctionCallingCallback(norm_func;
+                 func_everystep=true,
+                 func_start=false)
+    else
+        ncb = nothing
+    end
+
     dschroedinger_stoch(dx::DiffArray,
             t::Float64, state::State{Ket}, dstate::State{Ket}, n::Int) =
             dschroedinger_stochastic(dx, t, state, fstoch_quantum, fstoch_classical, dstate, n)
     integrate_stoch(tspan_, dschroedinger_det, dschroedinger_stoch, x0, state, dstate, fout, n;
                     noise_prototype_classical = noise_prototype_classical,
+                    ncb=ncb,
                     kwargs...)
 end
 
