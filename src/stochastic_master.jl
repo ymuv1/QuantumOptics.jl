@@ -500,9 +500,11 @@ function integrate_master_stoch(tspan, df::Function, dg::Function,
     integrate_stoch(tspan_, df, dg, x0, state, dstate, fout, n; kwargs...)
 end
 
-function recast!(x::SubArray{Complex128, 1}, rho::DenseOperator)
+# TODO: Speed up by recasting to n-d arrays, remove vector methods
+function recast!(x::Union{Vector{Complex128}, SubArray{Complex128, 1}}, rho::DenseOperator)
     rho.data = reshape(x, size(rho.data))
 end
 recast!(state::DenseOperator, x::SubArray{Complex128, 1}) = (x[:] = state.data)
+recast!(state::DenseOperator, x::Vector{Complex128}) = nothing
 
 end # module

@@ -2,6 +2,8 @@ using ..metrics
 
 import OrdinaryDiffEq, DiffEqCallbacks, StochasticDiffEq
 
+const DiffArray = Union{Vector{Complex128}, Array{Complex128, 2}}
+
 function recast! end
 
 """
@@ -10,19 +12,19 @@ function recast! end
 
 Integrate using OrdinaryDiffEq
 """
-function integrate(tspan::Vector{Float64}, df::Function, x0::Vector{Complex128},
+function integrate(tspan::Vector{Float64}, df::Function, x0::DiffArray,
             state::T, dstate::T, fout::Function;
             alg::OrdinaryDiffEq.OrdinaryDiffEqAlgorithm = OrdinaryDiffEq.DP5(),
             steady_state = false, tol = 1e-3, save_everystep = false,
             callback = nothing, kwargs...) where T
 
-    function df_(dx::Vector{Complex128}, x::Vector{Complex128}, p, t)
+    function df_(dx::DiffArray, x::DiffArray, p, t)
         recast!(x, state)
         recast!(dx, dstate)
         df(t, state, dstate)
         recast!(dstate, dx)
     end
-    function fout_(x::Vector{Complex128}, t::Float64, integrator)
+    function fout_(x::DiffArray, t::Float64, integrator)
         recast!(x, state)
         fout(t, state)
     end
@@ -64,7 +66,7 @@ function integrate(tspan::Vector{Float64}, df::Function, x0::Vector{Complex128},
     out.t,out.saveval
 end
 
-function integrate(tspan::Vector{Float64}, df::Function, x0::Vector{Complex128},
+function integrate(tspan::Vector{Float64}, df::Function, x0::DiffArray,
             state::T, dstate::T, ::Void; kwargs...) where T
     function fout(t::Float64, state::T)
         copy(state)
