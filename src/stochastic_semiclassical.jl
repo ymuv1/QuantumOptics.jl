@@ -51,8 +51,8 @@ Integrate time-dependent Schrödinger equation coupled to a classical system.
         stochastic function `fstoch_classical` only. Must be set for
         non-diagonal classical noise or combinations of quantum and classical
         noise. See the documentation for details.
-* `normalize=false`: Specify whether or not to normalize (quantum part of) the
-    state after each time step taken by the solver.
+* `normalize_state=false`: Specify whether or not to normalize the state after
+        each time step taken by the solver.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function schroedinger_semiclassical(tspan, state0::State{Ket}, fquantum::Function,

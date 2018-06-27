@@ -27,8 +27,8 @@ Integrate stochastic Schrödinger equation.
 * `fout=nothing`: If given, this function `fout(t, state)` is called every time
         an output should be displayed. ATTENTION: The given state is neither
         normalized nor permanent!
-* `normalize=false`: Specify whether or not to normalize the state after each
-        time step taken by the solver.
+* `normalize_state=false`: Specify whether or not to normalize the state after
+        each time step taken by the solver.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function schroedinger(tspan, psi0::Ket, H::Operator, Hs::Vector;
@@ -85,8 +85,8 @@ Integrate stochastic Schrödinger equation with dynamic Hamiltonian.
         from the function output.
         NOTE: Set this number if you want to avoid an initial calculation of
         the function output!
-* `normalize=false`: Specify whether or not to normalize the state after each
-        time step taken by the solver.
+* `normalize_state=false`: Specify whether or not to normalize the state after
+        each time step taken by the solver.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function schroedinger_dynamic(tspan, psi0::Ket, fdeterm::Function, fstoch::Function;
