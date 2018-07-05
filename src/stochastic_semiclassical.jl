@@ -137,9 +137,6 @@ non-hermitian Hamiltonian and then calls master_nh which is slightly faster.
         stochastic terms of the derivative `du`.
 * `fstoch_H=nothing`: Function `f(t, rho, u) -> Hs` providing a vector of operators
         that correspond to stochastic terms of the Hamiltonian.
-* `fstoch_J=nothing`: Function `f(t, rho, u) -> (J, Jdagger)` or
-        `f(t, rho, u) -> (J, Jdagger, rates)` giving a stochastic
-        Lindblad term.
 * `rates=nothing`: Vector or matrix specifying the coefficients (decay rates)
         for the jump operators. If nothing is specified all rates are assumed
         to be 1.
@@ -170,7 +167,7 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
                 fquantum::Function, fclassical::Function;
                 fstoch_quantum::Union{Function, Void}=nothing,
                 fstoch_classical::Union{Function, Void}=nothing,
-                fstoch_H::Union{Function, Void}=nothing, fstoch_J::Union{Function, Void}=nothing,
+                fstoch_H::Union{Function, Void}=nothing,
                 rates::DecayRates=nothing, rates_s::DecayRates=nothing,
                 fout::Union{Function,Void}=nothing,
                 noise_processes::Int=0,
@@ -184,7 +181,7 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
         throw(ArgumentError("A matrix of stochastic rates is ambiguous! Please provide a vector of stochastic rates.
         You may want to set them as ones or use diagonaljumps."))
     end
-    if isa(fstoch_quantum, Void) && isa(fstoch_classical, Void) && isa(fstoch_H, Void) && isa(fstoch_J, Void)
+    if isa(fstoch_quantum, Void) && isa(fstoch_classical, Void) && isa(fstoch_H, Void)
         throw(ArgumentError("No stochastic functions provided!"))
     end
 
@@ -196,9 +193,6 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
         end
         if isa(fstoch_H, Function)
             n += length(fstoch_H(0, rho0.quantum, rho0.classical))
-        end
-        if isa(fstoch_J, Function)
-            n += length(fstoch_J(0, rho0.quantum, rho0.classical)[1])
         end
     else
         n = noise_processes
@@ -212,7 +206,7 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
 
     dmaster_determ(t::Float64, rho::State{DenseOperator}, drho::State{DenseOperator}) =
             dmaster_h_dynamic(t, rho, fquantum, fclassical, rates, drho, tmp)
-    if isa(fstoch_H, Void) && isa(fstoch_J, Void)
+    if isa(fstoch_H, Void)
         if nonlinear
             dmaster_stoch_std_nl(dx::DiffArray, t::Float64, rho::State{DenseOperator},
                             drho::State{DenseOperator}, n::Int) =
@@ -238,7 +232,7 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
             dmaster_stoch_gen_nl(dx::DiffArray, t::Float64, rho::State{DenseOperator},
                             drho::State{DenseOperator}, n::Int) =
                 dmaster_stoch_dynamic_general_nl(dx, t, rho, fstoch_quantum,
-                            fstoch_classical, fstoch_H, fstoch_J, rates, rates_s,
+                            fstoch_classical, fstoch_H, rates, rates_s,
                             drho, tmp, n)
 
             integrate_master_stoch(tspan, dmaster_determ, dmaster_stoch_gen_nl, rho0, fout, n;
@@ -248,7 +242,7 @@ function master_semiclassical(tspan::Vector{Float64}, rho0::State{DenseOperator}
             dmaster_stoch_gen(dx::DiffArray, t::Float64, rho::State{DenseOperator},
                             drho::State{DenseOperator}, n::Int) =
                 dmaster_stoch_dynamic_general(dx, t, rho, fstoch_quantum,
-                            fstoch_classical, fstoch_H, fstoch_J, rates, rates_s,
+                            fstoch_classical, fstoch_H, rates, rates_s,
                             drho, tmp, n)
 
             integrate_master_stoch(tspan, dmaster_determ, dmaster_stoch_gen, rho0, fout, n;
@@ -402,7 +396,7 @@ dmaster_stoch_dynamic_nl(dx::DiffArray, t::Float64, state::State{DenseOperator},
 
 function dmaster_stoch_dynamic_general(dx::Vector{Complex128}, t::Float64, state::State{DenseOperator},
             fstoch_quantum::Void, fstoch_classical::Void,
-            fstoch_H::Function, fstoch_J::Void, rates::DecayRates, rates_s::DecayRates,
+            fstoch_H::Function, rates::DecayRates, rates_s::DecayRates,
             dstate::State{DenseOperator}, tmp::DenseOperator, ::Int)
     H = fstoch_H(t, state.quantum, state.classical)
     recast!(dx, dstate)
@@ -411,7 +405,7 @@ function dmaster_stoch_dynamic_general(dx::Vector{Complex128}, t::Float64, state
 end
 function dmaster_stoch_dynamic_general(dx::Array{Complex128, 2}, t::Float64, state::State{DenseOperator},
             fstoch_quantum::Union{Function, Void}, fstoch_classical::Union{Function, Void},
-            fstoch_H::Function, fstoch_J::Void, rates::DecayRates, rates_s::DecayRates,
+            fstoch_H::Function, rates::DecayRates, rates_s::DecayRates,
             dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
     H = fstoch_H(t, state.quantum, state.classical)
     m = length(H)
@@ -422,70 +416,13 @@ function dmaster_stoch_dynamic_general(dx::Array{Complex128, 2}, t::Float64, sta
     end
     dmaster_stoch_dynamic(dx, t, state, fstoch_quantum, fstoch_classical,
             rates_s, dstate, n-m)
-end
-function dmaster_stoch_dynamic_general(dx::Vector{Complex128}, t::Float64, state::State{DenseOperator},
-            fstoch_quantum::Void, fstoch_classical::Void,
-            fstoch_H::Void, fstoch_J::Function, rates::DecayRates, rates_s::DecayRates,
-            dstate::State{DenseOperator}, tmp::DenseOperator, ::Int)
-    result_J = fstoch_J(t, state.quantum, state.classical)
-
-    @assert 2 <= length(result_J) <= 3
-    if length(result_J) == 2
-        J, Jdagger = result_J
-        rates_ = rates
-    else
-        J, Jdagger, rates_ = result_J
-    end
-    recast!(dx, dstate)
-    dlindblad(state.quantum, rates_, J, Jdagger, dstate.quantum, tmp, 1)
-    recast!(dstate, dx)
-end
-function dmaster_stoch_dynamic_general(dx::Array{Complex128, 2}, t::Float64, state::State{DenseOperator},
-            fstoch_quantum::Union{Function, Void}, fstoch_classical::Union{Function, Void},
-            fstoch_H::Void, fstoch_J::Function, rates::DecayRates, rates_s::DecayRates,
-            dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
-    result_J = fstoch_J(t, state.quantum, state.classical)
-    @assert 2 <= length(result_J) <= 3
-    if length(result_J) == 2
-        J, Jdagger = result_J
-        rates_ = rates
-    else
-        J, Jdagger, rates_ = result_J
-    end
-    l = length(J)
-
-    for i=n-l+1:n
-        dx_i = @view dx[:, i]
-        recast!(dx_i, dstate)
-        dlindblad(state.quantum, rates_, J, Jdagger, dstate.quantum, tmp, i-n+l)
-        recast!(dstate, dx_i)
-    end
-    dmaster_stoch_dynamic(dx, t, state, fstoch_quantum, fstoch_classical,
-            rates_s, dstate, n-l)
-end
-function dmaster_stoch_dynamic_general(dx::Array{Complex128, 2}, t::Float64,
-            state::State{DenseOperator}, fstoch_quantum::Union{Function, Void},
-            fstoch_classical::Union{Function, Void},
-            fstoch_H::Function, fstoch_J::Function, rates::DecayRates, rates_s::DecayRates,
-            dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
-    H = fstoch_H(t, state.quantum, state.classical)
-    m = length(H)
-
-    for i=n-m+1:n
-        dx_i = @view dx[:, i]
-        recast!(dx_i, dstate)
-        dneumann(state.quantum, H[i-n+m], dstate.quantum)
-        recast!(dstate, dx_i)
-    end
-    dmaster_stoch_dynamic_general(dx, t, state, fstoch_quantum, fstoch_classical,
-            nothing, fstoch_J, rates, rates_s, dstate, tmp, n-m)
 end
 
 dmaster_stoch_dynamic_general_nl(dx::Vector{Complex128}, args...; kwargs...) =
     dmaster_stoch_dynamic_general(dx, args...; kwargs...)
 function dmaster_stoch_dynamic_general_nl(dx::Array{Complex128, 2}, t::Float64, state::State{DenseOperator},
             fstoch_quantum::Union{Function, Void}, fstoch_classical::Union{Function, Void},
-            fstoch_H::Function, fstoch_J::Void, rates::DecayRates, rates_s::DecayRates,
+            fstoch_H::Function, rates::DecayRates, rates_s::DecayRates,
             dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
     H = fstoch_H(t, state.quantum, state.classical)
     m = length(H)
@@ -497,46 +434,7 @@ function dmaster_stoch_dynamic_general_nl(dx::Array{Complex128, 2}, t::Float64, 
     dmaster_stoch_dynamic_nl(dx, t, state, fstoch_quantum, fstoch_classical,
             rates_s, dstate, n-m)
 end
-function dmaster_stoch_dynamic_general_nl(dx::Array{Complex128, 2}, t::Float64, state::State{DenseOperator},
-            fstoch_quantum::Union{Function, Void}, fstoch_classical::Union{Function, Void},
-            fstoch_H::Void, fstoch_J::Function, rates::DecayRates, rates_s::DecayRates,
-            dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
-    result_J = fstoch_J(t, state.quantum, state.classical)
-    @assert 2 <= length(result_J) <= 3
-    if length(result_J) == 2
-        J, Jdagger = result_J
-        rates_ = rates
-    else
-        J, Jdagger, rates_ = result_J
-    end
-    l = length(J)
 
-    for i=n-l+1:n
-        dx_i = @view dx[:, i]
-        recast!(dx_i, dstate)
-        dlindblad(state.quantum, rates_, J, Jdagger, dstate.quantum, tmp, i-n+l)
-        recast!(dstate, dx_i)
-    end
-    dmaster_stoch_dynamic_nl(dx, t, state, fstoch_quantum, fstoch_classical,
-            rates_s, dstate, n-l)
-end
-function dmaster_stoch_dynamic_general_nl(dx::Array{Complex128, 2}, t::Float64,
-            state::State{DenseOperator}, fstoch_quantum::Union{Function, Void},
-            fstoch_classical::Union{Function, Void},
-            fstoch_H::Function, fstoch_J::Function, rates::DecayRates, rates_s::DecayRates,
-            dstate::State{DenseOperator}, tmp::DenseOperator, n::Int)
-    H = fstoch_H(t, state.quantum, state.classical)
-    m = length(H)
-
-    for i=n-m+1:n
-        dx_i = @view dx[:, i]
-        recast!(dx_i, dstate)
-        dneumann(state.quantum, H[i-n+m], dstate.quantum)
-        recast!(dstate, dx_i)
-    end
-    dmaster_stoch_dynamic_general_nl(dx, t, state, fstoch_quantum, fstoch_classical,
-            nothing, fstoch_J, rates, rates_s, dstate, tmp, n-m)
-end
 
 function integrate_master_stoch(tspan, df::Function, dg::Function,
                         rho0::State{DenseOperator}, fout::Union{Void, Function},

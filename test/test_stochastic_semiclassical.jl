@@ -68,12 +68,6 @@ end
 function fstoch_q_master2(t, rho, u)
     Js, Jsdagger, ones(length(Js))
 end
-function fstoch_J(t, rho, u)
-    J, Jdagger
-end
-function fstoch_J2(t, rho, u)
-    J, Jdagger, rates
-end
 
 # Test semiclassical schroedinger
 tout, ψt_sc = stochastic.schroedinger_semiclassical(T, ψ_sc, fquantum, fclassical;
@@ -107,23 +101,9 @@ tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fcl
             fstoch_H=fquantum_stoch,
             noise_prototype_classical=zeros(Complex128, 2, 2), dt=dt)
 tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_classical=fclassical_stoch2,
-            fstoch_J=fstoch_J,
-            noise_prototype_classical=zeros(Complex128, 2, 2), dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_classical=fclassical_stoch2,
-            fstoch_J=fstoch_q_master2,
-            noise_prototype_classical=zeros(Complex128, 2, 2), dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
             fstoch_quantum=fstoch_q_master2, dt=dt)
 tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_H=fquantum_stoch, fstoch_J=fstoch_J, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
             fstoch_H=fquantum_stoch, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_J=fstoch_J, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_J=fstoch_J2, dt=dt)
 
 # Test linear version
 tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
@@ -141,17 +121,7 @@ tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fcl
             fstoch_H=fquantum_stoch,
             noise_prototype_classical=zeros(Complex128, 2, 2), nonlinear=false, dt=dt)
 tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_classical=fclassical_stoch2,
-            fstoch_J=fstoch_J,
-            noise_prototype_classical=zeros(Complex128, 2, 2), nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_classical=fclassical_stoch2,
-            fstoch_J=fstoch_q_master2,
-            noise_prototype_classical=zeros(Complex128, 2, 2), nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
             fstoch_quantum=fstoch_q_master2, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_semiclassical(T_short, ρ_sc, fquantum_master, fclassical;
-            fstoch_H=fquantum_stoch, fstoch_J=fstoch_J, nonlinear=false, dt=dt)
 
 # Test error messages
 @test_throws ArgumentError stochastic.schroedinger_semiclassical(T, ψ_sc, fquantum, fclassical)

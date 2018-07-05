@@ -84,34 +84,14 @@ tout, ρt = stochastic.master(T_short, ρ0, H, J, J; rates_s=[0.1], Hs=Hs, nonli
 tout, ρt = stochastic.master_dynamic(T_short, ψ0, fdeterm_master, fstoch1_master; noise_processes=1, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_H=fstoch3_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_J=fstoch4_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_J=fstoch2_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch4_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch2_master, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; rates_s=[1.0], dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch2_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
             fstoch_H=fstoch3_master, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
-            fstoch_J=fstoch5_master, dt=dt)
 
 # Linear version
 tout, ρt = stochastic.master_dynamic(T_short, ψ0, fdeterm_master, fstoch1_master; noise_processes=1, nonlinear=false, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; nonlinear=false, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_H=fstoch3_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_J=fstoch4_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master; fstoch_J=fstoch2_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch4_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch2_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch2_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
-            fstoch_H=fstoch3_master, fstoch_J=fstoch4_master, nonlinear=false, dt=dt)
-tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
-            fstoch_J=fstoch4_master, nonlinear=false, dt=dt)
 tout, ρt = stochastic.master_dynamic(T_short, ρ0, fdeterm_master, fstoch4_master;
             fstoch_H=fstoch3_master, nonlinear=false, dt=dt)
 
