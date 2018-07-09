@@ -45,10 +45,14 @@ end
 """
 For sparse operators by default it only returns the 6 lowest eigenvalues.
 """
-function eigenstates(op::SparseOperator, n::Int=6; warning=true, kwargs...)
+function eigenstates(op::SparseOperator, n::Int=6; warning::Bool=true,
+        info::Bool=true, kwargs...)
     b = basis(op)
     # TODO: Change to sparese-Hermitian specific algorithm if more efficient
     ishermitian(op) || (warning && warn(nonhermitian_warning))
+    info && println("INFO: Defaulting to sparse diagonalization.
+        If storing the full operator is possible, it might be faster to do
+        eigenstates(full(op)). Set info=false to turn off this message.")
     D, V = eigs(op.data; which=:SR, nev=n, kwargs...)
     states = [Ket(b, V[:, k]) for k=1:length(D)]
     D, states
@@ -84,7 +88,7 @@ end
 """
 For sparse operators by default it only returns the 6 lowest eigenvalues.
 """
-eigenenergies(op::SparseOperator, n::Int=6; warning=true) = eigenstates(op, n; warning=warning)[1]
+eigenenergies(op::SparseOperator, n::Int=6; kwargs...) = eigenstates(op, n; kwargs...)[1]
 
 
 arithmetic_unary_error = operators.arithmetic_unary_error
