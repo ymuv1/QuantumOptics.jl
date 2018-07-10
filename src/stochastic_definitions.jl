@@ -35,7 +35,7 @@ H_{det} = H_0 + H_{nl},
 where
 
 ```math
-H_{nl} = iCe^{-i\\theta} \\langle X \\rangle - \\frac{i}{2} C^\\dagger C,
+H_{nl} = iCe^{-i\\theta} \\langle X_\\theta \\rangle - \\frac{i}{2} C^\\dagger C,
 ```
 
 and
