@@ -86,14 +86,42 @@ for (i,x)=enumerate(X), (j,y)=enumerate(Y)
 end
 
 # Test SU(2) phasespace
-b = SpinBasis(50)
+b = SpinBasis(5)
 theta = π*rand()
 phi =2π*rand()
 css = coherentspinstate(b,theta,phi)
+dmcss = dm(css)
+csssx = coherentspinstate(b,π/2,0)
+dmcsssx = dm(csssx)
+rs = randstate(b)
+dmrs = dm(rs)
 sx = expect(sigmax(b)/2,css); # eigenstate of jx operator
 sy = expect(sigmay(b)/2,css); # eigenstate of jy
 sz = expect(sigmaz(b)/2,css); # eigenstate of jz operator
 ssq = sx^2 + sy^2 + sz^2
 
+qsu2sx = qfuncsu2(csssx,theta,phi)
+qsu2sxdm = qfuncsu2(dmcsssx,theta,phi)
+res = 250
+costhetam = Array{Float64}(res,2*res)
+for i = 1:res, j = 1:2*res
+    costhetam[i,j] = sin(i*1pi/(res-1))
+end
+wsu2 = sum(wignersu2(rs,res).*costhetam)*(π/res)^2
+wsu2dm = sum(wignersu2(dmrs,res).*costhetam)*(π/res)^2
+qsu2 = sum(qfuncsu2(rs,res).*costhetam)*(π/res)^2
+qsu2dm = sum(qfuncsu2(dmrs,res).*costhetam)*(π/res)^2
+
 @test ssq ≈ float(b.spinnumber)^2
+
+@test isapprox(qsu2sxdm, (2*float(b.spinnumber)+1)/(4pi)*(0.5*(sin(theta)cos(phi)+1))^(2*float(b.spinnumber)),atol=1e-2)
+@test isapprox(qsu2sx, (2*float(b.spinnumber)+1)/(4pi)*(0.5*(sin(theta)cos(phi)+1))^(2*float(b.spinnumber)),atol=1e-2)
+@test isapprox(qsu2, 1.0, atol=1e-2)
+@test isapprox(qsu2dm, 1.0, atol=1e-2)
+
+@test isapprox(wignersu2(csssx,π/2,0), (4*float(b.spinnumber)+1)/(4pi), atol=1e-2)
+@test isapprox(wignersu2(dmcsssx,π/2,0), (4*float(b.spinnumber)+1)/(4pi),atol=1e-2)
+@test isapprox(wsu2, 1.0, atol=1e-2)
+@test isapprox(wsu2dm, 1.0, atol=1e-2)
+
 end # testset
