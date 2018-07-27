@@ -52,7 +52,8 @@ sorted according to the absolute value of the eigenvalues.
 
 # Keyword arguments:
 * `nev = min(10, length(L.basis_r[1])*length(L.basis_r[2]))`: Number of eigenvalues.
-* `which = :LR`: Find eigenvalues with largest real part. Keyword for `eigs` function (ineffective for DenseSuperOperator).
+* `which = :LR`: Find eigenvalues with largest real part. Keyword for `eigs`
+    function (ineffective for DenseSuperOperator).
 * `kwargs...`:  Keyword arguments for the Julia `eig` or `eigs` function.
 """
 function liouvillianspectrum(L::DenseSuperOperator; nev::Int = min(10, length(L.basis_r[1])*length(L.basis_r[2])), which::Symbol = :LR, kwargs...)
@@ -98,8 +99,9 @@ Find steady state by calculating the eigenstate with eigenvalue 0 of the Liouvil
 # Keyword arguments:
 * `tol = 1e-9`: Check `abs(eigenvalue) < tol` to determine zero eigenvalue.
 * `nev = 2`: Number of calculated eigenvalues. If `nev > 1` it is checked if there
-is only one eigenvalue with real part 0. No checks for `nev = 1`: use if faster
-or for avoiding convergence errors of `eigs`. Changing `nev` thus only makes sense when using SparseSuperOperator.
+    is only one eigenvalue with real part 0. No checks for `nev = 1`: use if
+    faster or for avoiding convergence errors of `eigs`. Changing `nev` thus only
+    makes sense when using SparseSuperOperator.
 * `which = :LR`: Find eigenvalues with largest real part. Keyword for `eigs` function (ineffective for DenseSuperOperator).
 * `kwargs...`:  Keyword arguments for the Julia `eig` or `eigs` function.
 """
