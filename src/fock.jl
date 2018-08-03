@@ -5,6 +5,7 @@ export FockBasis, number, destroy, create, displace, fockstate, coherentstate
 import Base: ==
 
 using ..bases, ..states, ..operators, ..operators_dense, ..operators_sparse
+using SparseArrays
 
 
 """
@@ -34,7 +35,7 @@ Number operator for the specified Fock space.
 """
 function number(b::FockBasis)
     diag = complex.(0.:b.N)
-    data = spdiagm(diag, 0, b.N+1, b.N+1)
+    data = spdiagm(0 => diag)
     SparseOperator(b, data)
 end
 
@@ -45,7 +46,7 @@ Annihilation operator for the specified Fock space.
 """
 function destroy(b::FockBasis)
     diag = complex.(sqrt.(1.:b.N))
-    data = spdiagm(diag, 1, b.N+1, b.N+1)
+    data = spdiagm(1 => diag)
     SparseOperator(b, data)
 end
 
@@ -56,7 +57,7 @@ Creation operator for the specified Fock space.
 """
 function create(b::FockBasis)
     diag = complex.(sqrt.(1.:b.N))
-    data = spdiagm(diag, -1, b.N+1, b.N+1)
+    data = spdiagm(-1 => diag)
     SparseOperator(b, data)
 end
 
@@ -65,7 +66,7 @@ end
 
 Displacement operator ``D(α)`` for the specified Fock space.
 """
-displace(b::FockBasis, alpha::Number) = expm(full(alpha*create(b) - conj(alpha)*destroy(b)))
+displace(b::FockBasis, alpha::Number) = exp(dense(alpha*create(b) - conj(alpha)*destroy(b)))
 
 """
     fockstate(b::FockBasis, n)
@@ -82,7 +83,7 @@ end
 
 Coherent state ``|α⟩`` for the specified Fock space.
 """
-function coherentstate(b::FockBasis, alpha::Number, result=Ket(b, Vector{Complex128}(length(b))))
+function coherentstate(b::FockBasis, alpha::Number, result=Ket(b, Vector{ComplexF64}(undef, length(b))))
     alpha = complex(alpha)
     data = result.data
     data[1] = exp(-abs2(alpha)/2)

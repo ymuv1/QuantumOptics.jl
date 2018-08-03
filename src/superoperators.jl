@@ -1,13 +1,14 @@
 module superoperators
 
 export SuperOperator, DenseSuperOperator, SparseSuperOperator,
-        spre, spost, liouvillian, expm
+        spre, spost, liouvillian, exp
 
 import Base: ==, *, /, +, -
 import ..bases
+import SparseArrays: sparse
 
-using Compat
 using ..bases, ..operators, ..operators_dense, ..operators_sparse
+using SparseArrays
 
 
 """
@@ -34,8 +35,8 @@ SuperOperator stored as dense matrix.
 mutable struct DenseSuperOperator <: SuperOperator
     basis_l::Tuple{Basis, Basis}
     basis_r::Tuple{Basis, Basis}
-    data::Matrix{Complex128}
-    function DenseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::Matrix{Complex128})
+    data::Matrix{ComplexF64}
+    function DenseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::Matrix{ComplexF64})
         if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
            length(basis_r[1])*length(basis_r[2]) != size(data, 2)
             throw(DimensionMismatch())
@@ -47,7 +48,7 @@ end
 function DenseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis})
     Nl = length(basis_l[1])*length(basis_l[2])
     Nr = length(basis_r[1])*length(basis_r[2])
-    data = zeros(Complex128, Nl, Nr)
+    data = zeros(ComplexF64, Nl, Nr)
     DenseSuperOperator(basis_l, basis_r, data)
 end
 
@@ -60,8 +61,8 @@ SuperOperator stored as sparse matrix.
 mutable struct SparseSuperOperator <: SuperOperator
     basis_l::Tuple{Basis, Basis}
     basis_r::Tuple{Basis, Basis}
-    data::SparseMatrixCSC{Complex128, Int}
-    function SparseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::SparseMatrixCSC{Complex128, Int})
+    data::SparseMatrixCSC{ComplexF64, Int}
+    function SparseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis}, data::SparseMatrixCSC{ComplexF64, Int})
         if length(basis_l[1])*length(basis_l[2]) != size(data, 1) ||
            length(basis_r[1])*length(basis_r[2]) != size(data, 2)
             throw(DimensionMismatch())
@@ -73,21 +74,21 @@ end
 function SparseSuperOperator(basis_l::Tuple{Basis, Basis}, basis_r::Tuple{Basis, Basis})
     Nl = length(basis_l[1])*length(basis_l[2])
     Nr = length(basis_r[1])*length(basis_r[2])
-    data = spzeros(Complex128, Nl, Nr)
+    data = spzeros(ComplexF64, Nl, Nr)
     SparseSuperOperator(basis_l, basis_r, data)
 end
 
-SuperOperator(basis_l, basis_r, data::SparseMatrixCSC{Complex128, Int}) = SparseSuperOperator(basis_l, basis_r, data)
-SuperOperator(basis_l, basis_r, data::Matrix{Complex128}) = DenseSuperOperator(basis_l, basis_r, data)
+SuperOperator(basis_l, basis_r, data::SparseMatrixCSC{ComplexF64, Int}) = SparseSuperOperator(basis_l, basis_r, data)
+SuperOperator(basis_l, basis_r, data::Matrix{ComplexF64}) = DenseSuperOperator(basis_l, basis_r, data)
 
 
 Base.copy(a::T) where {T<:SuperOperator} = T(a.basis_l, a.basis_r, copy(a.data))
 
-Base.full(a::SparseSuperOperator) = DenseSuperOperator(a.basis_l, a.basis_r, full(a.data))
-Base.full(a::DenseSuperOperator) = copy(a)
+operators.dense(a::SparseSuperOperator) = DenseSuperOperator(a.basis_l, a.basis_r, Matrix(a.data))
+operators.dense(a::DenseSuperOperator) = copy(a)
 
-Base.sparse(a::DenseSuperOperator) = SparseSuperOperator(a.basis_l, a.basis_r, sparse(a.data))
-Base.sparse(a::SparseSuperOperator) = copy(a)
+sparse(a::DenseSuperOperator) = SparseSuperOperator(a.basis_l, a.basis_r, sparse(a.data))
+sparse(a::SparseSuperOperator) = copy(a)
 
 ==(a::T, b::T) where {T<:SuperOperator} = samebases(a, b) && (a.data == b.data)
 
@@ -151,7 +152,7 @@ For operators ``A``, ``B`` the relation
 
 holds. `op` can be a dense or a sparse operator.
 """
-spost(op::Operator) = SuperOperator((op.basis_r, op.basis_r), (op.basis_l, op.basis_l), kron(transpose(op.data), identityoperator(op).data))
+spost(op::Operator) = SuperOperator((op.basis_r, op.basis_r), (op.basis_l, op.basis_l), kron(permutedims(op.data), identityoperator(op).data))
 
 
 function _check_input(H::Operator, J::Vector, Jdagger::Vector, rates::Union{Vector{Float64}, Matrix{Float64}})
@@ -212,10 +213,10 @@ function liouvillian(H::T, J::Vector{T};
 end
 
 """
-    expm(op::DenseSuperOperator)
+    exp(op::DenseSuperOperator)
 
 Operator exponential which can for example used to calculate time evolutions.
 """
-Base.expm(op::DenseSuperOperator) = DenseSuperOperator(op.basis_l, op.basis_r, expm(op.data))
+Base.exp(op::DenseSuperOperator) = DenseSuperOperator(op.basis_l, op.basis_r, exp(op.data))
 
 end # module

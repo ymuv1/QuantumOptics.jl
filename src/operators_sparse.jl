@@ -4,8 +4,10 @@ export SparseOperator, diagonaloperator
 
 import Base: ==, *, /, +, -
 import ..operators
+import SparseArrays: sparse
 
 using ..bases, ..states, ..operators, ..operators_dense, ..sparsematrix
+using SparseArrays, LinearAlgebra
 
 
 """
@@ -19,7 +21,7 @@ in the `data` field.
 mutable struct SparseOperator <: Operator
     basis_l::Basis
     basis_r::Basis
-    data::SparseMatrixCSC{Complex128, Int}
+    data::SparseMatrixCSC{ComplexF64, Int}
     function SparseOperator(b1::Basis, b2::Basis, data)
         if length(b1) != size(data, 1) || length(b2) != size(data, 2)
             throw(DimensionMismatch())
@@ -28,24 +30,24 @@ mutable struct SparseOperator <: Operator
     end
 end
 
-SparseOperator(b::Basis, data::SparseMatrixCSC{Complex128, Int}) = SparseOperator(b, b, data)
-SparseOperator(b::Basis, data::Matrix{Complex128}) = SparseOperator(b, sparse(data))
+SparseOperator(b::Basis, data::SparseMatrixCSC{ComplexF64, Int}) = SparseOperator(b, b, data)
+SparseOperator(b::Basis, data::Matrix{ComplexF64}) = SparseOperator(b, sparse(data))
 SparseOperator(op::DenseOperator) = SparseOperator(op.basis_l, op.basis_r, sparse(op.data))
 
-SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(Complex128, length(b1), length(b2)))
+SparseOperator(b1::Basis, b2::Basis) = SparseOperator(b1, b2, spzeros(ComplexF64, length(b1), length(b2)))
 SparseOperator(b::Basis) = SparseOperator(b, b)
 
 Base.copy(x::SparseOperator) = SparseOperator(x.basis_l, x.basis_r, copy(x.data))
-Base.full(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, full(a.data))
+operators.dense(a::SparseOperator) = DenseOperator(a.basis_l, a.basis_r, Matrix(a.data))
 
 """
     sparse(op::Operator)
 
 Convert an arbitrary operator into a [`SparseOperator`](@ref).
 """
-Base.sparse(a::Operator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
-Base.sparse(a::SparseOperator) = copy(a)
-Base.sparse(a::DenseOperator) = SparseOperator(a.basis_l, a.basis_r, sparse(a.data))
+sparse(a::Operator) = throw(ArgumentError("Direct conversion from $(typeof(a)) not implemented. Use sparse(full(op)) instead."))
+sparse(a::SparseOperator) = copy(a)
+sparse(a::DenseOperator) = SparseOperator(a.basis_l, a.basis_r, sparse(a.data))
 
 ==(x::SparseOperator, y::SparseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
 
@@ -73,7 +75,7 @@ operators.tensor(a::SparseOperator, b::SparseOperator) = SparseOperator(tensor(a
 operators.tensor(a::DenseOperator, b::SparseOperator) = SparseOperator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
 operators.tensor(a::SparseOperator, b::DenseOperator) = SparseOperator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
 
-operators.trace(op::SparseOperator) = (check_samebases(op); trace(op.data))
+operators.tr(op::SparseOperator) = (check_samebases(op); tr(op.data))
 
 operators.conj(op::SparseOperator) = SparseOperator(op.basis_l, op.basis_r, conj(op.data))
 operators.conj!(op::SparseOperator) = conj!(op.data)
@@ -97,7 +99,7 @@ end
 function operators.expect(op::SparseOperator, state::DenseOperator)
     check_samebases(op.basis_r, state.basis_l)
     check_samebases(op.basis_l, state.basis_r)
-    result = Complex128(0.)
+    result = ComplexF64(0.)
     @inbounds for colindex = 1:op.data.n
         for i=op.data.colptr[colindex]:op.data.colptr[colindex+1]-1
             result += op.data.nzval[i]*state.data[colindex, op.data.rowval[i]]
@@ -110,11 +112,11 @@ function operators.permutesystems(rho::SparseOperator, perm::Vector{Int})
     @assert length(rho.basis_l.bases) == length(rho.basis_r.bases) == length(perm)
     @assert isperm(perm)
     shape = [rho.basis_l.shape; rho.basis_r.shape]
-    data = sparsematrix.permutedims(rho.data, shape, [perm; perm + length(perm)])
+    data = sparsematrix.permutedims(rho.data, shape, [perm; perm .+ length(perm)])
     SparseOperator(permutesystems(rho.basis_l, perm), permutesystems(rho.basis_r, perm), data)
 end
 
-operators.identityoperator(::Type{SparseOperator}, b1::Basis, b2::Basis) = SparseOperator(b1, b2, speye(Complex128, length(b1), length(b2)))
+operators.identityoperator(::Type{SparseOperator}, b1::Basis, b2::Basis) = SparseOperator(b1, b2, sparse(ComplexF64(1)*I, length(b1), length(b2)))
 operators.identityoperator(b1::Basis, b2::Basis) = identityoperator(SparseOperator, b1, b2)
 operators.identityoperator(b::Basis) = identityoperator(b, b)
 
@@ -125,14 +127,14 @@ Create a diagonal operator of type [`SparseOperator`](@ref).
 """
 function diagonaloperator(b::Basis, diag::Vector{T}) where T <: Number
   @assert 1 <= length(diag) <= prod(b.shape)
-  SparseOperator(b, spdiagm(convert(Vector{Complex128}, diag)))
+  SparseOperator(b, sparse(Diagonal(convert(Vector{ComplexF64}, diag))))
 end
 
 
 # Fast in-place multiplication implementations
-operators.gemm!(alpha, M::SparseOperator, b::DenseOperator, beta, result::DenseOperator) = sparsematrix.gemm!(convert(Complex128, alpha), M.data, b.data, convert(Complex128, beta), result.data)
-operators.gemm!(alpha, a::DenseOperator, M::SparseOperator, beta, result::DenseOperator) = sparsematrix.gemm!(convert(Complex128, alpha), a.data, M.data, convert(Complex128, beta), result.data)
-operators.gemv!(alpha, M::SparseOperator, b::Ket, beta, result::Ket) = sparsematrix.gemv!(convert(Complex128, alpha), M.data, b.data, convert(Complex128, beta), result.data)
-operators.gemv!(alpha, b::Bra, M::SparseOperator, beta, result::Bra) = sparsematrix.gemv!(convert(Complex128, alpha), b.data, M.data, convert(Complex128, beta), result.data)
+operators.gemm!(alpha, M::SparseOperator, b::DenseOperator, beta, result::DenseOperator) = sparsematrix.gemm!(convert(ComplexF64, alpha), M.data, b.data, convert(ComplexF64, beta), result.data)
+operators.gemm!(alpha, a::DenseOperator, M::SparseOperator, beta, result::DenseOperator) = sparsematrix.gemm!(convert(ComplexF64, alpha), a.data, M.data, convert(ComplexF64, beta), result.data)
+operators.gemv!(alpha, M::SparseOperator, b::Ket, beta, result::Ket) = sparsematrix.gemv!(convert(ComplexF64, alpha), M.data, b.data, convert(ComplexF64, beta), result.data)
+operators.gemv!(alpha, b::Bra, M::SparseOperator, beta, result::Bra) = sparsematrix.gemv!(convert(ComplexF64, alpha), b.data, M.data, convert(ComplexF64, beta), result.data)
 
 end # module

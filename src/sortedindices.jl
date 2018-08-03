@@ -5,7 +5,7 @@ module sortedindices
 """
 function complement(N::Int, indices::Vector{Int})
     L = length(indices)
-    x = Vector{Int}(N - L)
+    x = Vector{Int}(undef, N - L)
     i_ = 1 # Position in the x vector
     j = 1 # Position in indices vector
     for i=1:N
@@ -133,16 +133,16 @@ end
 
 function reducedindices(I_::Vector{Int}, I::Vector{Int})
     N = length(I_)
-    x = Vector{Int}(N)
+    x = Vector{Int}(undef, N)
     for n in 1:N
-        x[n] = findfirst(I, I_[n])
+        x[n] = findfirst(isequal(I_[n]), I)
     end
     x
 end
 
 function reducedindices!(I_::Vector{Int}, I::Vector{Int})
     for n in 1:length(I_)
-        I_[n] = findfirst(I, I_[n])
+        I_[n] = findfirst(isequal(I_[n]), I)
     end
 end
 

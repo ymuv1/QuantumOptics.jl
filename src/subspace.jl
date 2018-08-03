@@ -25,7 +25,7 @@ mutable struct SubspaceBasis <: Basis
                 throw(ArgumentError("The basis of the basisstates has to be the superbasis."))
             end
         end
-        basisstates_hash = hash([hash(x.data) for x=basisstates])
+        basisstates_hash = hash(hash.([hash.(x.data) for x=basisstates]))
         new(Int[length(basisstates)], superbasis, basisstates, basisstates_hash)
     end
 end
@@ -77,7 +77,7 @@ function projector(b1::SubspaceBasis, b2::Basis)
     if b1.superbasis != b2
         throw(ArgumentError("Second basis has to be the superbasis of the first one."))
     end
-    data = zeros(Complex128, length(b1), length(b2))
+    data = zeros(ComplexF64, length(b1), length(b2))
     for (i, state) = enumerate(b1.basisstates)
         data[i,:] = state.data
     end
@@ -88,7 +88,7 @@ function projector(b1::Basis, b2::SubspaceBasis)
     if b1 != b2.superbasis
         throw(ArgumentError("First basis has to be the superbasis of the second one."))
     end
-    data = zeros(Complex128, length(b1), length(b2))
+    data = zeros(ComplexF64, length(b1), length(b2))
     for (i, state) = enumerate(b2.basisstates)
         data[:,i] = state.data
     end

@@ -6,6 +6,7 @@ export tracenorm, tracenorm_h, tracenorm_nh,
         logarithmic_negativity
 
 using ..bases, ..operators, ..operators_dense, ..states
+using LinearAlgebra
 
 """
     tracenorm(rho)
@@ -154,7 +155,7 @@ natural logarithm and ``\\log(0) ≡ 0``.
 """
 function entropy_vn(rho::DenseOperator; tol::Float64=1e-15)
     evals = eigvals(rho.data)
-    evals[abs.(evals) .< tol] = 0.0
+    evals[abs.(evals) .< tol] .= 0.0
     sum([d == 0 ? 0 : -d*log(d) for d=evals])
 end
 entropy_vn(psi::StateVector; kwargs...) = entropy_vn(dm(psi); kwargs...)
@@ -172,7 +173,7 @@ F(ρ, σ) = Tr\\left(\\sqrt{\\sqrt{ρ}σ\\sqrt{ρ}}\\right),
 
 where ``\\sqrt{ρ}=\\sum_n\\sqrt{λ_n}|ψ⟩⟨ψ|``.
 """
-fidelity(rho::DenseOperator, sigma::DenseOperator) = trace(sqrtm(sqrtm(rho.data)*sigma.data*sqrtm(rho.data)))
+fidelity(rho::DenseOperator, sigma::DenseOperator) = tr(sqrt(sqrt(rho.data)*sigma.data*sqrt(rho.data)))
 
 
 """
@@ -197,7 +198,7 @@ function ptranspose(rho::DenseOperator, index::Int=1)
     m = Int(prod(rho_perm.basis_l.shape[1:N-1]))
     n = rho_perm.basis_l.shape[N]
     for i=1:n, j=1:n
-        rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j] = transpose(rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j])
+        rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j] = permutedims(rho_perm.data[m*(i-1)+1:m*i, m*(j-1)+1:m*j])
     end
 
     return permutesystems(rho_perm, perm)
@@ -220,7 +221,7 @@ Negativity of rho with respect to subsystem index.
 The negativity of a density matrix ρ is defined as
 
 ```math
-N(ρ) = \|ρᵀ\|,
+N(ρ) = \\|ρᵀ\\|,
 ```
 where `ρᵀ` is the partial transpose.
 """
@@ -233,7 +234,7 @@ negativity(rho::DenseOperator, index::Int) = 0.5*(tracenorm(ptranspose(rho, inde
 The logarithmic negativity of a density matrix ρ is defined as
 
 ```math
-N(ρ) = \log₂\|ρᵀ\|,
+N(ρ) = \\log₂\\|ρᵀ\\|,
 ```
 where `ρᵀ` is the partial transpose.
 """

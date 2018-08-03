@@ -1,5 +1,6 @@
-using Base.Test
+using Test
 using QuantumOptics
+using LinearAlgebra
 
 @testset "semiclassical" begin
 
@@ -41,7 +42,7 @@ x_rho = semiclassical.State(rho, [complex(1., 0.)])
 @test variance(n, x_rho) ≈ abs2(alpha)
 @test variance(n, [x_ket, x_rho]) ≈ [abs2(alpha), abs2(alpha)]
 
-# Test partial trace
+# Test partial tr
 b1 = GenericBasis(3)
 b2 = GenericBasis(5)
 b = b1 ⊗ b2
@@ -58,7 +59,7 @@ x = semiclassical.State(rho, [0.4, -0.3im])
 # Test dm function
 b = GenericBasis(4)
 psi = randstate(b)
-u = Complex128[complex(2., 3.)]
+u = ComplexF64[complex(2., 3.)]
 state = semiclassical.State(psi, u)
 @test dm(state) == semiclassical.State(dm(psi), u)
 
@@ -66,10 +67,10 @@ state = semiclassical.State(psi, u)
 # Test casting between and semiclassical states and complex vectors
 b = GenericBasis(4)
 rho = randoperator(b)
-u = rand(Complex128, 3)
+u = rand(ComplexF64, 3)
 state = semiclassical.State(rho, u)
-state_ = semiclassical.State(randoperator(b), rand(Complex128, 3))
-x = Vector{Complex128}(16+3)
+state_ = semiclassical.State(randoperator(b), rand(ComplexF64, 3))
+x = Vector{ComplexF64}(undef, 19)
 semiclassical.recast!(state, x)
 semiclassical.recast!(x, state_)
 @test state_ == state
@@ -107,7 +108,7 @@ function fclassical(t, quantumstate, u, du)
     du[1] = -1*u[1]
 end
 
-state0 = semiclassical.State(psi0, Complex128[complex(2., 3.)])
+state0 = semiclassical.State(psi0, ComplexF64[complex(2., 3.)])
 function f(t, state::semiclassical.State{Ket})
     @test 1e-5 > norm(state.quantum - U(t)*psi0)
     @test 1e-5 > abs(state.classical[1] - state0.classical[1]*exp(-t))

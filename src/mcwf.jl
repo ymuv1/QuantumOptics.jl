@@ -6,13 +6,15 @@ using ...bases, ...states, ...operators
 using ...operators_dense, ...operators_sparse
 using ..timeevolution
 using ...operators_lazysum, ...operators_lazytensor, ...operators_lazyproduct
+using Random, LinearAlgebra
 import OrdinaryDiffEq
+
 # TODO: Remove imports
 import DiffEqCallbacks, RecursiveArrayTools.copyat_or_push!
 import ..recast!
-Base.@pure pure_inference(fout,T) = Core.Inference.return_type(fout, T)
+Base.@pure pure_inference(fout,T) = Core.Compiler.return_type(fout, T)
 
-const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Void}
+const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Nothing}
 
 """
     mcwf_h(tspan, rho0, Hnh, J; <keyword arguments>)
@@ -112,7 +114,7 @@ function mcwf(tspan, psi0::Ket, H::Operator, J::Vector;
         kwargs...)
     else
         Hnh = copy(H)
-        if typeof(rates) == Void
+        if typeof(rates) == Nothing
             for i=1:length(J)
                 Hnh -= 0.5im*Jdagger[i]*J[i]
             end
@@ -255,11 +257,11 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
                         kwargs...)
 
     tmp = copy(psi0)
-    as_ket(x::Vector{Complex128}) = Ket(psi0.basis, x)
+    as_ket(x::Vector{ComplexF64}) = Ket(psi0.basis, x)
     as_vector(psi::Ket) = psi.data
     rng = MersenneTwister(convert(UInt, seed))
     jumpnorm = Ref(rand(rng))
-    djumpnorm(x::Vector{Complex128}, t, integrator) = norm(as_ket(x))^2 - (1-jumpnorm[])
+    djumpnorm(x::Vector{ComplexF64}, t, integrator) = norm(as_ket(x))^2 - (1-jumpnorm[])
 
     if !display_beforeevent && !display_afterevent
         function dojump(integrator)
@@ -280,7 +282,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
     else
         # Temporary workaround until proper tooling for saving
         # TODO: Replace by proper call to timeevolution.integrate
-        function fout_(x::Vector{Complex128}, t::Float64, integrator)
+        function fout_(x::Vector{ComplexF64}, t::Float64, integrator)
             recast!(x, state)
             fout(t, state)
         end
@@ -322,7 +324,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
                          save_positions = (false,false))
         full_cb = OrdinaryDiffEq.CallbackSet(callback,cb,scb)
 
-        function df_(dx::Vector{Complex128}, x::Vector{Complex128}, p, t)
+        function df_(dx::Vector{ComplexF64}, x::Vector{ComplexF64}, p, t)
             recast!(x, state)
             recast!(dx, dstate)
             dmcwf(t, state, dstate)
@@ -344,7 +346,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
 end
 
 function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
-                        psi0::Ket, seed, fout::Void;
+                        psi0::Ket, seed, fout::Nothing;
                         kwargs...)
     function fout_(t, x)
         psi = copy(x)
@@ -366,7 +368,7 @@ Default jump function.
 * `J`: List of jump operators.
 * `psi_new`: Result of jump.
 """
-function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket, rates::Void)
+function jump(rng, t::Float64, psi::Ket, J::Vector, psi_new::Ket, rates::Nothing)
     if length(J)==1
         operators.gemv!(complex(1.), J[1], psi, complex(0.), psi_new)
         psi_new.data ./= norm(psi_new)
@@ -409,7 +411,7 @@ The non-hermitian Hamiltonian is given in two parts - the hermitian part H and
 the jump operators J.
 """
 function dmcwf_h(psi::Ket, H::Operator,
-                 J::Vector, Jdagger::Vector, dpsi::Ket, tmp::Ket, rates::Void)
+                 J::Vector, Jdagger::Vector, dpsi::Ket, tmp::Ket, rates::Nothing)
     operators.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
     for i=1:length(J)
         operators.gemv!(complex(1.), J[i], psi, complex(0.), tmp)
@@ -488,13 +490,13 @@ corresponding set of jump operators is calculated.
 """
 function diagonaljumps(rates::Matrix{Float64}, J::Vector{T}) where T <: Operator
     @assert length(J) == size(rates)[1] == size(rates)[2]
-    d, v = eig(rates)
+    d, v = eigen(rates)
     d, [sum([v[j, i]*J[j] for j=1:length(d)]) for i=1:length(d)]
 end
 
 function diagonaljumps(rates::Matrix{Float64}, J::Vector{T}) where T <: Union{LazySum, LazyTensor, LazyProduct}
     @assert length(J) == size(rates)[1] == size(rates)[2]
-    d, v = eig(rates)
+    d, v = eigen(rates)
     d, [LazySum([v[j, i]*J[j] for j=1:length(d)]...) for i=1:length(d)]
 end
 

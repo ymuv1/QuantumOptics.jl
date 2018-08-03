@@ -1,5 +1,6 @@
-using Base.Test
+using Test
 using QuantumOptics
+using LinearAlgebra
 
 @testset "master" begin
 
@@ -38,11 +39,11 @@ Jlazy = [LazyTensor(basis, 1, sqrt(γ)*sm), Jc]
 
 Hnh = H - 0.5im*sum([dagger(J[i])*J[i] for i=1:length(J)])
 
-Hdense = full(H)
+Hdense = dense(H)
 Hlazy = LazySum(Ha, Hc, Hint)
-Hnh_dense = full(Hnh)
-Junscaled_dense = map(full, Junscaled)
-Jdense = map(full, J)
+Hnh_dense = dense(Hnh)
+Junscaled_dense = map(dense, Junscaled)
+Jdense = map(dense, J)
 
 Ψ₀ = spinup(spinbasis) ⊗ fockstate(fockbasis, 5)
 ρ₀ = dm(Ψ₀)
@@ -136,7 +137,7 @@ R = [cos(alpha) -sin(alpha); sin(alpha) cos(alpha)]
 Rt = transpose(R)
 Jrotated_dense = [R[1,1]*Junscaled_dense[1] + R[1,2]*Junscaled_dense[2], R[2,1]*Junscaled_dense[1] + R[2,2]*Junscaled_dense[2]]
 Jrotated = [SparseOperator(j) for j=Jrotated_dense]
-rates_matrix = diagm(rates_vector)
+rates_matrix = diagm(0 => rates_vector)
 rates_matrix_rotated = R * rates_matrix * Rt
 
 tout, ρt = timeevolution.master(T, ρ₀, Hdense, Jrotated_dense; rates=rates_matrix_rotated, reltol=1e-7)

@@ -1,11 +1,11 @@
-using Base.Test
+using Test
 using QuantumOptics
-
+using LinearAlgebra, SparseArrays, Random
 
 mutable struct test_operators <: Operator
   basis_l::Basis
   basis_r::Basis
-  data::Matrix{Complex128}
+  data::Matrix{ComplexF64}
   test_operators(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
 end
 
@@ -37,10 +37,10 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 
 @test_throws ArgumentError dagger(op_test)
 @test_throws ArgumentError identityoperator(test_operators, b, b)
-@test_throws ArgumentError trace(op_test)
+@test_throws ArgumentError tr(op_test)
 @test_throws ArgumentError ptrace(op_test, [1])
 @test_throws ArgumentError ishermitian(op_test)
-@test_throws ArgumentError full(op_test)
+@test_throws ArgumentError dense(op_test)
 @test_throws ArgumentError sparse(op_test)
 
 @test expect(1, op1, ρ) ≈ expect(embed(b, 1, op1), ρ)
@@ -63,10 +63,10 @@ op_test3 = test_operators(b1 ⊗ b2, b2 ⊗ b1, randoperator(b, b).data)
 @test_throws ErrorException QuantumOptics.operators.gemm!()
 @test_throws ErrorException QuantumOptics.operators.gemv!()
 
-@test_throws ArgumentError expm(sparse(op1))
+@test_throws ArgumentError exp(sparse(op1))
 
-@test one(b1).data == diagm(ones(b1.shape[1]))
-@test one(op1).data == diagm(ones(b1.shape[1]))
+@test one(b1).data == Diagonal(ones(b1.shape[1]))
+@test one(op1).data == Diagonal(ones(b1.shape[1]))
 
 @test_throws ArgumentError conj!(op_test)
 

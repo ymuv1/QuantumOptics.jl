@@ -1,21 +1,22 @@
-using Base.Test
+using Test
 using QuantumOptics
+using SparseArrays
 
 @testset "superoperators" begin
 
 # Test creation
 b = GenericBasis(3)
-@test_throws DimensionMismatch DenseSuperOperator((b, b), (b, b), zeros(Complex128, 3, 3))
-@test_throws DimensionMismatch SparseSuperOperator((b, b), (b, b), spzeros(Complex128, 3, 3))
+@test_throws DimensionMismatch DenseSuperOperator((b, b), (b, b), zeros(ComplexF64, 3, 3))
+@test_throws DimensionMismatch SparseSuperOperator((b, b), (b, b), spzeros(ComplexF64, 3, 3))
 
-# Test copy, sparse and full
+# Test copy, sparse and dense
 b1 = GenericBasis(2)
 b2 = GenericBasis(7)
 b3 = GenericBasis(5)
 b4 = GenericBasis(3)
 
 s = DenseSuperOperator((b1, b2), (b3, b4))
-s_ = full(s)
+s_ = dense(s)
 s_.data[1,1] = 1
 @test s.data[1,1] == 0
 s_sparse = sparse(s_)
@@ -26,9 +27,9 @@ s = SparseSuperOperator((b1, b2), (b3, b4))
 s_ = sparse(s)
 s_.data[1,1] = 1
 @test s.data[1,1] == 0
-s_full = full(s_)
-@test isa(s_full, DenseSuperOperator)
-@test s_full.data[1,1] == 1
+s_dense = dense(s_)
+@test isa(s_dense, DenseSuperOperator)
+@test s_dense.data[1,1] == 1
 
 # Test length
 b1 = GenericBasis(3)
@@ -167,9 +168,9 @@ end
 @test tracedistance(L*ρ₀, ρ) < 1e-10
 
 tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
-@test tracedistance(expm(full(L))*ρ₀, ρt[end]) < 1e-6
+@test tracedistance(exp(dense(L))*ρ₀, ρt[end]) < 1e-6
 
-@test full(spre(op1)) == spre(op1)
+@test dense(spre(op1)) == spre(op1)
 
 @test_throws bases.IncompatibleBases L*op1
 @test_throws bases.IncompatibleBases L*spre(sm)
@@ -179,7 +180,7 @@ tout, ρt = timeevolution.master([0.,1.], ρ₀, H, J; reltol=1e-7)
 
 @test_throws AssertionError liouvillian(H, J; rates=zeros(4, 4))
 
-rates = diagm([1.0, 1.0])
+rates = diagm(0 => [1.0, 1.0])
 @test liouvillian(H, J; rates=rates) == L
 
 end # testset

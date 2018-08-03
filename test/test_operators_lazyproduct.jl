@@ -1,12 +1,13 @@
-using Base.Test
+using Test
 using QuantumOptics
+using LinearAlgebra, Random
 
 
 @testset "operators-lazyproduct" begin
 
 srand(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(full(op1), full(op2)))
+D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 
 b1a = GenericBasis(2)
@@ -34,10 +35,10 @@ op2.operators[1].data[1,1] = complex(10.)
 op2.factor = 3.
 @test op2.factor != op1.factor
 
-# Test full & sparse
+# Test dense & sparse
 op1 = randoperator(b_l, b_r)
 op2 = randoperator(b_r, b_l)
-@test 0.1*(op1*op2) == full(LazyProduct([sparse(op1), sparse(op2)], 0.1))
+@test 0.1*(op1*op2) == dense(LazyProduct([sparse(op1), sparse(op2)], 0.1))
 @test 0.1*(sparse(op1)*sparse(op2)) == sparse(LazyProduct([op1, op2], 0.1))
 
 
@@ -55,10 +56,10 @@ op2_ = 0.3*(op2a*op2b)
 op3 = LazyProduct(op3a)
 op3_ = op3a
 
-x1 = Ket(b_l, rand(Complex128, length(b_l)))
-x2 = Ket(b_l, rand(Complex128, length(b_l)))
-xbra1 = Bra(b_l, rand(Complex128, length(b_l)))
-xbra2 = Bra(b_l, rand(Complex128, length(b_l)))
+x1 = Ket(b_l, rand(ComplexF64, length(b_l)))
+x2 = Ket(b_l, rand(ComplexF64, length(b_l)))
+xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
+xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Addition
 @test_throws ArgumentError op1 + op2
@@ -80,15 +81,15 @@ xbra2 = Bra(b_l, rand(Complex128, length(b_l)))
 Idense = identityoperator(DenseOperator, b_l)
 I = identityoperator(LazyProduct, b_l)
 @test isa(I, LazyProduct)
-@test full(I) == Idense
+@test dense(I) == Idense
 @test 1e-11 > D(I*x1, x1)
 @test 1e-11 > D(xbra1*I, xbra1)
 
-# Test trace and normalize
+# Test tr and normalize
 op1 = randoperator(b_l)
 op2 = randoperator(b_l)
 op = LazyProduct(op1, op2)
-@test_throws ArgumentError trace(op)
+@test_throws ArgumentError tr(op)
 @test_throws ArgumentError ptrace(op, [1, 2])
 @test_throws ArgumentError normalize(op)
 @test_throws ArgumentError normalize!(op)
@@ -99,10 +100,10 @@ op2 = randoperator(b_l)
 op = 0.3*LazyProduct(op1, sparse(op2))
 op_ = 0.3*op1*op2
 
-state = Ket(b_l, rand(Complex128, length(b_l)))
+state = Ket(b_l, rand(ComplexF64, length(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
-state = DenseOperator(b_l, b_l, rand(Complex128, length(b_l), length(b_l)))
+state = DenseOperator(b_l, b_l, rand(ComplexF64, length(b_l), length(b_l)))
 @test expect(op, state) ≈ expect(op_, state)
 
 # Permute systems
@@ -126,8 +127,8 @@ op3 = randoperator(b_l, b_r)
 op = LazyProduct([op1, sparse(op2), op3], 0.2)
 op_ = 0.2*op1*op2*op3
 
-state = Ket(b_r, rand(Complex128, length(b_r)))
-result_ = Ket(b_l, rand(Complex128, length(b_l)))
+state = Ket(b_r, rand(ComplexF64, length(b_r)))
+result_ = Ket(b_l, rand(ComplexF64, length(b_l)))
 result = copy(result_)
 operators.gemv!(complex(1.), op, state, complex(0.), result)
 @test 1e-11 > D(result, op_*state)
@@ -138,8 +139,8 @@ beta = complex(2.1)
 operators.gemv!(alpha, op, state, beta, result)
 @test 1e-11 > D(result, alpha*op_*state + beta*result_)
 
-state = Bra(b_l, rand(Complex128, length(b_l)))
-result_ = Bra(b_r, rand(Complex128, length(b_r)))
+state = Bra(b_l, rand(ComplexF64, length(b_l)))
+result_ = Bra(b_r, rand(ComplexF64, length(b_r)))
 result = copy(result_)
 operators.gemv!(complex(1.), state, op, complex(0.), result)
 @test 1e-11 > D(result, state*op_)

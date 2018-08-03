@@ -1,5 +1,6 @@
-using Base.Test
+using Test
 using QuantumOptics
+using Random, SparseArrays, LinearAlgebra
 
 
 # Custom operator type for testing error msg
@@ -10,7 +11,7 @@ mutable struct TestOperator <: Operator; end
 
 srand(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(full(op1), full(op2)))
+D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 sprandop(b1, b2) = sparse(randoperator(b1, b2))
 sprandop(b) = sprandop(b, b)
@@ -26,8 +27,8 @@ b_l = b1a⊗b2a⊗b3a
 b_r = b1b⊗b2b⊗b3b
 
 # Test creation
-@test_throws DimensionMismatch DenseOperator(b1a, spzeros(Complex128, 3, 2))
-@test_throws DimensionMismatch DenseOperator(b1a, b1b, spzeros(Complex128, 3, 2))
+@test_throws DimensionMismatch DenseOperator(b1a, spzeros(ComplexF64, 3, 2))
+@test_throws DimensionMismatch DenseOperator(b1a, b1b, spzeros(ComplexF64, 3, 2))
 op1 = SparseOperator(b1a, b1b, sparse([1 1 1; 1 1 1]))
 op2 = sparse(DenseOperator(b1b, b1a, [1 1; 1 1; 1 1]))
 @test op1 == dagger(op2)
@@ -45,9 +46,9 @@ op_zero = SparseOperator(b_l, b_r)
 op1 = sprandop(b_l, b_r)
 op2 = sprandop(b_l, b_r)
 op3 = sprandop(b_l, b_r)
-op1_ = full(op1)
-op2_ = full(op2)
-op3_ = full(op3)
+op1_ = dense(op1)
+op2_ = dense(op2)
+op3_ = dense(op3)
 
 x1 = randstate(b_r)
 x2 = randstate(b_r)
@@ -96,29 +97,29 @@ conj!(tmp)
 Idense = identityoperator(DenseOperator, b_r)
 I = identityoperator(SparseOperator, b_r)
 @test isa(I, SparseOperator)
-@test full(I) == Idense
+@test dense(I) == Idense
 @test 1e-11 > D(I*x1, x1)
 @test I == identityoperator(SparseOperator, b1b) ⊗ identityoperator(SparseOperator, b2b) ⊗ identityoperator(SparseOperator, b3b)
 
 Idense = identityoperator(DenseOperator, b_l)
 I = identityoperator(SparseOperator, b_l)
 @test isa(I, SparseOperator)
-@test full(I) == Idense
+@test dense(I) == Idense
 @test 1e-11 > D(xbra1*I, xbra1)
 @test I == identityoperator(SparseOperator, b1a) ⊗ identityoperator(SparseOperator, b2a) ⊗ identityoperator(SparseOperator, b3a)
 
 
-# Test trace and normalize
+# Test tr and normalize
 op = sparse(DenseOperator(GenericBasis(3), [1 3 2;5 2 2;-1 2 5]))
-@test 8 == trace(op)
+@test 8 == tr(op)
 op_normalized = normalize(op)
-@test 8 == trace(op)
-@test 1 == trace(op_normalized)
+@test 8 == tr(op)
+@test 1 == tr(op_normalized)
 # op_ = normalize!(op)
 # @test op_ === op
-# @test 1 == trace(op)
+# @test 1 == tr(op)
 
-# Test partial trace
+# Test partial tr
 b1 = GenericBasis(3)
 b2 = GenericBasis(5)
 b3 = GenericBasis(7)
@@ -127,7 +128,7 @@ op1 = sprandop(b1)
 op2 = sprandop(b2)
 op3 = sprandop(b3)
 op123 = op1 ⊗ op2 ⊗ op3
-op123_ = full(op123)
+op123_ = dense(op123)
 
 @test 1e-14 > D(ptrace(op123_, 3), ptrace(op123, 3))
 @test 1e-14 > D(ptrace(op123_, 2), ptrace(op123, 2))
@@ -162,11 +163,11 @@ op1b = sprandop(b1a, b1b)
 op2a = sprandop(b2a, b2b)
 op2b = sprandop(b2a, b2b)
 op3a = sprandop(b3a, b3b)
-op1a_ = full(op1a)
-op1b_ = full(op1b)
-op2a_ = full(op2a)
-op2b_ = full(op2b)
-op3a_ = full(op3a)
+op1a_ = dense(op1a)
+op1b_ = dense(op1b)
+op2a_ = dense(op2a)
+op2b_ = dense(op2b)
+op3a_ = dense(op3a)
 op123 = op1a ⊗ op2a ⊗ op3a
 op123_ = op1a_ ⊗ op2a_ ⊗ op3a_
 @test op123.basis_l == b_l
@@ -230,11 +231,11 @@ I = identityoperator(b)
 @test diagonaloperator(b, [1, 1, 1, 1]) == I
 @test diagonaloperator(b, [1., 1., 1., 1.]) == I
 @test diagonaloperator(b, [1im, 1im, 1im, 1im]) == 1im*I
-@test diagonaloperator(b, [0:3;]) == sparse(DenseOperator(b, diagm([0:3;])))
+@test diagonaloperator(b, [0:3;]) == sparse(DenseOperator(b, Diagonal([0:3;])))
 
 # Test gemv
 op = sprandop(b_l, b_r)
-op_ = full(op)
+op_ = dense(op)
 xket = randstate(b_l)
 xbra = dagger(xket)
 
@@ -268,7 +269,7 @@ b2 = GenericBasis(5)
 b3 = GenericBasis(7)
 
 op = sprandop(b1, b2)
-op_ = full(op)
+op_ = dense(op)
 
 state = randoperator(b2, b3)
 result_ = randoperator(b1, b3)
@@ -300,7 +301,7 @@ b2 = GenericBasis(60)
 b3 = GenericBasis(55)
 
 op = sprandop(b1, b2)
-op_ = full(op)
+op_ = dense(op)
 
 state = randoperator(b2, b3)
 result_ = randoperator(b1, b3)
@@ -329,7 +330,7 @@ operators.gemm!(alpha, state, op, beta, result)
 # Test remaining uncovered code
 @test_throws DimensionMismatch SparseOperator(b1, b2, zeros(10, 10))
 dat = sprandop(b1, b1).data
-@test SparseOperator(b1, dat) == SparseOperator(b1, Matrix{Complex128}(dat))
+@test SparseOperator(b1, dat) == SparseOperator(b1, Matrix{ComplexF64}(dat))
 
 @test_throws ArgumentError sparse(TestOperator())
 

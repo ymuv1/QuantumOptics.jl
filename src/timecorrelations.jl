@@ -5,6 +5,8 @@ export correlation, spectrum, correlation2spectrum
 using ..states, ..operators, ..operators_dense
 using ..metrics, ..timeevolution, ..steadystate
 
+using FFTW
+
 
 """
     timecorrelations.correlation([tspan, ]rho0, H, J, op1, op2; <keyword arguments>)
@@ -33,7 +35,7 @@ criterion specified in [`steadystate.master`](@ref).
 """
 function correlation(tspan::Vector{Float64}, rho0::DenseOperator, H::Operator, J::Vector,
                      op1::Operator, op2::Operator;
-                     rates::Union{Vector{Float64}, Matrix{Float64}, Void}=nothing,
+                     rates::Union{Vector{Float64}, Matrix{Float64}, Nothing}=nothing,
                      Jdagger::Vector=dagger.(J),
                      kwargs...)
     function fout(t, rho)
@@ -47,7 +49,7 @@ end
 function correlation(rho0::DenseOperator, H::Operator, J::Vector,
                      op1::Operator, op2::Operator;
                      tol::Float64=1e-4, h0=10.,
-                     rates::Union{Vector{Float64}, Matrix{Float64}, Void}=nothing,
+                     rates::Union{Vector{Float64}, Matrix{Float64}, Nothing}=nothing,
                      Jdagger::Vector=dagger.(J),
                      kwargs...)
     op2rho0 = op2*rho0
@@ -125,16 +127,16 @@ end
 
 
 """
-    timecorrelations.correlation2spectrum(tspan, corr; normalize)
+    timecorrelations.correlation2spectrum(tspan, corr; normalize_spec)
 
 Calculate spectrum as Fourier transform of a correlation function with a given correlation function.
 
 # Arguments
 * `tspan`: List of time points corresponding to the correlation function.
 * `corr`: Correlation function of which the Fourier transform is to be calculated.
-* `normalize`: Specify if spectrum should be normalized to its maximum.
+* `normalize_spec`: Specify if spectrum should be normalized to its maximum.
 """
-function correlation2spectrum(tspan::Vector{Float64}, corr::Vector{T}; normalize::Bool=false) where T <: Number
+function correlation2spectrum(tspan::Vector{Float64}, corr::Vector{T}; normalize_spec::Bool=false) where T <: Number
   n = length(tspan)
   if length(corr) != n
     ArgumentError("tspan and corr must be of same length!")
@@ -152,7 +154,7 @@ function correlation2spectrum(tspan::Vector{Float64}, corr::Vector{T}; normalize
   omega .*= 2pi/tmax
   spec = 2dt.*fftshift(real(fft(corr)))
 
-  omega, normalize ? spec./maximum(spec) : spec
+  omega, normalize_spec ? spec./maximum(spec) : spec
 end
 
 

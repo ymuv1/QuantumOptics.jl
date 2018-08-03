@@ -2,13 +2,13 @@ module printing
 
 export set_printing
 
-import Base: show
+import Base: show, summary
 
-using Compat
 using ..bases, ..states
 using ..operators, ..operators_dense, ..operators_sparse
 using ..operators_lazytensor, ..operators_lazysum, ..operators_lazyproduct
 using ..spin, ..fock, ..nlevel, ..particle, ..subspace, ..manybody, ..sparsematrix
+using SparseArrays
 
 
 """
@@ -25,7 +25,7 @@ Set options for REPL output.
 function set_printing(; standard_order::Bool=_std_order, rounding_tol::Real=_round_tol)
     global _std_order = standard_order
     global _round_tol = rounding_tol
-    global machineprecorder = Int32(round(-log10(_round_tol), 0))
+    global machineprecorder = Int32(round(-log10(_round_tol), digits=0))
     nothing
 end
 set_printing(standard_order=false, rounding_tol=1e-17)
@@ -34,7 +34,7 @@ function show(stream::IO, x::GenericBasis)
     if length(x.shape) == 1
         write(stream, "Basis(dim=$(x.shape[1]))")
     else
-        s = replace(string(x.shape), " ", "")
+        s = replace(string(x.shape), " " => "")
         write(stream, "Basis(shape=$s)")
     end
 end
@@ -84,72 +84,80 @@ function show(stream::IO, x::ManyBodyBasis)
     write(stream, "ManyBody(onebodybasis=$(x.onebodybasis), states:$(length(x.occupations)))")
 end
 
+summary(io::IO, x::Ket) = print(io, "Ket(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
 function show(stream::IO, x::Ket)
-    write(stream, "Ket(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
+    summary(stream, x)
     if !_std_order
-        Base.showarray(stream, x.data, false; header=false)
+        Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, x.data, x.basis.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis.shape, false, header=false)
     end
 end
 
+summary(io::IO, x::Bra) = print(io, "Bra(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
 function show(stream::IO, x::Bra)
-    write(stream, "Bra(dim=$(length(x.basis)))\n  basis: $(x.basis)\n")
+    summary(stream, x)
     if !_std_order
-        Base.showarray(stream, x.data, false; header=false)
+        Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, x.data, x.basis.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis.shape, false, header=false)
     end
 end
 
-function showoperatorheader(stream::IO, x::Operator)
-    write(stream, "$(typeof(x).name.name)(dim=$(length(x.basis_l))x$(length(x.basis_r)))\n")
+function summary(stream::IO, x::Operator)
+    print(stream, "$(typeof(x).name.name)(dim=$(length(x.basis_l))x$(length(x.basis_r)))\n")
     if bases.samebases(x)
-        write(stream, "  basis: ")
+        print(stream, "  basis: ")
         show(stream, basis(x))
     else
-        write(stream, "  basis left:  ")
+        print(stream, "  basis left:  ")
         show(stream, x.basis_l)
-        write(stream, "\n  basis right: ")
+        print(stream, "\n  basis right: ")
         show(stream, x.basis_r)
     end
 end
 
-show(stream::IO, x::Operator) = showoperatorheader(stream, x)
+show(stream::IO, x::Operator) = summary(stream, x)
 
 function show(stream::IO, x::DenseOperator)
-    showoperatorheader(stream, x)
-    write(stream, "\n")
+    summary(stream, x)
+    print(stream, "\n")
     if !_std_order
-        Base.showarray(stream, x.data, false; header=false)
+        if !haskey(stream, :compact)
+            stream = IOContext(stream, :compact => true)
+        end
+        Base.print_array(stream, round.(x.data; digits=machineprecorder))
     else
-        showarray_stdord(stream, x.data, x.basis_l.shape, x.basis_r.shape, false, header=false)
+        showarray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis_l.shape, x.basis_r.shape, false, header=false)
     end
 end
 
 function show(stream::IO, x::SparseOperator)
-    showoperatorheader(stream, x)
+    summary(stream, x)
     if nnz(x.data) == 0
-        write(stream, "\n    []")
+        print(stream, "\n    []")
     else
         if !_std_order
-            show(stream, x.data)
+            if !haskey(stream, :compact)
+                stream = IOContext(stream, :compact => true)
+            end
+            show(stream, round.(x.data; digits=machineprecorder))
         else
-            showsparsearray_stdord(stream, x.data, x.basis_l.shape, x.basis_r.shape)
+            showsparsearray_stdord(stream, round.(x.data; digits=machineprecorder), x.basis_l.shape, x.basis_r.shape)
         end
     end
 end
 
 function show(stream::IO, x::LazyTensor)
-    showoperatorheader(stream, x)
-    write(stream, "\n  operators: $(length(x.operators))")
-    s = replace(string(x.indices), " ", "")
-    write(stream, "\n  indices: $s")
+    summary(stream, x)
+    print(stream, "\n  operators: $(length(x.operators))")
+    s = replace(string(x.indices), " " => "")
+    print(stream, "\n  indices: $s")
 end
 
 function show(stream::IO, x::Union{LazySum, LazyProduct})
-    showoperatorheader(stream, x)
-    write(stream, "\n  operators: $(length(x.operators))")
+    summary(stream, x)
+    print(stream, "\n  operators: $(length(x.operators))")
 end
 
 """
@@ -304,7 +312,7 @@ function alignment_std(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vector
             break
         end
     end
-    if 1 < length(a) < length(indices(X,2))
+    if 1 < length(a) < length(axes(X,2))
         while sum(map(sum,a)) + sep*length(a) >= cols_otherwise
             pop!(a)
         end
@@ -322,12 +330,12 @@ is specified as string sep.
 function print_matrix_row_std(io::IO,
         X::AbstractVecOrMat, A::Vector, ldims::Vector, rdims::Vector,
         i::Integer, cols::AbstractVector, sep::AbstractString)
-    isempty(A) || first(indices(cols,1)) == 1 || throw(DimensionMismatch("indices of cols ($(indices(cols,1))) must start at 1"))
+    isempty(A) || first(axes(cols,1)) == 1 || throw(DimensionMismatch("indices of cols ($(axes(cols,1))) must start at 1"))
     for k = 1:length(A)
         j = cols[k]
         x = X[mirror_world_index(i, ldims), mirror_world_index(j, rdims)]
         a = Base.alignment(io, x)
-        sx = sprint(0, show, x, env=io)
+        sx = sprint(show, x, context=io)
         l = repeat(" ", A[k][1]-a[1]) # pad on left and right as needed
         r = repeat(" ", A[k][2]-a[2])
         prettysx = Base.replace_in_print_matrix(X,mirror_world_index(i, ldims),mirror_world_index(j, rdims),sx)
@@ -354,9 +362,9 @@ function print_matrix_std(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vec
     screenwidth -= length(pre) + length(post)
     presp = repeat(" ", length(pre))  # indent each row to match pre string
     postsp = ""
-    @assert strwidth(hdots) == strwidth(ddots)
+    @assert textwidth(hdots) == textwidth(ddots)
     sepsize = length(sep)
-    rowsA, colsA = indices(X,1), indices(X,2)
+    rowsA, colsA = axes(X,1), axes(X,2)
     m, n = length(rowsA), length(colsA)
     # To figure out alignments, only need to look at as many rows as could
     # fit down screen. If screen has at least as many rows as A, look at A.
@@ -391,7 +399,7 @@ function print_matrix_std(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vec
                 print(io, i == first(rowsA) ? pre : presp)
                 print_matrix_row_std(io, X,Lalign,ldims,rdims,i,colsA[1:length(Lalign)],sep)
                 print(io, (i - first(rowsA)) % hmod == 0 ? hdots : repeat(" ", length(hdots)))
-                print_matrix_row_std(io, X,Ralign,ldims,rdims,i,n-length(Ralign)+colsA,sep)
+                print_matrix_row_std(io, X,Ralign,ldims,rdims,i,n-length(Ralign).+colsA,sep)
                 print(io, i == last(rowsA) ? post : postsp)
                 if i != last(rowsA); println(io); end
             end
@@ -419,7 +427,7 @@ function print_matrix_std(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vec
                 print(io, i == first(rowsA) ? pre : presp)
                 print_matrix_row_std(io, X,Lalign,ldims, rdims,i,colsA[1:length(Lalign)],sep)
                 print(io, (i - first(rowsA)) % hmod == 0 ? hdots : repeat(" ", length(hdots)))
-                print_matrix_row_std(io, X,Ralign,ldims, rdims,i,n-length(Ralign)+colsA,sep)
+                print_matrix_row_std(io, X,Ralign,ldims, rdims,i,n-length(Ralign).+colsA,sep)
                 print(io, i == last(rowsA) ? post : postsp)
                 if i != rowsA[end]; println(io); end
                 if i == rowsA[halfheight]
@@ -435,7 +443,7 @@ function print_matrix_std(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vec
 end
 
 function showarray_stdord(io::IO, X::AbstractVecOrMat, ldims::Vector, rdims::Vector, repr::Bool = true; header = true)
-    if !haskey(io, :compact)
+    if !haskey(io, :compact) && length(axes(X, 2)) > 1
         io = IOContext(io, :compact => true)
     end
     if !isempty(X)
@@ -455,7 +463,7 @@ function showsparsearray_stdord(io::IO, S::SparseMatrixCSC, ldims::Vector, rdims
     end
     pad = ndigits(max(S.m,S.n))
     sep = "\n  "
-    if !haskey(io, :compact)
+    if !haskey(io, :compact) && length(axes(S, 2)) > 1
         io = IOContext(io, :compact => true)
     end
 

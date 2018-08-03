@@ -1,9 +1,10 @@
-using Base.Test
+using Test
 using QuantumOptics
+using LinearAlgebra
 
 @testset "spin" begin
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(full(op1), full(op2)))
+D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 
 # Test creation
 @test_throws AssertionError SpinBasis(1//3)
@@ -23,9 +24,9 @@ for spinnumber=[1//2, 1, 3//2, 4//2]
 
 
     # Test traces
-    @test 0 == trace(sx)
-    @test 0 == trace(sy)
-    @test 0 == trace(sz)
+    @test 0 == tr(sx)
+    @test 0 == tr(sy)
+    @test 0 == tr(sz)
 
 
     # Test kommutation relations

@@ -3,6 +3,7 @@ module spectralanalysis
 export eigenstates, eigenenergies, simdiag
 
 using ..bases, ..states, ..operators, ..operators_dense, ..operators_sparse
+using Arpack, LinearAlgebra
 
 
 const nonhermitian_warning = "The given operator is not hermitian. If this is due to a numerical error make the operator hermitian first by calculating (x+dagger(x))/2 first."
@@ -12,15 +13,15 @@ const nonhermitian_warning = "The given operator is not hermitian. If this is du
 
 Calculate the lowest n eigenvalues and their corresponding eigenstates.
 
-This is just a thin wrapper around julia's `eig` and `eigs` functions. Which
+This is just a thin wrapper around julia's `eigen` and `eigs` functions. Which
 of them is used depends on the type of the given operator. If more control
 about the way the calculation is done is needed, use the functions directly.
 More details can be found at
 [http://docs.julialang.org/en/stable/stdlib/linalg/].
 
-NOTE: Especially for small systems full diagonalization with Julia's `eig`
+NOTE: Especially for small systems full diagonalization with Julia's `eigen`
 function is often more desirable. You can convert a sparse operator `A` to a
-dense one using `full(A)`.
+dense one using `dense(A)`.
 
 If the given operator is non-hermitian a warning is given. This behavior
 can be turned off using the keyword `warning=false`.
@@ -28,12 +29,12 @@ can be turned off using the keyword `warning=false`.
 function eigenstates(op::DenseOperator, n::Int=length(basis(op)); warning=true)
     b = basis(op)
     if ishermitian(op)
-        D, V = eig(Hermitian(op.data), 1:n)
+        D, V = eigen(Hermitian(op.data), 1:n)
         states = [Ket(b, V[:, k]) for k=1:length(D)]
         return D, states
     else
         warning && warn(nonhermitian_warning)
-        D, V = eig(op.data)
+        D, V = eigen(op.data)
         states = [Ket(b, V[:, k]) for k=1:length(D)]
         perm = sortperm(D, by=real)
         permute!(D, perm)
@@ -52,7 +53,7 @@ function eigenstates(op::SparseOperator, n::Int=6; warning::Bool=true,
     ishermitian(op) || (warning && warn(nonhermitian_warning))
     info && println("INFO: Defaulting to sparse diagonalization.
         If storing the full operator is possible, it might be faster to do
-        eigenstates(full(op)). Set info=false to turn off this message.")
+        eigenstates(dense(op)). Set info=false to turn off this message.")
     D, V = eigs(op.data; which=:SR, nev=n, kwargs...)
     states = [Ket(b, V[:, k]) for k=1:length(D)]
     D, states
@@ -125,9 +126,9 @@ function simdiag(ops::Vector{T}; atol::Real=1e-14, rtol::Real=1e-14) where T<:De
         end
     end
 
-    d, v = eig(sum(ops).data)
+    d, v = eigen(sum(ops).data)
 
-    evals = [Vector{Complex128}(length(d)) for i=1:length(ops)]
+    evals = [Vector{ComplexF64}(undef, length(d)) for i=1:length(ops)]
     for i=1:length(ops), j=1:length(d)
         vec = ops[i].data*v[:, j]
         evals[i][j] = (v[:, j]'*vec)[1]

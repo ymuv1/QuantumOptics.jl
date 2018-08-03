@@ -1,11 +1,12 @@
-using Base.Test
+using Test
 using QuantumOptics
+using Random, SparseArrays, LinearAlgebra
 
 @testset "manybody" begin
 
 srand(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(full(op1), full(op2)))
+D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 
 # Test state creation

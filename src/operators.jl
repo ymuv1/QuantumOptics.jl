@@ -1,15 +1,15 @@
 module operators
 
 export Operator, length, basis, dagger, ishermitian, tensor, embed,
-        trace, ptrace, normalize, normalize!, expect, variance,
-        expm, permutesystems, identityoperator
+        tr, ptrace, normalize, normalize!, expect, variance,
+        exp, permutesystems, identityoperator, dense
 
-import Base: ==, +, -, *, /, length, trace, one, ishermitian, expm, conj, conj!
+import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!
+import LinearAlgebra: tr, ishermitian
 import ..bases: basis, tensor, ptrace, permutesystems,
             samebases, check_samebases, multiplicable
 import ..states: dagger, normalize, normalize!
 
-using Compat
 using ..sortedindices, ..bases, ..states
 
 
@@ -28,8 +28,8 @@ abstract type Operator end
 
 
 # Common error messages
-arithmetic_unary_error(funcname, x::Operator) = throw(ArgumentError("$funcname is not defined for this type of operator: $(typeof(x)).\nTry to convert to another operator type first with e.g. full() or sparse()."))
-arithmetic_binary_error(funcname, a::Operator, b::Operator) = throw(ArgumentError("$funcname is not defined for this combination of types of operators: $(typeof(a)), $(typeof(b)).\nTry to convert to a common operator type first with e.g. full() or sparse()."))
+arithmetic_unary_error(funcname, x::Operator) = throw(ArgumentError("$funcname is not defined for this type of operator: $(typeof(x)).\nTry to convert to another operator type first with e.g. dense() or sparse()."))
+arithmetic_binary_error(funcname, a::Operator, b::Operator) = throw(ArgumentError("$funcname is not defined for this combination of types of operators: $(typeof(a)), $(typeof(b)).\nTry to convert to a common operator type first with e.g. dense() or sparse()."))
 addnumbererror() = throw(ArgumentError("Can't add or subtract a number and an operator. You probably want 'op + identityoperator(op)*x'."))
 
 length(a::Operator) = length(a.basis_l)::Int*length(a.basis_r)::Int
@@ -46,12 +46,15 @@ basis(a::Operator) = (check_samebases(a); a.basis_l)
 -(a::Operator, b::Number) = addnumbererror()
 
 *(a::Operator, b::Operator) = arithmetic_binary_error("Multiplication", a, b)
+^(a::Operator, b::Int) = Base.power_by_squaring(a, b)
 
 
 dagger(a::Operator) = arithmetic_unary_error("Hermitian conjugate", a)
 
 conj(a::Operator) = arithmetic_unary_error("Complex conjugate", a)
 conj!(a::Operator) = conj(a::Operator)
+
+dense(a::Operator) = arithmetic_unary_error("Conversion to dense", a)
 
 """
     ishermitian(op::Operator)
@@ -82,7 +85,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
     @assert length(basis_r.bases) == N
     @assert length(indices) == length(operators)
     sortedindices.check_indices(N, indices)
-    tensor([i ∈ indices ? operators[findfirst(indices, i)] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
+    tensor([i ∈ indices ? operators[indexin(i, indices)[1]] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
 end
 embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, op::Operator) = embed(basis_l, basis_r, Int[index], [op])
 embed(basis::CompositeBasis, index::Int, op::Operator) = embed(basis, basis, Int[index], [op])
@@ -112,7 +115,7 @@ function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
             if i in complement_indices_flat
                 push!(operators_flat, identityoperator(T, basis_l.bases[i], basis_r.bases[i]))
             elseif i in start_indices_flat
-                push!(operators_flat, operator_list[findfirst(start_indices_flat, i)])
+                push!(operators_flat, operator_list[indexin(i, start_indices_flat)[1]])
             end
         end
         return tensor(operators_flat...)
@@ -129,25 +132,25 @@ embed(basis::CompositeBasis, operators::Dict{Vector{Int}, T}; kwargs...) where {
 
 
 """
-    trace(x::Operator)
+    tr(x::Operator)
 
 Trace of the given operator.
 """
-trace(x::Operator) = arithmetic_unary_error("Trace", x)
+tr(x::Operator) = arithmetic_unary_error("Trace", x)
 
 ptrace(a::Operator, index::Vector{Int}) = arithmetic_unary_error("Partial trace", a)
 
 """
     normalize(op)
 
-Return the normalized operator so that its `trace(op)` is one.
+Return the normalized operator so that its `tr(op)` is one.
 """
-normalize(op::Operator) = op/trace(op)
+normalize(op::Operator) = op/tr(op)
 
 """
     normalize!(op)
 
-In-place normalization of the given operator so that its `trace(x)` is one.
+In-place normalization of the given operator so that its `tr(x)` is one.
 """
 normalize!(op::Operator) = throw(ArgumentError("normalize! is not defined for this type of operator: $(typeof(op)).\n You may have to fall back to the non-inplace version 'normalize()'."))
 
@@ -158,9 +161,8 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-
 expect(op::Operator, state::Ket) = dagger(state) * op * state
-expect(op::Operator, state::Operator) = trace(op*state)
+expect(op::Operator, state::Operator) = tr(op*state)
 
 """
     expect(index, op, state)
@@ -218,11 +220,11 @@ variance(indices::Vector{Int}, op::Operator, states::Vector) = [variance(indices
 
 
 """
-    expm(op::Operator)
+    exp(op::Operator)
 
 Operator exponential.
 """
-expm(op::Operator) = throw(ArgumentError("expm() is not defined for this type of operator: $(typeof(op)).\nTry to convert to dense operator first with full()."))
+exp(op::Operator) = throw(ArgumentError("exp() is not defined for this type of operator: $(typeof(op)).\nTry to convert to dense operator first with dense()."))
 
 permutesystems(a::Operator, perm::Vector{Int}) = arithmetic_unary_error("Permutations of subsystems", a)
 
@@ -271,7 +273,7 @@ function check_ptrace_arguments(a::Operator, indices::Vector{Int})
         throw(ArgumentError("Partial trace can only be applied onto operators wich have the same number of subsystems in the left basis and right basis."))
     end
     if rank == length(indices)
-        throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use trace() instead."))
+        throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
     sortedindices.check_indices(length(a.basis_l.shape), indices)
     for i=indices
@@ -282,7 +284,7 @@ function check_ptrace_arguments(a::Operator, indices::Vector{Int})
 end
 function check_ptrace_arguments(a::StateVector, indices::Vector{Int})
     if length(basis(a).shape) == length(indices)
-        throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use trace() instead."))
+        throw(ArgumentError("Partial trace can't be used to trace out all subsystems - use tr() instead."))
     end
     sortedindices.check_indices(length(basis(a).shape), indices)
 end

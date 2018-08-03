@@ -4,9 +4,10 @@ export LazySum
 
 import Base: ==, *, /, +, -
 import ..operators
+import SparseArrays: sparse
 
 using ..bases, ..states, ..operators, ..operators_dense
-
+using SparseArrays, LinearAlgebra
 
 """
     LazySum([factors,] operators)
@@ -20,10 +21,10 @@ stored in the `operators` field.
 mutable struct LazySum <: Operator
     basis_l::Basis
     basis_r::Basis
-    factors::Vector{Complex128}
+    factors::Vector{ComplexF64}
     operators::Vector{Operator}
 
-    function LazySum(factors::Vector{Complex128}, operators::Vector{Operator})
+    function LazySum(factors::Vector{ComplexF64}, operators::Vector{Operator})
         @assert length(operators)>0
         @assert length(operators)==length(factors)
         for i = 2:length(operators)
@@ -34,12 +35,12 @@ mutable struct LazySum <: Operator
     end
 end
 LazySum(factors::Vector{T}, operators::Vector) where {T<:Number} = LazySum(complex(factors), Operator[op for op in operators])
-LazySum(operators::Operator...) = LazySum(ones(Complex128, length(operators)), Operator[operators...])
+LazySum(operators::Operator...) = LazySum(ones(ComplexF64, length(operators)), Operator[operators...])
 
 Base.copy(x::LazySum) = LazySum(copy(x.factors), [copy(op) for op in x.operators])
 
-Base.full(op::LazySum) = sum(op.factors .* full.(op.operators))
-Base.sparse(op::LazySum) = sum(op.factors .* sparse.(op.operators))
+operators.dense(op::LazySum) = sum(op.factors .* dense.(op.operators))
+SparseArrays.sparse(op::LazySum) = sum(op.factors .* sparse.(op.operators))
 
 ==(x::LazySum, y::LazySum) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && x.operators==y.operators && x.factors==y.factors
 
@@ -56,7 +57,7 @@ Base.sparse(op::LazySum) = sum(op.factors .* sparse.(op.operators))
 
 operators.dagger(op::LazySum) = LazySum(conj.(op.factors), dagger.(op.operators))
 
-operators.trace(op::LazySum) = sum(op.factors .* trace.(op.operators))
+operators.tr(op::LazySum) = sum(op.factors .* tr.(op.operators))
 
 function operators.ptrace(op::LazySum, indices::Vector{Int})
     operators.check_ptrace_arguments(op, indices)
@@ -65,7 +66,7 @@ function operators.ptrace(op::LazySum, indices::Vector{Int})
     LazySum(op.factors, D)
 end
 
-operators.normalize!(op::LazySum) = (op.factors /= trace(op))
+operators.normalize!(op::LazySum) = (op.factors /= tr(op); nothing)
 
 operators.permutesystems(op::LazySum, perm::Vector{Int}) = LazySum(op.factors, Operator[permutesystems(op_i, perm) for op_i in op.operators])
 
