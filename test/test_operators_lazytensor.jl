@@ -11,7 +11,7 @@ end
 
 @testset "operators-lazytensor" begin
 
-srand(0)
+Random.seed!(0)
 
 D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)

@@ -4,7 +4,7 @@ using LinearAlgebra, Random
 
 @testset "states" begin
 
-srand(0)
+Random.seed!(0)
 
 D(x1::Number, x2::Number) = abs(x2-x1)
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)

@@ -6,7 +6,7 @@ mutable struct SpectralanalysisTestOperator <: Operator end
 
 @testset "spectralanalysis" begin
 
-srand(0)
+Random.seed!(0)
 
 sprandop(b) = sparse(DenseOperator(b, rand(ComplexF64, length(b), length(b))))
 

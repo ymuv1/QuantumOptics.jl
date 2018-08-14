@@ -4,7 +4,7 @@ using FFTW, LinearAlgebra, Random
 
 @testset "particle" begin
 
-srand(0)
+Random.seed!(0)
 
 D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 

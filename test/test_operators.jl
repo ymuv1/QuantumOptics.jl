@@ -11,7 +11,7 @@ end
 
 @testset "operators" begin
 
-srand(0)
+Random.seed!(0)
 
 b1 = GenericBasis(5)
 b2 = GenericBasis(3)

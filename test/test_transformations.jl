@@ -4,7 +4,7 @@ using Random, LinearAlgebra
 
 @testset "transformation" begin
 
-srand(0)
+Random.seed!(0)
 
 D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x::Ket, y::Ket) = norm(x-y)
