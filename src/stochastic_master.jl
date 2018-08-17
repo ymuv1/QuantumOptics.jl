@@ -6,7 +6,7 @@ using ...bases, ...states, ...operators
 using ...operators_dense, ...operators_sparse
 using ...timeevolution
 using LinearAlgebra
-import ...timeevolution: integrate_stoch, recast!
+import ...timeevolution: integrate_stoch, recast!, QO_CHECKS
 import ...timeevolution.timeevolution_master: dmaster_h, dmaster_nh, dmaster_h_dynamic, check_master
 
 const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Nothing}
@@ -55,7 +55,7 @@ function master(tspan, rho0::DenseOperator, H::Operator,
     dmaster_stoch(dx::DiffArray, t::Float64, rho::DenseOperator, drho::DenseOperator, n::Int) =
             dmaster_stochastic(dx, rho, C, Cdagger, drho, n)
 
-    isreducible = check_master(rho0, H, J, Jdagger, rates)
+    isreducible = check_master(rho0, H, J, Jdagger, rates) && check_master_stoch(rho0, C, Cdagger)
     if !isreducible
         dmaster_h_determ(t::Float64, rho::DenseOperator, drho::DenseOperator) =
             dmaster_h(rho, H, rates, J, Jdagger, drho, tmp)
@@ -158,8 +158,9 @@ end
 function dmaster_stoch_dynamic(dx::DiffArray, t::Float64, rho::DenseOperator,
             f::Function, drho::DenseOperator, n::Int)
     result = f(t, rho)
-    @assert 2 == length(result)
+    QO_CHECKS[] && @assert 2 == length(result)
     C, Cdagger = result
+    QO_CHECKS[] && check_master_stoch(rho, C, Cdagger)
     dmaster_stochastic(dx, rho, C, Cdagger, drho, n)
 end
 
@@ -173,6 +174,27 @@ function integrate_master_stoch(tspan, df::Function, dg::Function,
     dstate = copy(rho0)
     integrate_stoch(tspan_, df, dg, x0, state, dstate, fout, n; kwargs...)
 end
+
+function check_master_stoch(rho0::DenseOperator, C::Vector, Cdagger::Vector)
+    @assert length(C) == length(Cdagger)
+    isreducible = true
+    for c=C
+        @assert isa(c, Operator)
+        if !(isa(c, DenseOperator) || isa(c, SparseOperator))
+            isreducible = false
+        end
+        check_samebases(rho0, c)
+    end
+    for c=Cdagger
+        @assert isa(c, Operator)
+        if !(isa(c, DenseOperator) || isa(c, SparseOperator))
+            isreducible = false
+        end
+        check_samebases(rho0, c)
+    end
+    isreducible
+end
+
 
 # TODO: Speed up by recasting to n-d arrays, remove vector methods
 function recast!(x::Union{Vector{ComplexF64}, SubArray{ComplexF64, 1}}, rho::DenseOperator)

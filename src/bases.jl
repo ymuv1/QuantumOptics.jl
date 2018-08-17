@@ -4,7 +4,7 @@ export Basis, GenericBasis, CompositeBasis, basis,
        tensor, ⊗, ptrace, permutesystems,
        IncompatibleBases,
        samebases, multiplicable,
-       check_samebases, check_multiplicable
+       check_samebases, check_multiplicable, @samebases
 
 import Base: ==, ^
 
@@ -175,6 +175,22 @@ Exception that should be raised for an illegal algebraic operation.
 """
 mutable struct IncompatibleBases <: Exception end
 
+const BASES_CHECK = Ref(true)
+"""
+    @samebases
+
+Macro to skip checks for same bases. Useful for `*`, `expect` and similar
+functions.
+"""
+macro samebases(ex)
+    return quote
+        BASES_CHECK.x = false
+        local val = $(esc(ex))
+        BASES_CHECK.x = true
+        val
+    end
+end
+
 """
     samebases(a, b)
 
@@ -189,7 +205,7 @@ Throw an [`IncompatibleBases`](@ref) error if the objects don't have
 the same bases.
 """
 function check_samebases(b1, b2)
-    if !samebases(b1, b2)
+    if BASES_CHECK[] && !samebases(b1, b2)
         throw(IncompatibleBases())
     end
 end
@@ -221,7 +237,7 @@ Throw an [`IncompatibleBases`](@ref) error if the objects are
 not multiplicable.
 """
 function check_multiplicable(b1, b2)
-    if !multiplicable(b1, b2)
+    if BASES_CHECK[] && !multiplicable(b1, b2)
         throw(IncompatibleBases())
     end
 end

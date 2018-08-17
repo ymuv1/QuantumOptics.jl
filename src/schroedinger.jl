@@ -2,7 +2,7 @@ module timeevolution_schroedinger
 
 export schroedinger, schroedinger_dynamic
 
-import ..integrate, ..recast!
+import ..integrate, ..recast!, ..QO_CHECKS
 
 using ...bases, ...states, ...operators
 
@@ -77,7 +77,7 @@ end
 
 function dschroedinger_dynamic(t::Float64, psi0::T, f::Function, dpsi::T) where T<:StateVector
     H = f(t, psi0)
-    check_schroedinger(psi0, H)
+    QO_CHECKS[] && check_schroedinger(psi0, H)
     dschroedinger(psi0, H, dpsi)
 end
 

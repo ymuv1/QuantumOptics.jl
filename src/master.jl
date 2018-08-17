@@ -2,7 +2,7 @@ module timeevolution_master
 
 export master, master_nh, master_h, master_dynamic, master_nh_dynamic
 
-import ..integrate, ..recast!
+import ..integrate, ..recast!, ..QO_CHECKS
 
 using ...bases, ...states, ...operators
 using ...operators_dense, ...operators_sparse
@@ -296,14 +296,14 @@ function dmaster_h_dynamic(t::Float64, rho::DenseOperator, f::Function,
                     rates::DecayRates,
                     drho::DenseOperator, tmp::DenseOperator)
     result = f(t, rho)
-    @assert 3 <= length(result) <= 4
+    QO_CHECKS[] && @assert 3 <= length(result) <= 4
     if length(result) == 3
         H, J, Jdagger = result
         rates_ = rates
     else
         H, J, Jdagger, rates_ = result
     end
-    check_master(rho, H, J, Jdagger, rates_)
+    QO_CHECKS[] && check_master(rho, H, J, Jdagger, rates_)
     dmaster_h(rho, H, rates_, J, Jdagger, drho, tmp)
 end
 
@@ -311,14 +311,14 @@ function dmaster_nh_dynamic(t::Float64, rho::DenseOperator, f::Function,
                     rates::DecayRates,
                     drho::DenseOperator, tmp::DenseOperator)
     result = f(t, rho)
-    @assert 4 <= length(result) <= 5
+    QO_CHECKS[] && @assert 4 <= length(result) <= 5
     if length(result) == 4
         Hnh, Hnh_dagger, J, Jdagger = result
         rates_ = rates
     else
         Hnh, Hnh_dagger, J, Jdagger, rates_ = result
     end
-    check_master(rho, Hnh, J, Jdagger, rates_)
+    QO_CHECKS[] && check_master(rho, Hnh, J, Jdagger, rates_)
     dmaster_nh(rho, Hnh, Hnh_dagger, rates_, J, Jdagger, drho, tmp)
 end
 

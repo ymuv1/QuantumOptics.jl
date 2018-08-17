@@ -2,6 +2,8 @@ using ..metrics
 
 import OrdinaryDiffEq, DiffEqCallbacks, StochasticDiffEq
 
+export @skiptimechecks
+
 const DiffArray = Union{Vector{ComplexF64}, Array{ComplexF64, 2}}
 
 function recast! end
@@ -174,5 +176,22 @@ function integrate_stoch(tspan::Vector{Float64}, df::Function, dg::Function, x0:
     integrate_stoch(tspan, df, dg, x0, state, dstate, fout, n; kwargs...)
 end
 
+
+
+const QO_CHECKS = Ref(true)
+"""
+    @skiptimechecks
+
+Macro to skip checks during time-dependent problems.
+Useful for `timeevolution.master_dynamic` and similar functions.
+"""
+macro skiptimechecks(ex)
+    return quote
+        QO_CHECKS.x = false
+        local val = $(esc(ex))
+        QO_CHECKS.x = true
+        val
+    end
+end
 
 Base.@pure pure_inference(fout,T) = Core.Compiler.return_type(fout, T)

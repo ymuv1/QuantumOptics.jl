@@ -6,7 +6,7 @@ using ...bases, ...states, ...operators
 using ...operators_dense, ...operators_sparse
 using ...timeevolution
 using LinearAlgebra
-import ...timeevolution: integrate_stoch, recast!
+import ...timeevolution: integrate_stoch, recast!, QO_CHECKS
 import ...timeevolution.timeevolution_schroedinger: dschroedinger, dschroedinger_dynamic, check_schroedinger
 
 import DiffEqCallbacks
@@ -45,6 +45,10 @@ function schroedinger(tspan, psi0::Ket, H::Operator, Hs::Vector;
     state = copy(psi0)
 
     check_schroedinger(psi0, H)
+    for h=Hs
+        check_schroedinger(psi0, h)
+    end
+
     dschroedinger_determ(t::Float64, psi::Ket, dpsi::Ket) = dschroedinger(psi, H, dpsi)
     dschroedinger_stoch(dx::DiffArray,
             t::Float64, psi::Ket, dpsi::Ket, n::Int) = dschroedinger_stochastic(dx, psi, Hs, dpsi, n)
@@ -130,14 +134,12 @@ end
 
 function dschroedinger_stochastic(dx::Vector{ComplexF64}, psi::Ket, Hs::Vector{T},
             dpsi::Ket, index::Int) where T <: Operator
-    check_schroedinger(psi, Hs[index])
     recast!(dx, dpsi)
     dschroedinger(psi, Hs[index], dpsi)
 end
 function dschroedinger_stochastic(dx::Array{ComplexF64, 2}, psi::Ket, Hs::Vector{T},
             dpsi::Ket, n::Int) where T <: Operator
     for i=1:n
-        check_schroedinger(psi, Hs[i])
         dx_i = @view dx[:, i]
         recast!(dx_i, dpsi)
         dschroedinger(psi, Hs[i], dpsi)
@@ -147,6 +149,11 @@ end
 function dschroedinger_stochastic(dx::DiffArray,
             t::Float64, psi::Ket, f::Function, dpsi::Ket, n::Int)
     ops = f(t, psi)
+    if QO_CHECKS[]
+        @inbounds for h=ops
+            check_schroedinger(psi, h)
+        end
+    end
     dschroedinger_stochastic(dx, psi, ops, dpsi, n)
 end
 

@@ -11,7 +11,7 @@ import OrdinaryDiffEq
 
 # TODO: Remove imports
 import DiffEqCallbacks, RecursiveArrayTools.copyat_or_push!
-import ..recast!
+import ..recast!, ..QO_CHECKS
 Base.@pure pure_inference(fout,T) = Core.Compiler.return_type(fout, T)
 
 const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Nothing}
@@ -196,28 +196,28 @@ end
 function dmcwf_h_dynamic(t::Float64, psi::Ket, f::Function, rates::DecayRates,
                     dpsi::Ket, tmp::Ket)
     result = f(t, psi)
-    @assert 3 <= length(result) <= 4
+    QO_CHECKS[] && @assert 3 <= length(result) <= 4
     if length(result) == 3
         H, J, Jdagger = result
         rates_ = rates
     else
         H, J, Jdagger, rates_ = result
     end
-    check_mcwf(psi, H, J, Jdagger, rates_)
+    QO_CHECKS[] && check_mcwf(psi, H, J, Jdagger, rates_)
     dmcwf_h(psi, H, J, Jdagger, dpsi, tmp, rates)
 end
 
 function dmcwf_nh_dynamic(t::Float64, psi::Ket, f::Function, dpsi::Ket)
     result = f(t, psi)
-    @assert 3 <= length(result) <= 4
+    QO_CHECKS[] && @assert 3 <= length(result) <= 4
     H, J, Jdagger = result[1:3]
-    check_mcwf(psi, H, J, Jdagger, nothing)
+    QO_CHECKS[] && check_mcwf(psi, H, J, Jdagger, nothing)
     dmcwf_nh(psi, H, dpsi)
 end
 
 function jump_dynamic(rng, t::Float64, psi::Ket, f::Function, psi_new::Ket, rates::DecayRates)
     result = f(t, psi)
-    @assert 3 <= length(result) <= 4
+    QO_CHECKS[] && @assert 3 <= length(result) <= 4
     J = result[2]
     if length(result) == 3
         rates_ = rates

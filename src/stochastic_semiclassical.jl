@@ -7,8 +7,9 @@ using ...operators_dense, ...operators_sparse
 using ...semiclassical
 import ...semiclassical: recast!, State, dmaster_h_dynamic
 using ...timeevolution
-import ...timeevolution: integrate_stoch
-import ...timeevolution.timeevolution_schroedinger: dschroedinger, dschroedinger_dynamic
+import ...timeevolution: integrate_stoch, QO_CHECKS
+import ...timeevolution.timeevolution_schroedinger: dschroedinger, dschroedinger_dynamic, check_schroedinger
+import ...stochastic.stochastic_master: check_master_stoch
 using ...stochastic
 using LinearAlgebra
 
@@ -207,6 +208,7 @@ function dschroedinger_stochastic(dx::Vector{ComplexF64}, t::Float64,
         dstate::State{Ket}, ::Int)
     H = fstoch_quantum(t, state.quantum, state.classical)
     recast!(dx, dstate)
+    QO_CHECKS[] && check_schroedinger(state.quantum, H[1])
     dschroedinger(state.quantum, H[1], dstate.quantum)
     recast!(dstate, dx)
 end
@@ -217,6 +219,7 @@ function dschroedinger_stochastic(dx::Array{ComplexF64, 2},
     for i=1:n
         dx_i = @view dx[:, i]
         recast!(dx_i, dstate)
+        QO_CHECKS[] && check_schroedinger(state.quantum, H[i])
         dschroedinger(state.quantum, H[i], dstate.quantum)
         recast!(dstate, dx_i)
     end
@@ -239,8 +242,9 @@ function dmaster_stoch_dynamic(dx::Vector{ComplexF64}, t::Float64,
             state::State{DenseOperator}, fstoch_quantum::Function,
             fstoch_classical::Nothing, dstate::State{DenseOperator}, ::Int)
     result = fstoch_quantum(t, state.quantum, state.classical)
-    @assert length(result) == 2
+    QO_CHECKS[] && @assert length(result) == 2
     C, Cdagger = result
+    QO_CHECKS[] && check_master_stoch(state.quantum, C, Cdagger)
     recast!(dx, dstate)
     operators.gemm!(1, C[1], state.quantum, 0, dstate.quantum)
     operators.gemm!(1, state.quantum, Cdagger[1], 1, dstate.quantum)
@@ -251,8 +255,9 @@ function dmaster_stoch_dynamic(dx::Array{ComplexF64, 2}, t::Float64,
             state::State{DenseOperator}, fstoch_quantum::Function,
             fstoch_classical::Nothing, dstate::State{DenseOperator}, n::Int)
     result = fstoch_quantum(t, state.quantum, state.classical)
-    @assert length(result) == 2
+    QO_CHECKS[] && @assert length(result) == 2
     C, Cdagger = result
+    QO_CHECKS[] && check_master_stoch(state.quantum, C, Cdagger)
     for i=1:n
         dx_i = @view dx[:, i]
         recast!(dx_i, dstate)
