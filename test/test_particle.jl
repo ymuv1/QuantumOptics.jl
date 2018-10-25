@@ -6,7 +6,7 @@ using FFTW, LinearAlgebra, Random
 
 Random.seed!(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
+D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 
 N = 200
 xmin = -32.5
@@ -218,10 +218,10 @@ operators.gemv!(Complex(1.), LazyProduct(Txp, Tpx), psi0_bx, Complex(0.), psi_)
 @test 1e-12 > norm(Txp*(Tpx*psi0_bx) - psi0_bx)
 
 psi_ = deepcopy(psi0_bx)
-I = dense(identityoperator(basis_momentum))
-operators.gemv!(Complex(1.), LazyProduct(Txp, I, Tpx), psi0_bx, Complex(0.), psi_)
+id = dense(identityoperator(basis_momentum))
+operators.gemv!(Complex(1.), LazyProduct(Txp, id, Tpx), psi0_bx, Complex(0.), psi_)
 @test 1e-12 > norm(psi_ - psi0_bx)
-@test 1e-12 > norm(Txp*I*(Tpx*psi0_bx) - psi0_bx)
+@test 1e-12 > norm(Txp*id*(Tpx*psi0_bx) - psi0_bx)
 
 # Test dense FFT operator
 Txp_dense = DenseOperator(Txp)

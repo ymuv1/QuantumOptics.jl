@@ -6,7 +6,7 @@ using Random, SparseArrays, LinearAlgebra
 
 Random.seed!(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
+D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 
 b1a = GenericBasis(2)
@@ -52,20 +52,20 @@ xbra1 = Bra(b_l, rand(ComplexF64, length(b_l)))
 xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Addition
-@test_throws bases.IncompatibleBases op1 + dagger(op2)
+@test_throws DimensionMismatch op1 + dagger(op2)
 @test 1e-14 > D(op1 + op_zero, op1)
 @test 1e-14 > D(op1 + op2, op2 + op1)
 @test 1e-14 > D(op1 + (op2 + op3), (op1 + op2) + op3)
 
 # Subtraction
-@test_throws bases.IncompatibleBases op1 - dagger(op2)
+@test_throws DimensionMismatch op1 - dagger(op2)
 @test 1e-14 > D(op1-op_zero, op1)
 @test 1e-14 > D(op1-op2, op1 + (-op2))
 @test 1e-14 > D(op1-op2, op1 + (-1*op2))
 @test 1e-14 > D(op1-op2-op3, op1-(op2+op3))
 
 # Test multiplication
-@test_throws bases.IncompatibleBases op1*op2
+@test_throws DimensionMismatch op1*op2
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1*x1 + 0.3*op1*x2)
 @test 1e-11 > D((op1+op2)*(x1+0.3*x2), op1*x1 + 0.3*op1*x2 + op2*x1 + 0.3*op2*x2)
 

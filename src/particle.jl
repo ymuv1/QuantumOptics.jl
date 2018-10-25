@@ -27,13 +27,17 @@ of ``x_{min}`` and ``x_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dp`` and ``\\pi/dp`` with ``dp=(p_{max}-p_{min})/N``.
 """
-mutable struct PositionBasis <: Basis
+mutable struct PositionBasis{X1,X2} <: Basis
     shape::Vector{Int}
     xmin::Float64
     xmax::Float64
     N::Int
-    PositionBasis(xmin::Real, xmax::Real, N::Int) = new([N], xmin, xmax, N)
+    function PositionBasis{X1,X2}(xmin::Real, xmax::Real, N::Int) where {X1,X2}
+        @assert isa(X1, Real) && isa(X2, Real)
+        new([N], xmin, xmax, N)
+    end
 end
+PositionBasis(xmin::Real, xmax::Real, N::Int) = PositionBasis{xmin,xmax}(xmin,xmax,N)
 
 """
     MomentumBasis(pmin, pmax, Npoints)
@@ -49,13 +53,17 @@ of ``p_{min}`` and ``p_{max}`` are due to the periodic boundary conditions
 more or less arbitrary and are chosen to be
 ``-\\pi/dx`` and ``\\pi/dx`` with ``dx=(x_{max}-x_{min})/N``.
 """
-mutable struct MomentumBasis <: Basis
+mutable struct MomentumBasis{P1,P2} <: Basis
     shape::Vector{Int}
     pmin::Float64
     pmax::Float64
     N::Int
-    MomentumBasis(pmin::Real, pmax::Real, N::Int) = new([N], pmin, pmax, N)
+    function MomentumBasis{P1,P2}(pmin::Real, pmax::Real, N::Int) where {P1,P2}
+        @assert isa(P1, Real) && isa(P2, Real)
+        new([N], pmin, pmax, N)
+    end
 end
+MomentumBasis(pmin::Real, pmax::Real, N::Int) = MomentumBasis{pmin,pmax}(pmin, pmax, N)
 
 PositionBasis(b::MomentumBasis) = (dp = (b.pmax - b.pmin)/b.N; PositionBasis(-pi/dp, pi/dp, b.N))
 MomentumBasis(b::PositionBasis) = (dx = (b.xmax - b.xmin)/b.N; MomentumBasis(-pi/dx, pi/dx, b.N))
@@ -264,7 +272,7 @@ end
 
 Abstract type for all implementations of FFT operators.
 """
-abstract type FFTOperator <: Operator end
+abstract type FFTOperator{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR} end
 
 const PlanFFT = FFTW.cFFTWPlan
 
@@ -274,15 +282,24 @@ const PlanFFT = FFTW.cFFTWPlan
 Operator performing a fast fourier transformation when multiplied with a state
 that is a Ket or an Operator.
 """
-mutable struct FFTOperators <: FFTOperator
-    basis_l::Basis
-    basis_r::Basis
+mutable struct FFTOperators{BL<:Basis,BR<:Basis} <: FFTOperator{BL,BR}
+    basis_l::BL
+    basis_r::BR
     fft_l!::PlanFFT
     fft_r!::PlanFFT
     fft_l2!::PlanFFT
     fft_r2!::PlanFFT
     mul_before::Array{ComplexF64}
     mul_after::Array{ComplexF64}
+    function FFTOperators(b1::BL, b2::BR,
+        fft_l!::PlanFFT,
+        fft_r!::PlanFFT,
+        fft_l2!::PlanFFT,
+        fft_r2!::PlanFFT,
+        mul_before::Array{ComplexF64},
+        mul_after::Array{ComplexF64}) where {BL<:Basis,BR<:Basis}
+        new{BL,BR}(b1, b2, fft_l!, fft_r!, fft_l2!, fft_r2!, mul_before, mul_after)
+    end
 end
 
 """
@@ -291,13 +308,27 @@ end
 Operator that can only perform fast fourier transformations on Kets.
 This is much more memory efficient when only working with Kets.
 """
-mutable struct FFTKets <: FFTOperator
-    basis_l::Basis
-    basis_r::Basis
+mutable struct FFTKets{BL<:Basis,BR<:Basis} <: FFTOperator{BL,BR}
+    basis_l::BL
+    basis_r::BR
     fft_l!::PlanFFT
     fft_r!::PlanFFT
     mul_before::Array{ComplexF64}
     mul_after::Array{ComplexF64}
+    function FFTKets{BL,BR}(b1::BL, b2::BR,
+        fft_l!::PlanFFT,
+        fft_r!::PlanFFT,
+        mul_before::Array{ComplexF64},
+        mul_after::Array{ComplexF64}) where {BL<:Basis,BR<:Basis}
+        new(b1, b2, fft_l!, fft_r!, mul_before, mul_after)
+    end
+end
+function FFTKets(b1::BL, b2::BR,
+    fft_l!::PlanFFT,
+    fft_r!::PlanFFT,
+    mul_before::Array{ComplexF64},
+    mul_after::Array{ComplexF64}) where {BL<:Basis,BR<:Basis}
+    FFTKets{BL,BR}(b1, b2, fft_l!, fft_r!, mul_before, mul_after)
 end
 
 """
@@ -352,8 +383,8 @@ end
 function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::Bool=false, index::Vector{Int}=Int[])
     @assert length(basis_l.bases) == length(basis_r.bases)
     if length(index) == 0
-        check_pos = typeof.(basis_l.bases) .== PositionBasis
-        check_mom = typeof.(basis_l.bases) .== MomentumBasis
+        check_pos = [isa.(basis_l.bases, PositionBasis)...]
+        check_mom = [isa.(basis_l.bases, MomentumBasis)...]
         if any(check_pos) && !any(check_mom)
             index = [1:length(basis_l.bases);][check_pos]
         elseif any(check_mom) && !any(check_pos)
@@ -362,11 +393,11 @@ function transform(basis_l::CompositeBasis, basis_r::CompositeBasis; ket_only::B
             throw(IncompatibleBases())
         end
     end
-    if all(typeof.(basis_l.bases[index]) .== PositionBasis)
-        @assert all(typeof.(basis_r.bases[index]) .== MomentumBasis)
+    if all(isa.(basis_l.bases[index], PositionBasis))
+        @assert all(isa.(basis_r.bases[index], MomentumBasis))
         transform_xp(basis_l, basis_r, index; ket_only=ket_only)
-    elseif all(typeof.(basis_l.bases[index]) .== MomentumBasis)
-        @assert all(typeof.(basis_r.bases[index]) .== PositionBasis)
+    elseif all(isa.(basis_l.bases[index], MomentumBasis))
+        @assert all(isa.(basis_r.bases[index], PositionBasis))
         transform_px(basis_l, basis_r, index; ket_only=ket_only)
     else
         throw(IncompatibleBases())

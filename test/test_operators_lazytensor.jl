@@ -2,18 +2,18 @@ using Test
 using QuantumOptics
 using LinearAlgebra, SparseArrays, Random
 
-mutable struct test_lazytensor <: Operator
-    basis_l::Basis
-    basis_r::Basis
+mutable struct test_lazytensor{BL<:Basis,BR<:Basis} <: AbstractOperator{BL,BR}
+    basis_l::BL
+    basis_r::BR
     data::Matrix{ComplexF64}
-    test_lazytensor(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
+    test_lazytensor(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new{typeof(b1),typeof(b2)}(b1, b2, data) : throw(DimensionMismatch())
 end
 
 @testset "operators-lazytensor" begin
 
 Random.seed!(0)
 
-D(op1::Operator, op2::Operator) = abs(tracedistance_nh(dense(op1), dense(op2)))
+D(op1::AbstractOperator, op2::AbstractOperator) = abs(tracedistance_nh(dense(op1), dense(op2)))
 D(x1::StateVector, x2::StateVector) = norm(x2-x1)
 
 b1a = GenericBasis(2)
@@ -91,7 +91,7 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 @test 1e-14 > D(-op1_, -op1)
 
 # Test multiplication
-@test_throws bases.IncompatibleBases op1*op2
+@test_throws DimensionMismatch op1*op2
 @test 1e-11 > D(op1*(x1 + 0.3*x2), op1_*(x1 + 0.3*x2))
 @test 1e-11 > D((xbra1 + 0.3*xbra2)*op1, (xbra1 + 0.3*xbra2)*op1_)
 @test 1e-11 > D(op1*x1 + 0.3*op1*x2, op1_*x1 + 0.3*op1_*x2)
@@ -106,18 +106,18 @@ xbra2 = Bra(b_l, rand(ComplexF64, length(b_l)))
 
 # Test identityoperator
 Idense = identityoperator(DenseOperator, b_r)
-I = identityoperator(LazyTensor, b_r)
-@test isa(I, LazyTensor)
-@test dense(I) == Idense
-@test 1e-11 > D(I*x1, x1)
-@test I == identityoperator(LazyTensor, b1b) ⊗ identityoperator(LazyTensor, b2b) ⊗ identityoperator(LazyTensor, b3b)
+id = identityoperator(LazyTensor, b_r)
+@test isa(id, LazyTensor)
+@test dense(id) == Idense
+@test 1e-11 > D(id*x1, x1)
+@test id == identityoperator(LazyTensor, b1b) ⊗ identityoperator(LazyTensor, b2b) ⊗ identityoperator(LazyTensor, b3b)
 
 Idense = identityoperator(DenseOperator, b_l)
-I = identityoperator(LazyTensor, b_l)
-@test isa(I, LazyTensor)
-@test dense(I) == Idense
-@test 1e-11 > D(xbra1*I, xbra1)
-@test I == identityoperator(LazyTensor, b1a) ⊗ identityoperator(LazyTensor, b2a) ⊗ identityoperator(LazyTensor, b3a)
+id = identityoperator(LazyTensor, b_l)
+@test isa(id, LazyTensor)
+@test dense(id) == Idense
+@test 1e-11 > D(xbra1*id, xbra1)
+@test id == identityoperator(LazyTensor, b1a) ⊗ identityoperator(LazyTensor, b2a) ⊗ identityoperator(LazyTensor, b3a)
 
 
 # Test tr and normalize

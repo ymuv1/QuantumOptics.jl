@@ -16,62 +16,73 @@ Dense array implementation of Operator.
 
 The matrix consisting of complex floats is stored in the `data` field.
 """
-mutable struct DenseOperator <: Operator
-    basis_l::Basis
-    basis_r::Basis
+mutable struct DenseOperator{BL<:Basis,BR<:Basis,T<:Matrix{ComplexF64}} <: AbstractOperator{BL,BR}
+    basis_l::BL
+    basis_r::BR
     data::Matrix{ComplexF64}
-    DenseOperator(b1::Basis, b2::Basis, data) = length(b1) == size(data, 1) && length(b2) == size(data, 2) ? new(b1, b2, data) : throw(DimensionMismatch())
+    function DenseOperator{BL,BR,T}(b1::BL, b2::BR, data::T) where {BL<:Basis,BR<:Basis,T<:Matrix{ComplexF64}}
+        if !(length(b1) == size(data, 1) && length(b2) == size(data, 2))
+            throw(DimensionMismatch())
+        end
+        new(b1, b2, data)
+    end
 end
 
+DenseOperator{BL,BR}(b1::BL, b2::BR, data::T) where {BL<:Basis,BR<:Basis,T<:Matrix{ComplexF64}} = DenseOperator{BL,BR,T}(b1, b2, data)
+DenseOperator(b1::BL, b2::BR, data::T) where {BL<:Basis,BR<:Basis,T<:Matrix{ComplexF64}} = DenseOperator{BL,BR,T}(b1, b2, data)
+DenseOperator(b1::Basis, b2::Basis, data) = DenseOperator(b1, b2, convert(Matrix{ComplexF64}, data))
 DenseOperator(b::Basis, data) = DenseOperator(b, b, data)
 DenseOperator(b1::Basis, b2::Basis) = DenseOperator(b1, b2, zeros(ComplexF64, length(b1), length(b2)))
+DenseOperator{B1,B2}(b1::B1, b2::B2) where {B1<:Basis,B2<:Basis} = DenseOperator{B1,B2}(b1, b2, zeros(ComplexF64, length(b1), length(b2)))
 DenseOperator(b::Basis) = DenseOperator(b, b)
-DenseOperator(op::Operator) = dense(op)
+DenseOperator(op::AbstractOperator) = dense(op)
 
 Base.copy(x::DenseOperator) = DenseOperator(x.basis_l, x.basis_r, copy(x.data))
 
 """
-    dense(op::Operator)
+    dense(op::AbstractOperator)
 
 Convert an arbitrary Operator into a [`DenseOperator`](@ref).
 """
 operators.dense(x::DenseOperator) = copy(x)
 
-==(x::DenseOperator, y::DenseOperator) = (x.basis_l == y.basis_l) && (x.basis_r == y.basis_r) && (x.data == y.data)
+==(x::DenseOperator, y::DenseOperator) = false
+==(x::T, y::T) where T<:DenseOperator = (x.data == y.data)
 
 
 # Arithmetic operations
-+(a::DenseOperator, b::DenseOperator) = (check_samebases(a,b); DenseOperator(a.basis_l, a.basis_r, a.data+b.data))
++(a::T, b::T) where T<:DenseOperator = T(a.basis_l, a.basis_r, a.data+b.data)
++(a::DenseOperator, b::DenseOperator) = throw(bases.IncompatibleBases())
 
--(a::DenseOperator) = DenseOperator(a.basis_l, a.basis_r, -a.data)
--(a::DenseOperator, b::DenseOperator) = (check_samebases(a,b); DenseOperator(a.basis_l, a.basis_r, a.data-b.data))
+-(a::T) where T<:DenseOperator = T(a.basis_l, a.basis_r, -a.data)
+-(a::T, b::T) where T<:DenseOperator = T(a.basis_l, a.basis_r, a.data-b.data)
+-(a::DenseOperator, b::DenseOperator) = throw(bases.IncompatibleBases())
 
-*(a::DenseOperator, b::Ket) = (check_multiplicable(a, b); Ket(a.basis_l, a.data*b.data))
-*(a::Bra, b::DenseOperator) = (check_multiplicable(a, b); Bra(b.basis_r, transpose(b.data)*a.data))
-*(a::DenseOperator, b::DenseOperator) = (check_multiplicable(a, b); DenseOperator(a.basis_l, b.basis_r, a.data*b.data))
+*(a::DenseOperator{BL,BR}, b::Ket{BR}) where {BL<:Basis,BR<:Basis} = Ket{BL}(a.basis_l, a.data*b.data)
+*(a::DenseOperator, b::Ket) = throw(bases.IncompatibleBases())
+*(a::Bra{BL}, b::DenseOperator{BL,BR}) where {BL<:Basis,BR<:Basis} = Bra{BR}(b.basis_r, transpose(b.data)*a.data)
+*(a::Bra, b::DenseOperator) = throw(bases.IncompatibleBases())
+*(a::DenseOperator{B1,B2,T}, b::DenseOperator{B2,B3,T}) where {B1<:Basis,B2<:Basis,B3<:Basis,T<:Matrix{ComplexF64}} = DenseOperator{B1,B3,T}(a.basis_l, b.basis_r, a.data*b.data)
+*(a::DenseOperator, b::DenseOperator) = throw(bases.IncompatibleBases())
 *(a::DenseOperator, b::Number) = DenseOperator(a.basis_l, a.basis_r, complex(b)*a.data)
 *(a::Number, b::DenseOperator) = DenseOperator(b.basis_l, b.basis_r, complex(a)*b.data)
-function *(op1::Operator, op2::DenseOperator)
-    check_multiplicable(op1, op2)
-    result = DenseOperator(op1.basis_l, op2.basis_r)
+function *(op1::AbstractOperator{B1,B2}, op2::DenseOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    result = DenseOperator{B1,B3}(op1.basis_l, op2.basis_r)
     operators.gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
-function *(op1::DenseOperator, op2::Operator)
-    check_multiplicable(op1, op2)
-    result = DenseOperator(op1.basis_l, op2.basis_r)
+function *(op1::DenseOperator{B1,B2}, op2::AbstractOperator{B2,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
+    result = DenseOperator{B1,B3}(op1.basis_l, op2.basis_r)
     operators.gemm!(Complex(1.), op1, op2, Complex(0.), result)
     return result
 end
-function *(op::Operator, psi::Ket)
-    check_multiplicable(op, psi)
-    result = Ket(op.basis_l)
+function *(op::AbstractOperator{BL,BR}, psi::Ket{BR}) where {BL<:Basis,BR<:Basis}
+    result = Ket{BL}(op.basis_l)
     operators.gemv!(Complex(1.), op, psi, Complex(0.), result)
     return result
 end
-function *(psi::Bra, op::Operator)
-    check_multiplicable(psi, op)
-    result = Bra(op.basis_r)
+function *(psi::Bra{BL}, op::AbstractOperator{BL,BR}) where {BL<:Basis,BR<:Basis}
+    result = Bra{BR}(op.basis_r)
     operators.gemv!(Complex(1.), psi, op, Complex(0.), result)
     return result
 end
@@ -81,7 +92,8 @@ end
 
 operators.dagger(x::DenseOperator) = DenseOperator(x.basis_r, x.basis_l, x.data')
 
-operators.ishermitian(A::DenseOperator) = (A.basis_l == A.basis_r) && ishermitian(A.data)
+operators.ishermitian(A::DenseOperator) = false
+operators.ishermitian(A::DenseOperator{B,B}) where B<:Basis = ishermitian(A.data)
 
 operators.tensor(a::DenseOperator, b::DenseOperator) = DenseOperator(tensor(a.basis_l, b.basis_l), tensor(a.basis_r, b.basis_r), kron(b.data, a.data))
 
@@ -96,7 +108,7 @@ Outer product ``|x⟩⟨y|`` of the given states.
 operators.tensor(a::Ket, b::Bra) = DenseOperator(a.basis, b.basis, reshape(kron(b.data, a.data), prod(a.basis.shape), prod(b.basis.shape)))
 
 
-operators.tr(op::DenseOperator) = (check_samebases(op); tr(op.data))
+operators.tr(op::DenseOperator{B,B}) where B<:Basis = tr(op.data)
 
 function operators.ptrace(a::DenseOperator, indices::Vector{Int})
     operators.check_ptrace_arguments(a, indices)
@@ -124,15 +136,11 @@ end
 
 operators.normalize!(op::DenseOperator) = (rmul!(op.data, 1.0/tr(op)); nothing)
 
-function operators.expect(op::DenseOperator, state::Ket)# where T <: Union{Ket, Bra}
-    check_samebases(op.basis_r, state.basis)
-    check_samebases(op.basis_l, state.basis)
+function operators.expect(op::DenseOperator{B,B}, state::Ket{B}) where B<:Basis
     state.data' * op.data * state.data
 end
 
-function operators.expect(op::DenseOperator, state::Operator)
-    check_samebases(op.basis_r, state.basis_l)
-    check_samebases(op.basis_l, state.basis_r)
+function operators.expect(op::DenseOperator{B1,B2}, state::AbstractOperator{B2,B2}) where {B1<:Basis,B2<:Basis}
     result = ComplexF64(0.)
     @inbounds for i=1:size(op.data, 1), j=1:size(op.data,2)
         result += op.data[i,j]*state.data[j,i]
@@ -140,12 +148,11 @@ function operators.expect(op::DenseOperator, state::Operator)
     result
 end
 
-function operators.exp(op::DenseOperator)
-    check_samebases(op)
-    return DenseOperator(op.basis_l, op.basis_r, exp(op.data))
+function operators.exp(op::T) where {B<:Basis,T<:DenseOperator{B,B}}
+    return T(op.basis_l, op.basis_r, exp(op.data))
 end
 
-function operators.permutesystems(a::DenseOperator, perm::Vector{Int})
+function operators.permutesystems(a::DenseOperator{B1,B2}, perm::Vector{Int}) where {B1<:CompositeBasis,B2<:CompositeBasis}
     @assert length(a.basis_l.bases) == length(a.basis_r.bases) == length(perm)
     @assert isperm(perm)
     data = reshape(a.data, [a.basis_l.shape; a.basis_r.shape]...)
@@ -154,7 +161,7 @@ function operators.permutesystems(a::DenseOperator, perm::Vector{Int})
     DenseOperator(permutesystems(a.basis_l, perm), permutesystems(a.basis_r, perm), data)
 end
 
-operators.identityoperator(::Type{DenseOperator}, b1::Basis, b2::Basis) = DenseOperator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
+operators.identityoperator(::Type{T}, b1::Basis, b2::Basis) where {T<:DenseOperator} = DenseOperator(b1, b2, Matrix{ComplexF64}(I, length(b1), length(b2)))
 
 """
     projector(a::Ket, b::Bra)
@@ -267,13 +274,13 @@ operators.gemm!(alpha, a::Matrix{ComplexF64}, b::Matrix{ComplexF64}, beta, resul
 operators.gemv!(alpha, a::Matrix{ComplexF64}, b::Vector{ComplexF64}, beta, result::Vector{ComplexF64}) = BLAS.gemv!('N', convert(ComplexF64, alpha), a, b, convert(ComplexF64, beta), result)
 operators.gemv!(alpha, a::Vector{ComplexF64}, b::Matrix{ComplexF64}, beta, result::Vector{ComplexF64}) = BLAS.gemv!('T', convert(ComplexF64, alpha), b, a, convert(ComplexF64, beta), result)
 
-operators.gemm!(alpha, a::DenseOperator, b::DenseOperator, beta, result::DenseOperator) = operators.gemm!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
-operators.gemv!(alpha, a::DenseOperator, b::Ket, beta, result::Ket) = operators.gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
-operators.gemv!(alpha, a::Bra, b::DenseOperator, beta, result::Bra) = operators.gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
+operators.gemm!(alpha, a::DenseOperator{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis} = operators.gemm!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
+operators.gemv!(alpha, a::DenseOperator{B1,B2}, b::Ket{B2}, beta, result::Ket{B1}) where {B1<:Basis,B2<:Basis} = operators.gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
+operators.gemv!(alpha, a::Bra{B1}, b::DenseOperator{B1,B2}, beta, result::Bra{B2}) where {B1<:Basis,B2<:Basis} = operators.gemv!(convert(ComplexF64, alpha), a.data, b.data, convert(ComplexF64, beta), result.data)
 
 
 # Multiplication for Operators in terms of their gemv! implementation
-function operators.gemm!(alpha, M::Operator, b::DenseOperator, beta, result::DenseOperator)
+function operators.gemm!(alpha, M::AbstractOperator{B1,B2}, b::DenseOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
     for i=1:size(b.data, 2)
         bket = Ket(b.basis_l, b.data[:,i])
         resultket = Ket(M.basis_l, result.data[:,i])
@@ -282,7 +289,7 @@ function operators.gemm!(alpha, M::Operator, b::DenseOperator, beta, result::Den
     end
 end
 
-function operators.gemm!(alpha, b::DenseOperator, M::Operator, beta, result::DenseOperator)
+function operators.gemm!(alpha, b::DenseOperator{B1,B2}, M::AbstractOperator{B2,B3}, beta, result::DenseOperator{B1,B3}) where {B1<:Basis,B2<:Basis,B3<:Basis}
     for i=1:size(b.data, 1)
         bbra = Bra(b.basis_r, vec(b.data[i,:]))
         resultbra = Bra(M.basis_r, vec(result.data[i,:]))
