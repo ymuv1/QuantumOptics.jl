@@ -33,6 +33,9 @@ op1 = SparseOperator(b1a, b1b, sparse([1 1 1; 1 1 1]))
 op2 = sparse(DenseOperator(b1b, b1a, [1 1; 1 1; 1 1]))
 @test op1 == dagger(op2)
 
+# Test transpose
+@test transpose(op2) == conj(op2')
+
 # Test copy
 op1 = sparse(randoperator(b1a))
 op2 = copy(op1)

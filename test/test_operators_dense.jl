@@ -28,6 +28,7 @@ op2 = DenseOperator(b1b, b1a, [1 1; 1 1; 1 1])
 
 # Test ' shorthand
 @test dagger(op2) == op2'
+@test transpose(op2) == conj(op2')
 
 # Test copy
 op1 = randoperator(b1a)

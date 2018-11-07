@@ -94,6 +94,8 @@ operators.tr(op::SparseOperator) = throw(bases.IncompatibleBases())
 operators.conj(op::T) where T<:SparseOperator = T(op.basis_l, op.basis_r, conj(op.data))
 operators.conj!(op::SparseOperator) = conj!(op.data)
 
+operators.transpose(op::SparseOperator{BL,BR,T}) where {BL<:Basis,BR<:Basis,T<:SparseMatrixCSC{ComplexF64,Int}} = SparseOperator{BR,BL,T}(op.basis_r, op.basis_l, T(transpose(op.data)))
+
 function operators.ptrace(op::SparseOperator, indices::Vector{Int})
     operators.check_ptrace_arguments(op, indices)
     shape = [op.basis_l.shape; op.basis_r.shape]

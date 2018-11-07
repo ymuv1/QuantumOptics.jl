@@ -4,7 +4,7 @@ export AbstractOperator, length, basis, dagger, ishermitian, tensor, embed,
         tr, ptrace, normalize, normalize!, expect, variance,
         exp, permutesystems, identityoperator, dense
 
-import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!
+import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
 import LinearAlgebra: tr, ishermitian
 import ..bases: basis, tensor, ptrace, permutesystems,
             samebases, check_samebases, multiplicable
@@ -56,6 +56,8 @@ conj(a::AbstractOperator) = arithmetic_unary_error("Complex conjugate", a)
 conj!(a::AbstractOperator) = conj(a::AbstractOperator)
 
 dense(a::AbstractOperator) = arithmetic_unary_error("Conversion to dense", a)
+
+transpose(a::AbstractOperator) = arithmetic_unary_error("Transpose", a)
 
 """
     ishermitian(op::AbstractOperator)

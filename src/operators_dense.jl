@@ -100,6 +100,8 @@ operators.tensor(a::DenseOperator, b::DenseOperator) = DenseOperator(tensor(a.ba
 operators.conj(a::DenseOperator) = DenseOperator(a.basis_l, a.basis_r, conj(a.data))
 operators.conj!(a::DenseOperator) = conj!(a.data)
 
+operators.transpose(op::DenseOperator{BL,BR,T}) where {BL<:Basis,BR<:Basis,T<:Matrix{ComplexF64}} = DenseOperator{BR,BL,T}(op.basis_r, op.basis_l, T(transpose(op.data)))
+
 """
     tensor(x::Ket, y::Bra)
 
