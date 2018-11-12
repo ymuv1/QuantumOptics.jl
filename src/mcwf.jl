@@ -257,17 +257,18 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
                         kwargs...) where {B<:Basis,D<:Vector{ComplexF64},T<:Ket{B,D}}
 
     tmp = copy(psi0)
-    as_ket(x::D) = T(psi0.basis, x)
+    psi_tmp = copy(psi0)
     as_vector(psi::T) = psi.data
     rng = MersenneTwister(convert(UInt, seed))
     jumpnorm = Ref(rand(rng))
-    djumpnorm(x::D, t::Float64, integrator) = norm(as_ket(x))^2 - (1-jumpnorm[])
+    djumpnorm(x::D, t::Float64, integrator) = norm(x)^2 - (1-jumpnorm[])
 
     if !display_beforeevent && !display_afterevent
         function dojump(integrator)
             x = integrator.u
+            recast!(x, psi_tmp)
             t = integrator.t
-            jumpfun(rng, t, as_ket(x), tmp)
+            jumpfun(rng, t, psi_tmp, tmp)
             x .= tmp.data
             jumpnorm[] = rand(rng)
         end
@@ -307,7 +308,8 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
                     affect!.save_func(integrator.u, integrator.t, integrator),Val{false})
             end
 
-            jumpfun(rng, t, as_ket(x), tmp)
+            recast!(x, psi_tmp)
+            jumpfun(rng, t, psi_tmp, tmp)
 
             if display_afterevent
                 affect!.saveiter += 1
