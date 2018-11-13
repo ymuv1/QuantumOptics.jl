@@ -164,20 +164,20 @@ Expectation value of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-expect(op::AbstractOperator, state::Ket) = dagger(state) * op * state
-expect(op::AbstractOperator, state::AbstractOperator) = tr(op*state)
+expect(op::AbstractOperator{B,B}, state::Ket{B}) where B<:Basis = state.data' * (op * state).data
+expect(op::AbstractOperator{B1,B2}, state::AbstractOperator{B2,B2}) where {B1<:Basis,B2<:Basis} = tr(op*state)
 
 """
     expect(index, op, state)
 
 If an `index` is given, it assumes that `op` is defined in the subsystem specified by this number.
 """
-function expect(indices::Vector{Int}, op::AbstractOperator, state::AbstractOperator)
+function expect(indices::Vector{Int}, op::AbstractOperator{B1,B2}, state::AbstractOperator{B3,B3}) where {B1<:Basis,B2<:Basis,B3<:CompositeBasis}
     N = length(state.basis_l.shape)
     indices_ = sortedindices.complement(N, indices)
     expect(op, ptrace(state, indices_))
 end
-function expect(indices::Vector{Int}, op::AbstractOperator, state::Ket)
+function expect(indices::Vector{Int}, op::AbstractOperator{B,B}, state::Ket{B2}) where {B<:Basis,B2<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = sortedindices.complement(N, indices)
     expect(op, ptrace(state, indices_))
@@ -193,12 +193,11 @@ Variance of the given operator `op` for the specified `state`.
 
 `state` can either be a (density) operator or a ket.
 """
-function variance(op::AbstractOperator, state::Ket)
+function variance(op::AbstractOperator{B,B}, state::Ket{B}) where B<:Basis
     x = op*state
-    stateT = dagger(state)
-    stateT*op*x - (stateT*x)^2
+    state.data'*(op*x).data - (state.data'*x.data)^2
 end
-function variance(op::AbstractOperator, state::AbstractOperator)
+function variance(op::AbstractOperator{B,B}, state::AbstractOperator{B,B}) where B<:Basis
     expect(op*op, state) - expect(op, state)^2
 end
 
@@ -207,12 +206,12 @@ end
 
 If an `index` is given, it assumes that `op` is defined in the subsystem specified by this number
 """
-function variance(indices::Vector{Int}, op::AbstractOperator, state::AbstractOperator)
+function variance(indices::Vector{Int}, op::AbstractOperator{B,B}, state::AbstractOperator{BC,BC}) where {B<:Basis,BC<:CompositeBasis}
     N = length(state.basis_l.shape)
     indices_ = sortedindices.complement(N, indices)
     variance(op, ptrace(state, indices_))
 end
-function variance(indices::Vector{Int}, op::AbstractOperator, state::Ket)
+function variance(indices::Vector{Int}, op::AbstractOperator{B,B}, state::Ket{BC}) where {B<:Basis,BC<:CompositeBasis}
     N = length(state.basis.shape)
     indices_ = sortedindices.complement(N, indices)
     variance(op, ptrace(state, indices_))
