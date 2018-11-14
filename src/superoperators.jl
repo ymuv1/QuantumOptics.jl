@@ -168,9 +168,9 @@ function _check_input(H::AbstractOperator{B1,B2}, J::Vector, Jdagger::Vector, ra
         @assert isa(j, AbstractOperator{B1,B2})
     end
     @assert length(J)==length(Jdagger)
-    if typeof(rates) == Matrix{Float64}
+    if isa(rates, Matrix{Float64})
         @assert size(rates, 1) == size(rates, 2) == length(J)
-    elseif typeof(rates) == Vector{Float64}
+    elseif isa(rates, Vector{Float64})
         @assert length(rates) == length(J)
     end
 end
@@ -194,18 +194,18 @@ S ρ = -\\frac{i}{ħ} [H, ρ] + \\sum_i J_i ρ J_i^† - \\frac{1}{2} J_i^† J_
 * `Jdagger`: Vector containing the hermitian conjugates of the jump operators. If they
              are not given they are calculated automatically.
 """
-function liouvillian(H::T, J::Vector{T};
+function liouvillian(H::AbstractOperator, J::Vector;
             rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)),
-            Jdagger::Vector{T}=dagger.(J)) where T<:AbstractOperator
+            Jdagger::Vector=dagger.(J))
     _check_input(H, J, Jdagger, rates)
     L = spre(-1im*H) + spost(1im*H)
-    if typeof(rates) == Matrix{Float64}
+    if isa(rates, Matrix{Float64})
         for i=1:length(J), j=1:length(J)
             jdagger_j = rates[i,j]/2*Jdagger[j]*J[i]
             L -= spre(jdagger_j) + spost(jdagger_j)
             L += spre(rates[i,j]*J[i]) * spost(Jdagger[j])
         end
-    elseif typeof(rates) == Vector{Float64}
+    elseif isa(rates, Vector{Float64})
         for i=1:length(J)
             jdagger_j = rates[i]/2*Jdagger[i]*J[i]
             L -= spre(jdagger_j) + spost(jdagger_j)
