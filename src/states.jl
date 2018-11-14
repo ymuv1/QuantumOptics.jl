@@ -65,7 +65,7 @@ Bra(b::Basis) = Bra(b, zeros(ComplexF64, length(b)))
 Ket(b::Basis) = Ket(b, zeros(ComplexF64, length(b)))
 
 Ket(b::Basis, data) = Ket(b, convert(Vector{ComplexF64}, data))
-Bra(b::Basis, data) = Ket(b, convert(Vector{ComplexF64}, data))
+Bra(b::Basis, data) = Bra(b, convert(Vector{ComplexF64}, data))
 
 copy(a::T) where {T<:StateVector} = T(a.basis, copy(a.data))
 length(a::StateVector) = length(a.basis)::Int
