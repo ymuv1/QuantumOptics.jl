@@ -31,7 +31,7 @@ The content associated with **QuantumOptics.jl** is distributed over several rep
 
 ### Questions & Contributions
 
-Contributions of any kind are always welcome! Be it as questions, ideas for new features, bug reports or, our favorite case, sending pull requests.
+If you have any questions or need help, hop on our [gitter channel](https://gitter.im/QuantumOptics-jl/Lobby?source=orgpage) and ask away. Also, contributions of any kind are always welcome! Be it as ideas for new features, bug reports or, our favorite case, sending pull requests.
 
 ### Citing
 
