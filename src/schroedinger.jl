@@ -76,7 +76,6 @@ end
 
 function dschroedinger_dynamic(t::Float64, psi0::T, f::Function, dpsi::T) where T<:StateVector
     H = f(t, psi0)
-    # QO_CHECKS[] && check_schroedinger(psi0, H)
     dschroedinger(psi0, H, dpsi)
 end
 
