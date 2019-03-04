@@ -18,23 +18,23 @@ isapprox(S,s)
 
 alpha=rand()+im*rand()
 r=coherentthermalstate(b,omega*number(b),T,alpha)
-@test isapprox(expect(number(b),r),abs(alpha)^2+1/(exp(omega/T)-1))
-@test isapprox(expect(destroy(b),r),alpha)
-@test isapprox(entropy_vn(r),S)
+@test isapprox(expect(number(b),r),abs(alpha)^2+1/(exp(omega/T)-1), atol=1e-14)
+@test isapprox(expect(destroy(b),r),alpha, atol=1e-14)
+@test isapprox(entropy_vn(r),S, atol=1e-14)
 
 rp=phase_average(r)
 @test isapprox(expect(number(b),rp),abs(alpha)^2+1/(exp(omega/T)-1), atol=1e-14)
-@test isapprox(expect(destroy(b),rp),0)
+@test isapprox(expect(destroy(b),rp),0, atol=1e-14)
 for k=1:n
-    @test isapprox(rp.data[k,k],r.data[k,k])
+    @test isapprox(rp.data[k,k],r.data[k,k], atol=1e-14)
 end
 
 rpas=passive_state(r)
 for k=1:n-1
     @test real(rpas.data[k+1,k+1])<real(rpas.data[k,k])
 end
-@test isapprox(expect(number(b),rpas),1/(exp(omega/T)-1))
-@test isapprox(expect(destroy(b),rpas),0)
-@test isapprox(entropy_vn(rpas),S)
+@test isapprox(expect(number(b),rpas),1/(exp(omega/T)-1), atol=1e-14)
+@test isapprox(expect(destroy(b),rpas),0, atol=1e-14)
+@test isapprox(entropy_vn(rpas),S, atol=1e-14)
 
 end # testset
