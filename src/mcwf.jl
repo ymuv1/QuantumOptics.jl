@@ -310,6 +310,7 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
 
             recast!(x, psi_tmp)
             jumpfun(rng, t, psi_tmp, tmp)
+            x .= tmp.data
 
             if display_afterevent
                 affect!.saveiter += 1
@@ -317,8 +318,6 @@ function integrate_mcwf(dmcwf::Function, jumpfun::Function, tspan,
                 copyat_or_push!(affect!.saved_values.saveval, affect!.saveiter,
                     affect!.save_func(integrator.u, integrator.t, integrator),Val{false})
             end
-
-            x .= tmp.data
             jumpnorm[] = rand(rng)
         end
 

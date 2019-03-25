@@ -153,6 +153,13 @@ for i=1:length(T)
     @test tracedistance(ρt_master[i], ρ_average_3[i]) < 0.1
 end
 
+# Test displaying before/after jump
+tout, Ψt = timeevolution.mcwf([T[1],T[end]], Ψ₀, Hdense, J1; seed=2, display_beforeevent=true, display_afterevent=true)
+for i=2:length(tout)-1
+    if tout[i+1] == tout[i]
+        @test Ψt[i+1].data ≈ normalize(J1[1]*Ψt[i]).data
+    end
+end
 
 # Test equivalence to schroedinger time evolution for no decay
 J = DenseOperator[]
