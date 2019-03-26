@@ -6,6 +6,7 @@ export AbstractOperator, DataOperator, length, basis, dagger, ishermitian, tenso
 
 import Base: ==, +, -, *, /, ^, length, one, exp, conj, conj!, transpose
 import LinearAlgebra: tr, ishermitian
+import SparseArrays: sparse
 import ..bases: basis, tensor, ptrace, permutesystems,
             samebases, check_samebases, multiplicable
 import ..states: dagger, normalize, normalize!
@@ -94,16 +95,98 @@ tensor(operators::AbstractOperator...) = reduce(tensor, operators)
 Tensor product of operators where missing indices are filled up with identity operators.
 """
 function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
-               indices::Vector{Int}, operators::Vector{T}) where T<:AbstractOperator
+               indices::Vector, operators::Vector{T}) where T<:AbstractOperator
+
+    @assert sortedindices.check_embed_indices(indices)
+
     N = length(basis_l.bases)
     @assert length(basis_r.bases) == N
     @assert length(indices) == length(operators)
+
+    # Embed all single-subspace operators.
+    idxop_sb = [x for x in zip(indices, operators) if typeof(x[1]) <: Int]
+    indices_sb = [x[1] for x in idxop_sb]
+    ops_sb = [x[2] for x in idxop_sb]
+
+    for (idxsb, opsb) in zip(indices_sb, ops_sb)
+        (opsb.basis_l == basis_l.bases[idxsb]) || throw(bases.IncompatibleBases())
+        (opsb.basis_r == basis_r.bases[idxsb]) || throw(bases.IncompatibleBases())
+    end
+
+    embed_op = tensor([i ∈ indices_sb ? ops_sb[indexin(i, indices_sb)[1]] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
+
+    # Embed all joint-subspace operators.
+    idxop_comp = [x for x in zip(indices, operators) if typeof(x[1]) <: Array]
+    for (idxs, op) in idxop_comp
+        embed_op *= embed(basis_l, basis_r, idxs, op)
+    end
+
+    return embed_op
+end
+
+
+"""
+    embed(basis1[, basis2], indices::Vector, operators::Vector)
+
+Embed operator acting on a joint Hilbert space where missing indices are filled up with identity operators.
+"""
+function embed(basis_l::CompositeBasis, basis_r::CompositeBasis,
+               indices::Vector{Int}, op::T) where T<:AbstractOperator
+    N = length(basis_l.bases)
+    @assert length(basis_r.bases) == N
+
+    reduce(tensor, basis_l.bases[indices]) == op.basis_l || throw(bases.IncompatibleBases())
+    reduce(tensor, basis_r.bases[indices]) == op.basis_r || throw(bases.IncompatibleBases())
+
+    index_order = [idx for idx in 1:length(basis_l.bases) if idx ∉ indices]
+    all_operators = AbstractOperator[identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i in index_order]
+
+    for idx in indices
+        pushfirst!(index_order, idx)
+    end
+    push!(all_operators, op)
+
     sortedindices.check_indices(N, indices)
-    tensor([i ∈ indices ? operators[indexin(i, indices)[1]] : identityoperator(T, basis_l.bases[i], basis_r.bases[i]) for i=1:N]...)
+
+    # Create the operator.
+    permuted_op = tensor(all_operators...)
+
+    # Create a copy to fill with correctly-ordered objects (basis and data).
+    unpermuted_op = copy(permuted_op)
+
+    # Create the correctly ordered basis.
+    unpermuted_op.basis_l = basis_l
+    unpermuted_op.basis_r = basis_r
+
+    # Reorient the matrix to act in the correctly ordered basis.
+    # Get the dimensions necessary for index permuting.
+    dims_l = [b.shape[1] for b in basis_l.bases]
+    dims_r = [b.shape[1] for b in basis_r.bases]
+
+    # Get the order of indices to use in the first reshape. Julia indices go in
+    # reverse order.
+    expand_order = index_order[end:-1:1]
+    # Get the dimensions associated with those indices.
+    expand_dims_l = dims_l[expand_order]
+    expand_dims_r = dims_r[expand_order]
+
+    # Prepare the permutation to the correctly ordered basis.
+    perm_order_l = [indexin(idx, expand_order)[1] for idx in 1:length(dims_l)]
+    perm_order_r = [indexin(idx, expand_order)[1] for idx in 1:length(dims_r)]
+
+    # Perform the index expansion, the permutation, and the index collapse.
+    M = (reshape(permuted_op.data, tuple([expand_dims_l; expand_dims_r]...)) |>
+         x -> permutedims(x, [perm_order_l; perm_order_r .+ length(dims_l)]) |>
+         x -> sparse(reshape(x, (prod(dims_l), prod(dims_r)))))
+
+    unpermuted_op.data = M
+
+    return unpermuted_op
 end
 embed(basis_l::CompositeBasis, basis_r::CompositeBasis, index::Int, op::AbstractOperator) = embed(basis_l, basis_r, Int[index], [op])
 embed(basis::CompositeBasis, index::Int, op::AbstractOperator) = embed(basis, basis, Int[index], [op])
-embed(basis::CompositeBasis, indices::Vector{Int}, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
+embed(basis::CompositeBasis, indices::Vector, operators::Vector{T}) where {T<:AbstractOperator} = embed(basis, basis, indices, operators)
+embed(basis::CompositeBasis, indices::Vector{Int}, op::AbstractOperator) = embed(basis, basis, indices, op)
 
 """
     embed(basis1[, basis2], operators::Dict)
