@@ -1,4 +1,4 @@
-const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Nothing}
+const DecayRates = Union{Vector, Matrix, Nothing}
 
 """
     timeevolution.master_h(tspan, rho0, H, J; <keyword arguments>)
@@ -11,7 +11,7 @@ function master_h(tspan, rho0::T, H::AbstractOperator{B,B}, J::Vector;
                 rates::DecayRates=nothing,
                 Jdagger::Vector=dagger.(J),
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
     check_master(rho0, H, J, Jdagger, rates)
     tmp = copy(rho0)
     dmaster_(t, rho::T, drho::T) = dmaster_h(rho, H, rates, J, Jdagger, drho, tmp)
@@ -34,7 +34,7 @@ function master_nh(tspan, rho0::T, Hnh::AbstractOperator{B,B}, J::Vector;
                 Hnhdagger::AbstractOperator=dagger(Hnh),
                 Jdagger::Vector=dagger.(J),
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
     check_master(rho0, Hnh, J, Jdagger, rates)
     tmp = copy(rho0)
     dmaster_(t, rho::T, drho::T) = dmaster_nh(rho, Hnh, Hnhdagger, rates, J, Jdagger, drho, tmp)
@@ -77,7 +77,7 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B}, J::Vector;
                 rates::DecayRates=nothing,
                 Jdagger::Vector=dagger.(J),
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
     isreducible = check_master(rho0, H, J, Jdagger, rates)
     if !isreducible
         tmp = copy(rho0)
@@ -85,17 +85,17 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B}, J::Vector;
         return integrate_master(tspan, dmaster_h_, rho0, fout; kwargs...)
     else
         Hnh = copy(H)
-        if typeof(rates) == Matrix{Float64}
+        if isa(rates, Matrix)
             for i=1:length(J), j=1:length(J)
-                Hnh -= 0.5im*rates[i,j]*Jdagger[i]*J[j]
+                Hnh -= eltype(H)(0.5im*rates[i,j])*Jdagger[i]*J[j]
             end
-        elseif typeof(rates) == Vector{Float64}
+        elseif isa(rates, Vector)
             for i=1:length(J)
-                Hnh -= 0.5im*rates[i]*Jdagger[i]*J[i]
+                Hnh -= eltype(H)(0.5im*rates[i])*Jdagger[i]*J[i]
             end
         else
             for i=1:length(J)
-                Hnh -= 0.5im*Jdagger[i]*J[i]
+                Hnh -= eltype(H)(0.5im)*Jdagger[i]*J[i]
             end
         end
         Hnhdagger = dagger(Hnh)
@@ -121,7 +121,7 @@ at [`master_dynamic`](@ref).
 function master_nh_dynamic(tspan, rho0::T, f::Function;
                 rates::DecayRates=nothing,
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
     tmp = copy(rho0)
     dmaster_(t, rho::T, drho::T) = dmaster_nh_dynamic(t, rho, f, rates, drho, tmp)
     integrate_master(tspan, dmaster_, rho0, fout; kwargs...)
@@ -155,7 +155,7 @@ operators:
 function master_dynamic(tspan, rho0::T, f::Function;
                 rates::DecayRates=nothing,
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
     tmp = copy(rho0)
     dmaster_(t, rho::T, drho::T) = dmaster_h_dynamic(t, rho, f, rates, drho, tmp)
     integrate_master(tspan, dmaster_, rho0, fout; kwargs...)
@@ -171,14 +171,14 @@ master_nh_dynamic(tspan, psi0::Ket{B}, f::Function; kwargs...) where B<:Basis = 
 
 
 # Recasting needed for the ODE solver is just providing the underlying data
-function recast!(x::T, rho::DenseOperator{B,B,T}) where {B<:Basis,T<:Matrix{ComplexF64}}
+function recast!(x::T, rho::Operator{B,B,T}) where {B<:Basis,T}
     rho.data = x
 end
-recast!(rho::DenseOperator{B,B,T}, x::T) where {B<:Basis,T<:Matrix{ComplexF64}} = nothing
+recast!(rho::Operator{B,B,T}, x::T) where {B<:Basis,T} = nothing
 
 function integrate_master(tspan, df::Function, rho0::T,
-                        fout::Union{Nothing, Function}; kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
-    tspan_ = convert(Vector{Float64}, tspan)
+                        fout::Union{Nothing, Function}; kwargs...) where {B<:Basis,T<:Operator{B,B}}
+    tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
     x0 = rho0.data
     state = T(rho0.basis_l, rho0.basis_r, rho0.data)
     dstate = T(rho0.basis_l, rho0.basis_r, rho0.data)
@@ -197,94 +197,94 @@ end
 
 function dmaster_h(rho::T, H::AbstractOperator{B,B},
                     rates::Nothing, J::Vector, Jdagger::Vector,
-                    drho::T, tmp::T) where {B<:Basis,T<:DenseOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, H, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, H, 1, drho)
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
     for i=1:length(J)
-        QuantumOpticsBase.gemm!(1, J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho)
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[i],true,true)
 
-        QuantumOpticsBase.gemm!(-0.5, Jdagger[i], tmp, 1, drho)
+        QuantumOpticsBase.mul!(drho,Jdagger[i],tmp,eltype(rho)(-0.5),one(eltype(rho)))
 
-        QuantumOpticsBase.gemm!(1., rho, Jdagger[i], 0, tmp)
-        QuantumOpticsBase.gemm!(-0.5, tmp, J[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,rho,Jdagger[i],true,false)
+        QuantumOpticsBase.mul!(drho,tmp,J[i],eltype(rho)(-0.5),one(eltype(rho)))
     end
     return drho
 end
 
 function dmaster_h(rho::T, H::AbstractOperator{B,B},
-                    rates::Vector{Float64}, J::Vector, Jdagger::Vector,
-                    drho::T, tmp::T) where {B<:Basis,T<:DenseOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, H, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, H, 1, drho)
+                    rates::Vector, J::Vector, Jdagger::Vector,
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
     for i=1:length(J)
-        QuantumOpticsBase.gemm!(rates[i], J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[i],true,true)
 
-        QuantumOpticsBase.gemm!(-0.5, Jdagger[i], tmp, 1, drho)
+        QuantumOpticsBase.mul!(drho,Jdagger[i],tmp,eltype(rho)(-0.5),one(eltype(rho)))
 
-        QuantumOpticsBase.gemm!(rates[i], rho, Jdagger[i], 0, tmp)
-        QuantumOpticsBase.gemm!(-0.5, tmp, J[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,rho,Jdagger[i],eltype(rho)(rates[i]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,J[i],eltype(rho)(-0.5),one(eltype(rho)))
     end
     return drho
 end
 
 function dmaster_h(rho::T, H::AbstractOperator{B,B},
-                    rates::Matrix{Float64}, J::Vector, Jdagger::Vector,
-                    drho::T, tmp::T) where {B<:Basis,T<:DenseOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, H, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, H, 1, drho)
+                    rates::Matrix, J::Vector, Jdagger::Vector,
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
     for j=1:length(J), i=1:length(J)
-        QuantumOpticsBase.gemm!(rates[i,j], J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[j], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho,eltype(rho)(rates[i,j]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[j],true,true)
 
-        QuantumOpticsBase.gemm!(-0.5, Jdagger[j], tmp, 1, drho)
+        QuantumOpticsBase.mul!(drho,Jdagger[j],tmp,eltype(rho)(-0.5),one(eltype(rho)))
 
-        QuantumOpticsBase.gemm!(rates[i,j], rho, Jdagger[j], 0, tmp)
-        QuantumOpticsBase.gemm!(-0.5, tmp, J[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,rho,Jdagger[j],eltype(rho)(rates[i,j]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,J[i],eltype(rho)(-0.5),one(eltype(rho)))
     end
     return drho
 end
 
-function dmaster_nh(rho::T1, Hnh::T2, Hnh_dagger::T2,
+function dmaster_nh(rho::T, Hnh::AbstractOperator{B,B}, Hnh_dagger::AbstractOperator{B,B},
                     rates::Nothing, J::Vector, Jdagger::Vector,
-                    drho::T1, tmp::T1) where {B<:Basis,T1<:DenseOperator{B,B},T2<:AbstractOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, Hnh, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, Hnh_dagger, 1, drho)
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
     for i=1:length(J)
-        QuantumOpticsBase.gemm!(1, J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho)
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[i],true,true)
     end
     return drho
 end
 
-function dmaster_nh(rho::T1, Hnh::T2, Hnh_dagger::T2,
-                    rates::Vector{Float64}, J::Vector, Jdagger::Vector,
-                    drho::T1, tmp::T1) where {B<:Basis,T1<:DenseOperator{B,B},T2<:AbstractOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, Hnh, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, Hnh_dagger, 1, drho)
+function dmaster_nh(rho::T, Hnh::AbstractOperator{B,B}, Hnh_dagger::AbstractOperator{B,B},
+                    rates::Vector, J::Vector, Jdagger::Vector,
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
     for i=1:length(J)
-        QuantumOpticsBase.gemm!(rates[i], J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[i], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[i],true,true)
     end
     return drho
 end
 
-function dmaster_nh(rho::T1, Hnh::T2, Hnh_dagger::T2,
-                    rates::Matrix{Float64}, J::Vector, Jdagger::Vector,
-                    drho::T1, tmp::T1) where {B<:Basis,T1<:DenseOperator{B,B},T2<:AbstractOperator{B,B}}
-    QuantumOpticsBase.gemm!(-1im, Hnh, rho, 0, drho)
-    QuantumOpticsBase.gemm!(1im, rho, Hnh_dagger, 1, drho)
+function dmaster_nh(rho::T, Hnh::AbstractOperator{B,B}, Hnh_dagger::AbstractOperator{B,B},
+                    rates::Matrix, J::Vector, Jdagger::Vector,
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
+    QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
+    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
     for j=1:length(J), i=1:length(J)
-        QuantumOpticsBase.gemm!(rates[i,j], J[i], rho, 0, tmp)
-        QuantumOpticsBase.gemm!(1, tmp, Jdagger[j], 1, drho)
+        QuantumOpticsBase.mul!(tmp,J[i],rho,eltype(rho)(rates[i,j]),zero(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,tmp,Jdagger[j],true,true)
     end
     return drho
 end
 
-function dmaster_h_dynamic(t::Float64, rho::T, f::Function,
+function dmaster_h_dynamic(t, rho::T, f::Function,
                     rates::DecayRates,
-                    drho::T, tmp::T) where {B<:Basis,T<:DenseOperator{B,B}}
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
     result = f(t, rho)
     QO_CHECKS[] && @assert 3 <= length(result) <= 4
     if length(result) == 3
@@ -297,9 +297,9 @@ function dmaster_h_dynamic(t::Float64, rho::T, f::Function,
     dmaster_h(rho, H, rates_, J, Jdagger, drho, tmp)
 end
 
-function dmaster_nh_dynamic(t::Float64, rho::T, f::Function,
+function dmaster_nh_dynamic(t, rho::T, f::Function,
                     rates::DecayRates,
-                    drho::T, tmp::T) where {B<:Basis,T<:DenseOperator{B,B}}
+                    drho::T, tmp::T) where {B<:Basis,T<:Operator{B,B}}
     result = f(t, rho)
     QO_CHECKS[] && @assert 4 <= length(result) <= 5
     if length(result) == 4
@@ -313,31 +313,36 @@ function dmaster_nh_dynamic(t::Float64, rho::T, f::Function,
 end
 
 
-function check_master(rho0::DenseOperator{B,B}, H::AbstractOperator{B,B}, J::Vector, Jdagger::Vector, rates::DecayRates) where B<:Basis
+function check_master(rho0::Operator{B,B}, H::AbstractOperator{B,B}, J::Vector, Jdagger::Vector, rates::DecayRates) where B<:Basis
     # TODO: clean up type checks by dispatch; make type of J known
     isreducible = true # test if all operators are sparse or dense
-    if !(isa(H, DenseOperator) || isa(H, SparseOperator))
+    if !(isa(H, DenseOpType) || isa(H, SparseOpType))
         isreducible = false
     end
     for j=J
         @assert isa(j, AbstractOperator{B,B})
-        if !(isa(j, DenseOperator) || isa(j, SparseOperator))
+        if !(isa(j, DenseOpType) || isa(j, SparseOpType))
             isreducible = false
         end
         check_samebases(rho0, j)
     end
     for j=Jdagger
         @assert isa(j, AbstractOperator{B,B})
-        if !(isa(j, DenseOperator) || isa(j, SparseOperator))
+        if !(isa(j, DenseOpType) || isa(j, SparseOpType))
             isreducible = false
         end
         check_samebases(rho0, j)
     end
     @assert length(J)==length(Jdagger)
-    if typeof(rates) == Matrix{Float64}
+    if isa(rates,Matrix)
         @assert size(rates, 1) == size(rates, 2) == length(J)
-    elseif typeof(rates) == Vector{Float64}
+    elseif isa(rates,Vector)
         @assert length(rates) == length(J)
     end
     isreducible
 end
+
+get_type(rho, H, rates::Nothing, J, Jdagger) = promote_type(eltype(rho),eltype(H),eltype.(J)...,eltype.(Jdagger)...)
+get_type(rho, H, rates::Union{Vector,Matrix}, J, Jdagger) = promote_type(eltype(rho),eltype(H),eltype(rates),eltype.(J)...,eltype.(Jdagger)...)
+get_type(rho, Hnh, Hnhdagger, rates::Nothing, J, Jdagger) = promote_type(eltype(rho),eltype(Hnh),eltype(Hnhdagger), eltype.(J)...,eltype.(Jdagger)...)
+get_type(rho, Hnh, Hnhdagger, rates::Union{Vector,Matrix}, J, Jdagger) = promote_type(eltype(rho),eltype(Hnh),eltype(Hnhdagger),eltype(rates),eltype.(J)...,eltype.(Jdagger)...)

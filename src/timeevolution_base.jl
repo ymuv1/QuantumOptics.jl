@@ -3,36 +3,34 @@ using QuantumOpticsBase: check_samebases, check_multiplicable
 
 import OrdinaryDiffEq, DiffEqCallbacks
 
-const DiffArray = Union{Vector{ComplexF64}, Array{ComplexF64, 2}}
-
 function recast! end
 
 """
-    integrate(tspan::Vector{Float64}, df::Function, x0::Vector{ComplexF64},
+    integrate(tspan, df::Function, x0::Vector{ComplexF64},
             state::T, dstate::T, fout::Function; kwargs...)
 
 Integrate using OrdinaryDiffEq
 """
-function integrate(tspan::Vector{Float64}, df::Function, x0::DiffArray,
+function integrate(tspan, df::Function, x0::X,
             state::T, dstate::T, fout::Function;
             alg::OrdinaryDiffEq.OrdinaryDiffEqAlgorithm = OrdinaryDiffEq.DP5(),
             steady_state = false, tol = 1e-3, save_everystep = false, saveat=tspan,
-            callback = nothing, kwargs...) where T
+            callback = nothing, kwargs...) where {T,X}
 
-    function df_(dx::DiffArray, x::DiffArray, p, t)
+    function df_(dx::T, x::T, p, t) where T
         recast!(x, state)
         recast!(dx, dstate)
         df(t, state, dstate)
         recast!(dstate, dx)
     end
-    function fout_(x::DiffArray, t::Float64, integrator)
+    function fout_(x, t, integrator)
         recast!(x, state)
         fout(t, state)
     end
 
     out_type = pure_inference(fout, Tuple{eltype(tspan),typeof(state)})
 
-    out = DiffEqCallbacks.SavedValues(Float64,out_type)
+    out = DiffEqCallbacks.SavedValues(eltype(tspan),out_type)
 
     scb = DiffEqCallbacks.SavingCallback(fout_,out,saveat=saveat,
                                          save_everystep=save_everystep,
@@ -67,9 +65,9 @@ function integrate(tspan::Vector{Float64}, df::Function, x0::DiffArray,
     out.t,out.saveval
 end
 
-function integrate(tspan::Vector{Float64}, df::Function, x0::DiffArray,
-            state::T, dstate::T, ::Nothing; kwargs...) where T
-    function fout(t::Float64, state::T)
+function integrate(tspan, df::Function, x0::X,
+            state::T, dstate::T, ::Nothing; kwargs...) where {T,X}
+    function fout(t, state::T)
         copy(state)
     end
     integrate(tspan, df, x0, state, dstate, fout; kwargs...)

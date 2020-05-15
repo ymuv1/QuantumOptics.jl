@@ -1,6 +1,6 @@
 import ...timeevolution: dmaster_h, dmaster_nh, dmaster_h_dynamic, check_master
 
-const DecayRates = Union{Vector{Float64}, Matrix{Float64}, Nothing}
+const DecayRates = Union{Vector, Matrix, Nothing}
 
 """
     stochastic.master(tspan, rho0, H, J, C; <keyword arguments>)
@@ -36,38 +36,38 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B},
                 rates::DecayRates=nothing,
                 Jdagger::Vector=dagger.(J), Cdagger::Vector=dagger.(C),
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
 
     tmp = copy(rho0)
 
     n = length(C)
 
-    dmaster_stoch(dx::DiffArray, t::Float64, rho::T, drho::T, n::Int) =
+    dmaster_stoch(dx::DiffArray, t, rho::T, drho::T, n::Int) =
             dmaster_stochastic(dx, rho, C, Cdagger, drho, n)
 
     isreducible = check_master(rho0, H, J, Jdagger, rates) && check_master_stoch(rho0, C, Cdagger)
     if !isreducible
-        dmaster_h_determ(t::Float64, rho::T, drho::T) =
+        dmaster_h_determ(t, rho::T, drho::T) =
             dmaster_h(rho, H, rates, J, Jdagger, drho, tmp)
         integrate_master_stoch(tspan, dmaster_h_determ, dmaster_stoch, rho0, fout, n; kwargs...)
     else
         Hnh = copy(H)
-        if typeof(rates) == Matrix{Float64}
+        if isa(rates, Matrix)
             for i=1:length(J), j=1:length(J)
-                Hnh -= 0.5im*rates[i,j]*Jdagger[i]*J[j]
+                Hnh -= eltype(H)(0.5im*rates[i,j])*Jdagger[i]*J[j]
             end
-        elseif typeof(rates) == Vector{Float64}
+        elseif isa(rates, Vector)
             for i=1:length(J)
-                Hnh -= 0.5im*rates[i]*Jdagger[i]*J[i]
+                Hnh -= eltype(H)(0.5im*rates[i])*Jdagger[i]*J[i]
             end
         else
             for i=1:length(J)
-                Hnh -= 0.5im*Jdagger[i]*J[i]
+                Hnh -= eltype(H)(0.5im)*Jdagger[i]*J[i]
             end
         end
         Hnhdagger = dagger(Hnh)
 
-        dmaster_nh_determ(t::Float64, rho::T, drho::T) =
+        dmaster_nh_determ(t, rho::T, drho::T) =
             dmaster_nh(rho, Hnh, Hnhdagger, rates, J, Jdagger, drho, tmp)
         integrate_master_stoch(tspan, dmaster_nh_determ, dmaster_stoch, rho0, fout, n; kwargs...)
     end
@@ -103,11 +103,11 @@ dynamic Hamiltonian and J.
         number if you want to avoid an initial calculation of function outputs!
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
-function master_dynamic(tspan::Vector{Float64}, rho0::T, fdeterm::Function, fstoch::Function;
+function master_dynamic(tspan, rho0::T, fdeterm::Function, fstoch::Function;
                 rates::DecayRates=nothing,
                 fout::Union{Function,Nothing}=nothing,
                 noise_processes::Int=0,
-                kwargs...) where {B<:Basis,T<:DenseOperator{B,B}}
+                kwargs...) where {B<:Basis,T<:Operator{B,B}}
 
     tmp = copy(rho0)
 
@@ -118,35 +118,35 @@ function master_dynamic(tspan::Vector{Float64}, rho0::T, fdeterm::Function, fsto
         n = noise_processes
     end
 
-    dmaster_determ(t::Float64, rho::T, drho::T) = dmaster_h_dynamic(t, rho, fdeterm, rates, drho, tmp)
-    dmaster_stoch(dx::DiffArray, t::Float64, rho::T, drho::T, n::Int) =
+    dmaster_determ(t, rho::T, drho::T) = dmaster_h_dynamic(t, rho, fdeterm, rates, drho, tmp)
+    dmaster_stoch(dx::DiffArray, t, rho::T, drho::T, n::Int) =
         dmaster_stoch_dynamic(dx, t, rho, fstoch, drho, n)
     integrate_master_stoch(tspan, dmaster_determ, dmaster_stoch, rho0, fout, n; kwargs...)
 end
-master_dynamic(tspan::Vector{Float64}, psi0::Ket, args...; kwargs...) = master_dynamic(tspan, dm(psi0), args...; kwargs...)
+master_dynamic(tspan, psi0::Ket, args...; kwargs...) = master_dynamic(tspan, dm(psi0), args...; kwargs...)
 
 # Derivative functions
-function dmaster_stochastic(dx::Vector{ComplexF64}, rho::T,
-            C::Vector, Cdagger::Vector, drho::T, ::Int) where {B<:Basis,T<:DenseOperator{B,B}}
+function dmaster_stochastic(dx::Vector, rho::T,
+            C::Vector, Cdagger::Vector, drho::T, ::Int) where {B<:Basis,T<:Operator{B,B}}
     recast!(dx, drho)
-    QuantumOpticsBase.gemm!(1, C[1], rho, 0, drho)
-    QuantumOpticsBase.gemm!(1, rho, Cdagger[1], 1, drho)
+    QuantumOpticsBase.mul!(drho,C[1],rho)
+    QuantumOpticsBase.mul!(drho,rho,Cdagger[1],true,true)
     drho.data .-= tr(drho)*rho.data
 end
-function dmaster_stochastic(dx::Array{ComplexF64, 2}, rho::T,
-            C::Vector, Cdagger::Vector, drho::T, n::Int) where {B<:Basis,T<:DenseOperator{B,B}}
+function dmaster_stochastic(dx::Matrix, rho::T,
+            C::Vector, Cdagger::Vector, drho::T, n::Int) where {B<:Basis,T<:Operator{B,B}}
     for i=1:n
         dx_i = @view dx[:, i]
         recast!(dx_i, drho)
-        QuantumOpticsBase.gemm!(1, C[i], rho, 0, drho)
-        QuantumOpticsBase.gemm!(1, rho, Cdagger[i], 1, drho)
+        QuantumOpticsBase.mul!(drho,C[i],rho)
+        QuantumOpticsBase.mul!(drho,rho,Cdagger[i],true,true)
         drho.data .-= tr(drho)*rho.data
         recast!(drho, dx_i)
     end
 end
 
-function dmaster_stoch_dynamic(dx::DiffArray, t::Float64, rho::T,
-            f::Function, drho::T, n::Int) where {B<:Basis,T<:DenseOperator{B,B}}
+function dmaster_stoch_dynamic(dx::DiffArray, t, rho::T,
+            f::Function, drho::T, n::Int) where {B<:Basis,T<:Operator{B,B}}
     result = f(t, rho)
     QO_CHECKS[] && @assert 2 == length(result)
     C, Cdagger = result
@@ -155,29 +155,29 @@ function dmaster_stoch_dynamic(dx::DiffArray, t::Float64, rho::T,
 end
 
 function integrate_master_stoch(tspan, df::Function, dg::Function,
-                        rho0::DenseOperator, fout::Union{Nothing, Function},
+                        rho0::Operator, fout::Union{Nothing, Function},
                         n::Int;
                         kwargs...)
-    tspan_ = convert(Vector{Float64}, tspan)
+    tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
     x0 = reshape(rho0.data, length(rho0))
     state = copy(rho0)
     dstate = copy(rho0)
     integrate_stoch(tspan_, df, dg, x0, state, dstate, fout, n; kwargs...)
 end
 
-function check_master_stoch(rho0::DenseOperator{B,B}, C::Vector, Cdagger::Vector) where B<:Basis
+function check_master_stoch(rho0::Operator{B,B}, C::Vector, Cdagger::Vector) where B<:Basis
     # TODO: replace type checks by dispatch; make types of C known
     @assert length(C) == length(Cdagger)
     isreducible = true
     for c=C
         @assert isa(c, AbstractOperator{B,B})
-        if !(isa(c, DenseOperator) || isa(c, SparseOperator))
+        if !isa(c, DataOperator)
             isreducible = false
         end
     end
     for c=Cdagger
         @assert isa(c, AbstractOperator{B,B})
-        if !(isa(c, DenseOperator) || isa(c, SparseOperator))
+        if !isa(c, DataOperator)
             isreducible = false
         end
     end
@@ -186,8 +186,8 @@ end
 
 
 # TODO: Speed up by recasting to n-d arrays, remove vector methods
-function recast!(x::Union{Vector{ComplexF64}, SubArray{ComplexF64, 1}}, rho::DenseOperator{B,B,T}) where {B<:Basis,T<:Matrix{ComplexF64}}
+function recast!(x::Union{Vector, SubArray}, rho::Operator{B,B,T}) where {B<:Basis,T}
     rho.data = reshape(x, size(rho.data))
 end
-recast!(state::DenseOperator{B,B}, x::SubArray{ComplexF64, 1}) where B<:Basis = (x[:] = state.data)
-recast!(state::DenseOperator{B,B}, x::Vector{ComplexF64}) where B<:Basis = nothing
+recast!(state::Operator{B,B}, x::SubArray) where B<:Basis = (x[:] = state.data)
+recast!(state::Operator{B,B}, x::Vector) where B<:Basis = nothing

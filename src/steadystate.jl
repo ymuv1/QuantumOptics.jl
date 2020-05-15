@@ -27,17 +27,13 @@ Calculate steady state using long time master equation evolution.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function master(H::AbstractOperator{B,B}, J::Vector;
-                rho0::DenseOperator{B,B}=tensor(basisstate(H.basis_l, 1), dagger(basisstate(H.basis_r, 1))),
-                hmin=1e-7, tol=1e-3,
-                rates::Union{Vector{Float64}, Matrix{Float64}, Nothing}=nothing,
+                rho0::Operator{B,B}=tensor(basisstate(H.basis_l, 1), dagger(basisstate(H.basis_r, 1))),
+                tol=1e-3,
+                rates::Union{Vector, Matrix, Nothing}=nothing,
                 Jdagger::Vector=dagger.(J),
                 fout::Union{Function,Nothing}=nothing,
                 kwargs...) where B<:Basis
     t,u = timeevolution.master([0., Inf], rho0, H, J; rates=rates, Jdagger=Jdagger,
-                        hmin=hmin, hmax=Inf,
-                        display_initialvalue=false,
-                        display_finalvalue=false,
-                        display_intermediatesteps=true,
                         fout=fout,
                         steady_state = true,
                         tol = tol, kwargs...)
@@ -56,10 +52,10 @@ sorted according to the absolute value of the eigenvalues.
     function (ineffective for DenseSuperOperator).
 * `kwargs...`:  Keyword arguments for the Julia `eigen` or `eigens` function.
 """
-function liouvillianspectrum(L::DenseSuperOperator; nev::Int = min(10, length(L.basis_r[1])*length(L.basis_r[2])), which::Symbol = :LR, kwargs...)
+function liouvillianspectrum(L::DenseSuperOpType; nev::Int = min(10, length(L.basis_r[1])*length(L.basis_r[2])), which::Symbol = :LR, kwargs...)
     d, v = eigen(L.data; kwargs...)
     indices = sortperm(abs.(d))[1:nev]
-    ops = DenseOperator[]
+    ops = DenseOpType[]
     for i in indices
         data = reshape(v[:,i], length(L.basis_r[1]), length(L.basis_r[2]))
         op = DenseOperator(L.basis_r[1], L.basis_r[2], data)
@@ -68,7 +64,7 @@ function liouvillianspectrum(L::DenseSuperOperator; nev::Int = min(10, length(L.
     return d[indices], ops
 end
 
-function liouvillianspectrum(L::SparseSuperOperator; nev::Int = min(10, length(L.basis_r[1])*length(L.basis_r[2])), which::Symbol = :LR, kwargs...)
+function liouvillianspectrum(L::SparseSuperOpType; nev::Int = min(10, length(L.basis_r[1])*length(L.basis_r[2])), which::Symbol = :LR, kwargs...)
     d, v, nconv, niter, nmult, resid = try
         eigs(L.data; nev = nev, which = which, kwargs...)
     catch err
@@ -79,7 +75,7 @@ function liouvillianspectrum(L::SparseSuperOperator; nev::Int = min(10, length(L
         end
     end
     indices = sortperm(abs.(d))[1:nev]
-    ops = DenseOperator[]
+    ops = DenseOpType[]
     for i in indices
         data = reshape(v[:,i], length(L.basis_r[1]), length(L.basis_r[2]))
         op = DenseOperator(L.basis_r[1], L.basis_r[2], data)
@@ -88,7 +84,7 @@ function liouvillianspectrum(L::SparseSuperOperator; nev::Int = min(10, length(L
     return d[indices], ops
 end
 
-liouvillianspectrum(H::AbstractOperator{B,B}, J::Vector; rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)), kwargs...) where B<:Basis = liouvillianspectrum(liouvillian(H, J; rates=rates); kwargs...)
+liouvillianspectrum(H::AbstractOperator{B,B}, J::Vector; rates::Union{Vector, Matrix}=ones(Float64, length(J)), kwargs...) where B<:Basis = liouvillianspectrum(liouvillian(H, J; rates=rates); kwargs...)
 
 """
     steadystate.eigenvector(L)
@@ -118,7 +114,7 @@ function eigenvector(L::SuperOperator; tol::Real = 1e-9, nev::Int = 2, which::Sy
     return ops[1]/tr(ops[1])
 end
 
-eigenvector(H::AbstractOperator, J::Vector; rates::Union{Vector{Float64}, Matrix{Float64}}=ones(Float64, length(J)), kwargs...) = eigenvector(liouvillian(H, J; rates=rates); kwargs...)
+eigenvector(H::AbstractOperator, J::Vector; rates::Union{Vector, Matrix}=ones(Float64, length(J)), kwargs...) = eigenvector(liouvillian(H, J; rates=rates); kwargs...)
 
 
 end # module

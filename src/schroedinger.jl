@@ -15,8 +15,8 @@ Integrate Schroedinger equation.
 function schroedinger(tspan, psi0::T, H::AbstractOperator{B,B};
                 fout::Union{Function,Nothing}=nothing,
                 kwargs...) where {B<:Basis,T<:StateVector{B}}
-    tspan_ = convert(Vector{Float64}, tspan)
-    dschroedinger_(t::Float64, psi::T, dpsi::T) = dschroedinger(psi, H, dpsi)
+    tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
+    dschroedinger_(t, psi::T, dpsi::T) = dschroedinger(psi, H, dpsi)
     x0 = psi0.data
     state = T(psi0.basis, psi0.data)
     dstate = T(psi0.basis, psi0.data)
@@ -41,8 +41,8 @@ Integrate time-dependent Schroedinger equation.
 function schroedinger_dynamic(tspan, psi0::T, f::Function;
                 fout::Union{Function,Nothing}=nothing,
                 kwargs...) where T<:StateVector
-    tspan_ = convert(Vector{Float64}, tspan)
-    dschroedinger_(t::Float64, psi::T, dpsi::T) = dschroedinger_dynamic(t, psi, f, dpsi)
+    tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
+    dschroedinger_(t, psi::T, dpsi::T) = dschroedinger_dynamic(t, psi, f, dpsi)
     x0 = psi0.data
     state = Ket(psi0.basis, psi0.data)
     dstate = Ket(psi0.basis, psi0.data)
@@ -50,22 +50,22 @@ function schroedinger_dynamic(tspan, psi0::T, f::Function;
 end
 
 
-recast!(x::D, psi::StateVector{B,D}) where {B<:Basis, D<:Vector{ComplexF64}} = (psi.data = x);
-recast!(psi::StateVector{B,D}, x::D) where {B<:Basis, D<:Vector{ComplexF64}} = nothing
+recast!(x::D, psi::StateVector{B,D}) where {B<:Basis, D} = (psi.data = x);
+recast!(psi::StateVector{B,D}, x::D) where {B<:Basis, D} = nothing
 
 
 function dschroedinger(psi::Ket{B}, H::AbstractOperator{B,B}, dpsi::Ket{B}) where B<:Basis
-    QuantumOpticsBase.gemv!(complex(0,-1.), H, psi, complex(0.), dpsi)
+    QuantumOpticsBase.mul!(dpsi,H,psi,eltype(psi)(-im),zero(eltype(psi)))
     return dpsi
 end
 
 function dschroedinger(psi::Bra{B}, H::AbstractOperator{B,B}, dpsi::Bra{B}) where B<:Basis
-    QuantumOpticsBase.gemv!(complex(0,1.), psi, H, complex(0.), dpsi)
+    QuantumOpticsBase.mul!(dpsi,psi,H,eltype(psi)(im),zero(eltype(psi)))
     return dpsi
 end
 
 
-function dschroedinger_dynamic(t::Float64, psi0::T, f::Function, dpsi::T) where T<:StateVector
+function dschroedinger_dynamic(t, psi0::T, f::Function, dpsi::T) where T<:StateVector
     H = f(t, psi0)
     dschroedinger(psi0, H, dpsi)
 end
