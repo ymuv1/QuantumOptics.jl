@@ -125,7 +125,9 @@ end
 """
     semiclassical.mcwf_dynamic(tspan, psi0, fquantum, fclassical, fjump_classical; <keyword arguments>)
 
-Calculate MCWF trajectories coupled to a classical system.
+Calculate MCWF trajectories coupled to a classical system. **NOTE**: The quantum
+state with which `fquantum` and `fclassical` are called is NOT NORMALIZED. Make
+sure to take this into account when computing expectation values!
 
 # Arguments
 * `tspan`: Vector specifying the points of time for which output should
