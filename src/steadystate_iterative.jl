@@ -64,8 +64,7 @@ method provided as argument.
 * `rho0`: Initial density matrix. Note that this gets mutated in-place.
 * `H`: Operator specifying the Hamiltonian.
 * `J`: Vector containing all jump operators.
-* `method!`: The iterative method to be used. Defaults to `IterativeSolvers.bicgstabl!`
-    or `IterativeSolvers.idrs!` depending on arguments' types.
+* `method!`: The iterative method to be used. Defaults to `IterativeSolvers.bicgstabl!`.
 * `rates=nothing`: Vector or matrix specifying the coefficients (decay rates) for
     the jump operators. If nothing is specified all rates are assumed to be 1.
 * `Jdagger=dagger.(J)`: Vector containing the hermitian conjugates of the jump

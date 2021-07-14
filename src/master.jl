@@ -92,6 +92,22 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B}, J::Vector;
     end
 end
 
+"""
+    timeevolution.master(tspan, rho0, L; <keyword arguments>)
+
+Time-evolution according to a master equation with a Liouvillian superoperator `L`.
+# Arguments
+* `tspan`: Vector specifying the points of time for which output should
+        be displayed.
+* `rho0`: Initial density operator. Can also be a state vector which is
+        automatically converted into a density operator.
+* `L`: Superoperator defining the right-hand-side of the master equation.
+* `fout=nothing`: If given, this function `fout(t, rho)` is called every time
+        an output should be displayed. ATTENTION: The given state rho is not
+        permanent! It is still in use by the ode solver and therefore must not
+        be changed.
+* `kwargs...`: Further arguments are passed on to the ode solver.
+"""
 function master(tspan, rho0::Operator, L::SuperOperator; fout=nothing, kwargs...)
     # Rewrite rho as Ket and L as Operator
     dim = length(rho0.basis_l)*length(rho0.basis_r)
