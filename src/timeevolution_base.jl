@@ -11,13 +11,13 @@ function recast! end
 
 Integrate using OrdinaryDiffEq
 """
-function integrate(tspan, df::Function, x0::X,
-            state::T, dstate::T, fout::Function;
-            alg::OrdinaryDiffEq.OrdinaryDiffEqAlgorithm = OrdinaryDiffEq.DP5(),
+function integrate(tspan, df, x0,
+            state, dstate, fout;
+            alg = OrdinaryDiffEq.DP5(),
             steady_state = false, tol = 1e-3, save_everystep = false, saveat=tspan,
             callback = nothing, kwargs...) where {T,X}
 
-    function df_(dx::T, x::T, p, t) where T
+    function df_(dx, x, p, t)
         recast!(x, state)
         recast!(dx, dstate)
         df(t, state, dstate)
@@ -28,15 +28,16 @@ function integrate(tspan, df::Function, x0::X,
         fout(t, state)
     end
 
-    out_type = pure_inference(fout, Tuple{eltype(tspan),typeof(state)})
+    tType = float(eltype(tspan))
+    out_type = pure_inference(fout, Tuple{tType,typeof(state)})
 
-    out = DiffEqCallbacks.SavedValues(eltype(tspan),out_type)
+    out = DiffEqCallbacks.SavedValues(tType,out_type)
 
     scb = DiffEqCallbacks.SavingCallback(fout_,out,saveat=saveat,
                                          save_everystep=save_everystep,
                                          save_start = false)
 
-    prob = OrdinaryDiffEq.ODEProblem{true}(df_, x0,(tspan[1],tspan[end]))
+    prob = OrdinaryDiffEq.ODEProblem{true}(df_, x0,(convert(tType, tspan[1]),convert(tType, tspan[end])))
 
     if steady_state
         affect! = function (integrator)
@@ -65,9 +66,9 @@ function integrate(tspan, df::Function, x0::X,
     out.t,out.saveval
 end
 
-function integrate(tspan, df::Function, x0::X,
-            state::T, dstate::T, ::Nothing; kwargs...) where {T,X}
-    function fout(t, state::T)
+function integrate(tspan, df, x0,
+            state, dstate, ::Nothing; kwargs...)
+    function fout(t, state)
         copy(state)
     end
     integrate(tspan, df, x0, state, dstate, fout; kwargs...)
