@@ -1,4 +1,4 @@
-import ...timeevolution: dschroedinger, dschroedinger_dynamic, check_schroedinger
+import ...timeevolution: dschroedinger!, dschroedinger_dynamic!, check_schroedinger
 
 """
     stochastic.schroedinger(tspan, state0, H, Hs[; fout, ...])
@@ -36,7 +36,7 @@ function schroedinger(tspan, psi0::T, H::AbstractOperator{B,B}, Hs::Vector;
         @assert isa(h, AbstractOperator{B,B})
     end
 
-    dschroedinger_determ(t, psi, dpsi) = dschroedinger(psi, H, dpsi)
+    dschroedinger_determ(t, psi, dpsi) = dschroedinger!(dpsi, H, psi)
     dschroedinger_stoch(dx, t, psi, dpsi, n) = dschroedinger_stochastic(dx, psi, Hs, dpsi, n)
 
     if normalize_state
@@ -97,7 +97,7 @@ function schroedinger_dynamic(tspan, psi0::Ket, fdeterm, fstoch;
     x0 = psi0.data
     state = copy(psi0)
 
-    dschroedinger_determ(t, psi, dpsi) = dschroedinger_dynamic(t, psi, fdeterm, dpsi)
+    dschroedinger_determ(t, psi, dpsi) = dschroedinger_dynamic!(dpsi, fdeterm, psi, t)
     dschroedinger_stoch(dx, t, psi, dpsi, n) = dschroedinger_stochastic(dx, t, psi, fstoch, dpsi, n)
 
     if normalize_state
@@ -117,15 +117,15 @@ end
 
 
 function dschroedinger_stochastic(dx::AbstractVector, psi, Hs, dpsi, index)
-    recast!(dx, dpsi)
-    dschroedinger(psi, Hs[index], dpsi)
+    recast!(dpsi,dx)
+    dschroedinger!(dpsi, Hs[index], psi)
 end
 function dschroedinger_stochastic(dx::AbstractMatrix, psi, Hs, dpsi, n)
     for i=1:n
         dx_i = @view dx[:, i]
-        recast!(dx_i, dpsi)
-        dschroedinger(psi, Hs[i], dpsi)
-        recast!(dpsi, dx_i)
+        recast!(dpsi,dx_i)
+        dschroedinger!(dpsi, Hs[i], psi)
+        recast!(dx_i,dpsi)
     end
 end
 function dschroedinger_stochastic(dx, t, psi, f, dpsi, n)
@@ -138,5 +138,5 @@ function dschroedinger_stochastic(dx, t, psi, f, dpsi, n)
     dschroedinger_stochastic(dx, psi, ops, dpsi, n)
 end
 
-recast!(psi::Ket, x::SubArray) = (x .= psi.data)
-recast!(x::SubArray, psi::Ket) = (psi.data = x)
+recast!(x::SubArray,psi::Ket) = (x .= psi.data)
+recast!(psi::Ket,x::SubArray) = (psi.data = x)
