@@ -1,6 +1,6 @@
 module timecorrelations
 
-export correlation, spectrum, correlation2spectrum
+export correlation, spectrum, correlation2spectrum, correlation_dynamic
 
 using QuantumOpticsBase
 using ..timeevolution, ..steadystate
@@ -9,7 +9,7 @@ using FFTW
 
 
 """
-    timecorrelations.correlation([tspan, ]rho0, H, J, op1, op2; <keyword arguments>)
+    timecorrelations.correlation([tspan, ]rho0, H, J, A, B; <keyword arguments>)
 
 Calculate two time correlation values ``⟨A(t)B(0)⟩``.
 
@@ -26,39 +26,72 @@ criterion specified in [`steadystate.master`](@ref).
 * `rho0`: Initial density operator.
 * `H`: Operator specifying the Hamiltonian.
 * `J`: Vector of jump operators.
-* `op1`: Operator at time `t`.
-* `op2`: Operator at time `t=0`.
+* `A`: Operator at time `t`.
+* `B`: Operator at time `t=0`.
 * `rates=ones(N)`: Vector or matrix specifying the coefficients (decay rates)
         for the jump operators.
 * `Jdagger=dagger.(J)`: Vector containing the hermitian conjugates of the jump
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function correlation(tspan, rho0::Operator, H::AbstractOperator, J,
-                     op1, op2;
+                     A, B;
                      rates=nothing,
                      Jdagger=dagger.(J),
                      kwargs...)
     function fout(t, rho)
-        expect(op1, rho)
+        expect(A, rho)
     end
-    t,u = timeevolution.master(tspan, op2*rho0, H, J; rates=rates, Jdagger=Jdagger,
+    t,u = timeevolution.master(tspan, B*rho0, H, J; rates=rates, Jdagger=Jdagger,
                         fout=fout, kwargs...)
     u
 end
 
 function correlation(rho0::Operator, H::AbstractOperator, J,
-                     op1, op2;
+                     A, B;
                      tol=1e-4,
                      rates=nothing,
                      Jdagger=dagger.(J),
                      kwargs...)
-    op2rho0 = op2*rho0
-    exp1 = expect(op1, op2rho0)
+    Brho0 = B*rho0
+    exp1 = expect(A, Brho0)
     function fout(t, rho)
-        expect(op1, rho)
+        expect(A, rho)
     end
-    t,u = steadystate.master(H, J; rho0=op2rho0, tol=tol, fout=fout,
+    t,u = steadystate.master(H, J; rho0=Brho0, tol=tol, fout=fout,
                        rates=rates, Jdagger=Jdagger, save_everystep=true,kwargs...)
+end
+
+
+"""
+    timecorrelations.correlation_dynamic(tspan, rho0, f, A, B; <keyword arguments>)
+
+
+Calculate two time correlation values ``⟨A(t)B(0)⟩`` for time-dependent Liouvillian
+
+The calculation is done by multiplying the initial density operator
+with ``B`` performing a time evolution according to a master equation
+and then calculating the expectation value ``\\mathrm{Tr} \\{A ρ\\}``
+
+
+# Arguments
+* `tspan`: Points of time at which the correlation should be calculated.
+* `rho0`: Initial density operator.
+* `f`: Function `f(t, rho) -> (H, J, Jdagger)` or `f(t, rho) -> (H, J, Jdagger, rates)`
+* `A`: Operator at time `t`.
+* `B`: Operator at time `t=0`.
+* `rates=ones(N)`: Vector or matrix specifying the coefficients (decay rates)
+        for the jump operators.
+* `kwargs...`: Further arguments are passed on to the ode solver.
+"""
+function correlation_dynamic(tspan, rho0::Operator, f, A, B;
+                             rates=nothing, kwargs...)
+
+    function fout(t, rho)
+        expect(A, rho)
+    end
+
+    t,u = timeevolution.master_dynamic(tspan, B*rho0, f, rates=rates,fout=fout, kwargs...)
+    u
 end
 
 
