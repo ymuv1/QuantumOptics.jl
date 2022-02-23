@@ -168,6 +168,24 @@ qsu2dm = sum(qfuncsu2(dmrs,res).*costhetam)*(π/res)^2
 @test isapprox(wsu2, 1.0, atol=1e-2)
 @test isapprox(wsu2dm, 1.0, atol=1e-2)
 
+
+# Test CSS for large spin number (#326)
+b = SpinBasis(35)  # S=35 overflows `binomial` function, e.g. binomial(70, 26)
+theta = π*rand()
+phi =2π*rand()
+css = coherentspinstate(b,theta,phi)
+css0 = coherentspinstate(b,0,0)
+css2 = exp(-0.5im * phi * dense(sigmaz(b))) * exp(-0.5im * theta * dense(sigmay(b))) * css0
+@test norm(css - css2) < 1e-12
+b_big = SpinBasis(10000)  # > 2000 overflows recursive binomial un-moderated with α^n
+css_big = coherentspinstate(b_big,theta,phi)
+@test abs(1.0 - norm(css_big)) < 1e-12
+# we can go bigger than 10000 without overflowing (≈21000 is the limit), but
+# at some point we lose more precision to floating-point errors than we'd
+# normally want tolerate.
+@test abs(1 - norm(coherentspinstate(SpinBasis(21000),theta,phi))) < 1e-10
+
+
 ########### YLM test #############
 res = 1000
 int = 0

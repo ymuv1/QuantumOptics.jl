@@ -288,17 +288,31 @@ parametrization is not unique), similarly to a qubit on the
 Bloch sphere.
 """
 function coherentspinstate(b::SpinBasis, theta::Real, phi::Real)
+
     result = Ket(b)
     data = result.data
+
     N = length(b)-1
-    sinth = sin(0.5theta)
-    costh = cos(0.5theta)
-    expphi = exp(0.5im*phi)
-    expphi_con = conj(expphi)
-    @inbounds for n=0:N
-        data[n+1] = sqrt(binomial(N, n)) * (sinth*expphi)^n * (costh*expphi_con)^(N-n)
+    α = sin(theta / 2) * exp(1im * phi / 2)
+    β = cos(theta / 2) * exp(-1im * phi / 2)
+
+    # forward pass: `c_n = sqrt(binomial(N, n)) * α^n` with `n  ≥ 0`,
+    # using recursive `binomial(N, n) = ((N+1-n)/n) * binomial(N, n-1)`
+    coefficient = 1.0
+    @inbounds for n = 1:N+1
+        data[n] = coefficient
+        coefficient *= α * sqrt((N + 1 - n) / n)
     end
+
+    # backward pass:  c_n *= β^(N-n)
+    factor = 1.0
+    @inbounds for n = N+1:-1:1
+        data[n] *= factor
+        factor *= β
+    end
+
     return result
+
 end
 
 """
