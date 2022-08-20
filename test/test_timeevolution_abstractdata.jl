@@ -13,6 +13,7 @@ Base.size(A::TestData) = size(A.x)
 Base.getindex(A::TestData, inds...) = getindex(A.x, inds...)
 Base.setindex!(A::TestData, val, inds...) = setindex!(A.x, val, inds...)
 Base.similar(A::TestData, dims::Int...) = TestData(similar(A.x,dims...))
+Base.zero(A::TestData) = TestData(zero(A.x))
 
 @testset "abstract-data" begin
 
