@@ -2,7 +2,8 @@ module semiclassical
 
 using QuantumOpticsBase
 import Base: ==
-import ..timeevolution: integrate, recast!, jump, integrate_mcwf, jump_callback, as_vector, QO_CHECKS
+import ..timeevolution: integrate, recast!, jump, integrate_mcwf, jump_callback,
+    JumpRNGState, threshold, roll!, as_vector, QO_CHECKS
 import LinearAlgebra: normalize, normalize!
 
 using Random, LinearAlgebra
@@ -34,7 +35,7 @@ end
 Base.length(state::State) = length(state.quantum) + length(state.classical)
 Base.copy(state::State) = State(copy(state.quantum), copy(state.classical))
 Base.eltype(state::State) = promote_type(eltype(state.quantum),eltype(state.classical))
-normalize!(state::State) where {B,T} = (normalize!(state.quantum); state)
+normalize!(state::State) = (normalize!(state.quantum); state)
 normalize(state::State) = State(normalize(state.quantum),copy(state.classical))
 
 function ==(a::State, b::State)
@@ -237,13 +238,12 @@ function jump_dynamic(rng, t, psi, fquantum, fclassical!, fjump_classical!, psi_
 end
 
 function jump_callback(jumpfun, seed, scb, save_before!,
-                        save_after!, save_t_index, psi0::State)
+                        save_after!, save_t_index, psi0::State, rng_state::JumpRNGState)
     tmp = copy(psi0)
     psi_tmp = copy(psi0)
-    rng = MersenneTwister(convert(UInt, seed))
-    jumpnorm = Ref(rand(rng))
+
     n = length(psi0.quantum)
-    djumpnorm(x::Vector, t, integrator) = norm(x[1:n])^2 - (1-jumpnorm[])
+    djumpnorm(x::Vector, t, integrator) = norm(x[1:n])^2 - (1-threshold(rng_state))
 
     function dojump(integrator)
         x = integrator.u
@@ -252,12 +252,12 @@ function jump_callback(jumpfun, seed, scb, save_before!,
         affect! = scb.affect!
         save_before!(affect!,integrator)
         recast!(psi_tmp,x)
-        i = jumpfun(rng, t, psi_tmp, tmp)
+        i = jumpfun(rng_state.rng, t, psi_tmp, tmp)
         recast!(x,tmp)
         save_after!(affect!,integrator)
         save_t_index(t,i)
 
-        jumpnorm[] = rand(rng)
+        roll!(rng_state)
         return nothing
     end
 
