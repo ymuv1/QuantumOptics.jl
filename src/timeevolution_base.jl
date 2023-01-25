@@ -1,7 +1,7 @@
 using QuantumOpticsBase
 using QuantumOpticsBase: check_samebases, check_multiplicable
 
-import OrdinaryDiffEq, DiffEqCallbacks
+import OrdinaryDiffEq, DiffEqCallbacks, DiffEqBase, ForwardDiff
 
 function recast! end
 
