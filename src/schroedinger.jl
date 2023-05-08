@@ -5,7 +5,7 @@ Integrate Schroedinger equation to evolve states or compute propagators.
 
 # Arguments
 * `tspan`: Vector specifying the points of time for which output should be displayed.
-* `psi0`: Initial state vector (can be a bra or a ket) or initial propagator.
+* `psi0`: Initial state vector (can be a bra or a ket) or an Operator from some basis to the basis of the Hamiltonian (psi0.basis_l == basis(H)).
 * `H`: Arbitrary operator specifying the Hamiltonian.
 * `fout=nothing`: If given, this function `fout(t, psi)` is called every time
         an output should be displayed. ATTENTION: The state `psi` is neither
@@ -14,7 +14,7 @@ Integrate Schroedinger equation to evolve states or compute propagators.
 """
 function schroedinger(tspan, psi0::T, H::AbstractOperator{B,B};
                 fout::Union{Function,Nothing}=nothing,
-                kwargs...) where {B,T<:Union{AbstractOperator{B,B},StateVector{B}}}
+                kwargs...) where {B,Bo,T<:Union{AbstractOperator{B,Bo},StateVector{B}}}
     dschroedinger_(t, psi, dpsi) = dschroedinger!(dpsi, H, psi)
     tspan, psi0 = _promote_time_and_state(psi0, H, tspan) # promote only if ForwardDiff.Dual
     x0 = psi0.data
@@ -31,7 +31,7 @@ Integrate time-dependent Schroedinger equation to evolve states or compute propa
 
 # Arguments
 * `tspan`: Vector specifying the points of time for which output should be displayed.
-* `psi0`: Initial state vector (can be a bra or a ket) or initial propagator.
+* `psi0`: Initial state vector (can be a bra or a ket) or an Operator from some basis to the basis of the Hamiltonian (psi0.basis_l == basis(H)).
 * `f`: Function `f(t, psi) -> H` returning the time and or state dependent Hamiltonian.
 * `fout=nothing`: If given, this function `fout(t, psi)` is called every time
         an output should be displayed. ATTENTION: The state `psi` is neither
