@@ -88,6 +88,17 @@ function (c::SteadyStateCondtion)(rho,t,integrator)
     drho/dt < c.tol
 end
 
+function _check_const(op)
+    if !QuantumOpticsBase.is_const(op)
+        throw(
+          ArgumentError("You are attempting to use a time-dependent dynamics generator " *
+            "(a Hamiltonian or Lindbladian) with a solver that assumes constant " * 
+            "dynamics. To avoid errors, please use the _dynamic solvers instead, " *
+            "e.g. schroedinger_dynamic instead of schroedinger")
+        )
+    end
+    nothing
+end
 
 const QO_CHECKS = Ref(true)
 """
