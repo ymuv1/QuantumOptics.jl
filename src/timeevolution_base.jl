@@ -11,21 +11,25 @@ function recast! end
 
 Integrate using OrdinaryDiffEq
 """
-function integrate(tspan, df, x0,
+function integrate(tspan, df::F, x0,
             state, dstate, fout;
             alg = OrdinaryDiffEq.DP5(),
             steady_state = false, tol = 1e-3, save_everystep = false, saveat=tspan,
-            callback = nothing, kwargs...)
+            callback = nothing, kwargs...) where {F}
 
     function df_(dx, x, p, t)
         recast!(state,x)
         recast!(dstate,dx)
         df(t, state, dstate)
         recast!(dx,dstate)
+        return nothing
     end
-    function fout_(x, t, integrator)
-        recast!(state,x)
-        fout(t, state)
+
+    fout_ = let fout = fout, state = state
+        function fout_(x, t, integrator)
+            recast!(state,x)
+            fout(t, state)
+        end
     end
 
     tType = float(eltype(tspan))

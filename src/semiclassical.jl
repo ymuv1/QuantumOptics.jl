@@ -74,7 +74,9 @@ Integrate time-dependent Schrödinger equation coupled to a classical system.
 function schroedinger_dynamic(tspan, state0::State, fquantum, fclassical!;
                 fout=nothing,
                 kwargs...)
-    dschroedinger_(t, state, dstate) = dschroedinger_dynamic!(dstate, fquantum, fclassical!, state, t)
+    dschroedinger_ = let fquantum = fquantum, fclassical! = fclassical!
+        dschroedinger_(t, state, dstate) = dschroedinger_dynamic!(dstate, fquantum, fclassical!, state, t)
+    end
     x0 = Vector{eltype(state0)}(undef, length(state0))
     recast!(x0,state0)
     state = copy(state0)
@@ -106,7 +108,9 @@ function master_dynamic(tspan, state0::State{B,T}, fquantum, fclassical!;
                 fout=nothing,
                 tmp=copy(state0.quantum),
                 kwargs...) where {B,T<:Operator}
-    dmaster_(t, state, dstate) = dmaster_h_dynamic!(dstate, fquantum, fclassical!, rates, state, tmp, t)
+    dmaster_ = let fquantum = fquantum, fclassical! = fclassical!
+        dmaster_(t, state, dstate) = dmaster_h_dynamic!(dstate, fquantum, fclassical!, rates, state, tmp, t)
+    end
     x0 = Vector{eltype(state0)}(undef, length(state0))
     recast!(x0,state0)
     state = copy(state0)
@@ -155,8 +159,14 @@ function mcwf_dynamic(tspan, psi0::State{B,T}, fquantum, fclassical!, fjump_clas
                 fout=nothing,
                 kwargs...) where {B,T<:Ket}
     tmp=copy(psi0.quantum)
-    dmcwf_(t, psi, dpsi) = dmcwf_h_dynamic!(dpsi, fquantum, fclassical!, rates, psi, tmp, t)
-    j_(rng, t, psi, psi_new) = jump_dynamic(rng, t, psi, fquantum, fclassical!, fjump_classical!, psi_new, rates)
+    dmcwf_ = let fquantum = fquantum, fclassical! = fclassical!
+        dmcwf_(t, psi, dpsi) = dmcwf_h_dynamic!(dpsi, fquantum, fclassical!, rates, psi, tmp, t)
+    end
+    J = fquantum(first(tspan), psi0.quantum, psi0.classical)[2]
+    probs = zeros(real(eltype(psi0)), length(J))
+    j_ = let fquantum = fquantum, fclassical! = fclassical!, fjump_classical! = fjump_classical!, probs = probs
+        j_(rng, t, psi, psi_new) = jump_dynamic(rng, t, psi, fquantum, fclassical!, fjump_classical!, psi_new, probs, rates)
+    end
     x0 = Vector{eltype(psi0)}(undef, length(psi0))
     recast!(x0,psi0)
     psi = copy(psi0)
@@ -185,7 +195,7 @@ semiclassical Schrödinger equation.
 
 See also: [`semiclassical.schroedinger_dynamic`](@ref)
 """
-function dschroedinger_dynamic!(dstate, fquantum, fclassical!, state, t)
+function dschroedinger_dynamic!(dstate, fquantum::F, fclassical!::G, state, t) where {F,G}
     fquantum_(t, psi) = fquantum(t, state.quantum, state.classical)
     timeevolution.dschroedinger_dynamic!(dstate.quantum, fquantum_, state.quantum, t)
     fclassical!(dstate.classical, state.classical, state.quantum, t)
@@ -200,7 +210,7 @@ semiclassical master eqaution.
 
 See also: [`semiclassical.master_dynamic`](@ref)
 """
-function dmaster_h_dynamic!(dstate, fquantum, fclassical!, rates, state, tmp, t)
+function dmaster_h_dynamic!(dstate, fquantum::F, fclassical!::G, rates, state, tmp, t) where {F,G}
     fquantum_(t, rho) = fquantum(t, state.quantum, state.classical)
     timeevolution.dmaster_h_dynamic!(dstate.quantum, fquantum_, rates, state.quantum, tmp, t)
     fclassical!(dstate.classical, state.classical, state.quantum, t)
@@ -215,14 +225,14 @@ and non-Hermitian Schrödinger equation (MCWF).
 
 See also: [`semiclassical.mcwf_dynamic`](@ref)
 """
-function dmcwf_h_dynamic!(dpsi, fquantum, fclassical!, rates, psi, tmp, t)
+function dmcwf_h_dynamic!(dpsi, fquantum::F, fclassical!::G, rates, psi, tmp, t) where {F,G}
     fquantum_(t, rho) = fquantum(t, psi.quantum, psi.classical)
     timeevolution.dmcwf_h_dynamic!(dpsi.quantum, fquantum_, rates, psi.quantum, tmp, t)
     fclassical!(dpsi.classical, psi.classical, psi.quantum, t)
     return dpsi
 end
 
-function jump_dynamic(rng, t, psi, fquantum, fclassical!, fjump_classical!, psi_new, rates)
+function jump_dynamic(rng, t, psi, fquantum::F, fclassical!::G, fjump_classical!::H, psi_new, probs_tmp, rates) where {F,G,H}
     result = fquantum(t, psi.quantum, psi.classical)
     QO_CHECKS[] && @assert 3 <= length(result) <= 4
     J = result[2]
@@ -231,14 +241,14 @@ function jump_dynamic(rng, t, psi, fquantum, fclassical!, fjump_classical!, psi_
     else
         rates_ = result[4]
     end
-    i = jump(rng, t, psi.quantum, J, psi_new.quantum, rates_)
+    i = jump(rng, t, psi.quantum, J, psi_new.quantum, probs_tmp, rates_)
     fjump_classical!(psi.classical, psi_new.quantum, i, t)
     psi_new.classical .= psi.classical
     return i
 end
 
-function jump_callback(jumpfun, seed, scb, save_before!,
-                        save_after!, save_t_index, psi0::State, rng_state::JumpRNGState)
+function jump_callback(jumpfun::F, seed, scb, save_before!::G,
+                        save_after!::H, save_t_index::I, psi0::State, rng_state::JumpRNGState) where {F,G,H,I}
     tmp = copy(psi0)
     psi_tmp = copy(psi0)
 
