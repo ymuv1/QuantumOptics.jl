@@ -14,6 +14,9 @@ function master_h(tspan, rho0::Operator, H::AbstractOperator, J;
     _check_const.(J)
     _check_const.(Jdagger)
     check_master(rho0, H, J, Jdagger, rates)
+    if isa(H, TimeDependentSum)
+        H=optimized_TDS(H)
+    end
     tspan, rho0 = _promote_time_and_state(rho0, H, J, tspan)
     tmp = copy(rho0)
     dmaster_(t, rho, drho) = dmaster_h!(drho, H, J, Jdagger, rates, rho, tmp)
@@ -42,6 +45,9 @@ function master_nh(tspan, rho0::Operator, Hnh::AbstractOperator, J;
     _check_const.(J)
     _check_const.(Jdagger)
     check_master(rho0, Hnh, J, Jdagger, rates)
+    if isa(H, TimeDependentSum)
+        H=optimized_TDS(H)
+    end
     tspan, rho0 = _promote_time_and_state(rho0, Hnh, J, tspan)
     tmp = copy(rho0)
     dmaster_(t, rho, drho) = dmaster_nh!(drho, Hnh, Hnhdagger, J, Jdagger, rates, rho, tmp)
@@ -76,8 +82,8 @@ non-hermitian Hamiltonian and then calls master_nh which is slightly faster.
         operators. If they are not given they are calculated automatically.
 * `fout=nothing`: If given, this function `fout(t, rho)` is called every time
         an output should be displayed. ATTENTION: The given state rho is not
-        permanent! It is still in use by the ode solver and therefore must not
-        be changed.
+        permanent! It is still in use by the ode solver. If you wish to output 
+        the state, fout should output a copy of the `state` object.
 * `kwargs...`: Further arguments are passed on to the ode solver.
 """
 function master(tspan, rho0::Operator, H::AbstractOperator, J;
@@ -89,12 +95,12 @@ function master(tspan, rho0::Operator, H::AbstractOperator, J;
     _check_const.(J)
     _check_const.(Jdagger)
     tspan, rho0 = _promote_time_and_state(rho0, H, J, tspan)
-    isreducible = check_master(rho0, H, J, Jdagger, rates)
+    isreducible = check_master(rho0, H, J, Jdagger, rates) # TODO: I think there is a problem in the function and that it will be true for all acceptable inputs. According to `master`'s desctiption and the use of isreducible here I assume this is supposed to be true if H, J, Jdag are dense (all of them or just one?) 
     if !isreducible
         tmp = copy(rho0)
         dmaster_h_(t, rho, drho) = dmaster_h!(drho, H, J, Jdagger, rates, rho, tmp)
         return integrate_master(tspan, dmaster_h_, rho0, fout; kwargs...)
-    else
+    else #should be for dense
         Hnh = nh_hamiltonian(H,J,Jdagger,rates)
         Hnhdagger = dagger(Hnh)
         tmp = copy(rho0)
@@ -236,39 +242,55 @@ for f ∈ [:master,:master_h,:master_nh,:master_dynamic,:master_nh_dynamic]
     @eval $f(tspan,psi0::Ket,args...;kwargs...) = $f(tspan,dm(psi0),args...;kwargs...)
 end
 
-# Non-hermitian Hamiltonian
+"""
+Returns the non-Hermitian Hamiltonian
+```math
+H_{nh} = H - \\frac{i}{2} \\sum_k J^†_k J_k
+```
+(alightly more complicated formula for case with rate vector/matrix)
+which may be used for a shorter, more efficient form of the Lindblad equation.
+"""
+
 function nh_hamiltonian(H,J,Jdagger,::Nothing)
-    Hnh = copy(H)
-    for i=1:length(J)
-        Hnh -= complex(float(eltype(H)))(0.5im)*Jdagger[i]*J[i]
-    end
-    return Hnh
+    Hnh = H - 0.5im*sum(Jdagger.*J)
+    return optimized_TDS(Hnh)
+    # Hnh = copy(H)
+    # for i=1:length(J)
+    #     Hnh -= complex(float(eltype(H)))(0.5im)*Jdagger[i]*J[i]
+    # end
+    # return Hnh
 end
 function nh_hamiltonian(H,J,Jdagger,rates::AbstractVector)
-    Hnh = copy(H)
-    for i=1:length(J)
-        Hnh -= complex(float(eltype(H)))(0.5im*rates[i])*Jdagger[i]*J[i]
-    end
-    return Hnh
+    Hnh = H - 0.5im * sum(rates.*Jdagger.*J)
+    return optimized_TDS(Hnh)
+    # Hnh = copy(H)
+    # for i=1:length(J)
+    #     Hnh -= complex(float(eltype(H)))(0.5im*rates[i])*Jdagger[i]*J[i]
+    # end
+    # return Hnh
 end
 function nh_hamiltonian(H,J,Jdagger,rates::AbstractMatrix)
     Hnh = copy(H)
     for i=1:length(J), j=1:length(J)
         Hnh -= complex(float(eltype(H)))(0.5im*rates[i,j])*Jdagger[i]*J[j]
     end
-    return Hnh
+    return optimized_TDS(Hnh)
 end
 
-# Recasting needed for the ODE solver is just providing the underlying data
-function recast!(rho::Operator{B,B,T},x::T) where {B,T}
-    rho.data = x
+function nh_hamiltonian(H, J)
+    return nh_hamiltonian(H, J, dagger.(J), nothing)
 end
-recast!(x::T,rho::Operator{B,B,T}) where {B,T} = nothing
+
+# the following was replaced by timeevolution.view_recast
+# function recast!(rho::Operator{B,B,T},x::T) where {B,T}
+#     rho.data = reshape(x, size(rho.data))
+# end
 
 function integrate_master(tspan, df, rho0, fout; kwargs...)
-    x0 = rho0.data
+    # x0 = rho0.data
     state = deepcopy(rho0)
     dstate = deepcopy(rho0)
+    x0 = as_vector(state)
     integrate(tspan, df, x0, state, dstate, fout; kwargs...)
 end
 
@@ -293,23 +315,31 @@ See also: [`master`](@ref), [`dmaster_nh!`](@ref), [`dmaster_h_dynamic!`](@ref),
 """
 function dmaster_h!(drho, H, J, Jdagger, rates::Nothing, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    drho .+= drho' # check if this is not smaller for sparse H
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho)
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
 
         QuantumOpticsBase.mul!(drho,Jdagger[i],drho_cache,eltype(rho)(-0.5),one(eltype(rho)))
 
-        QuantumOpticsBase.mul!(drho_cache,rho,Jdagger[i],true,false)
-        QuantumOpticsBase.mul!(drho,drho_cache,J[i],eltype(rho)(-0.5),one(eltype(rho)))
+        # QuantumOpticsBase.mul!(drho_cache,rho,Jdagger[i],true,false)
+        # QuantumOpticsBase.mul!(drho,drho_cache,J[i],eltype(rho)(-0.5),one(eltype(rho)))
+
+        QuantumOpticsBase.mul!(drho,drho_cache',J[i],eltype(rho)(-0.5),one(eltype(rho)))
+        # TODO: with a second cache we can reduce this to just 3 matrix products. In any case it is better to simply use non-Hermitian Hamiltonian
+
     end
     return drho
 end
 
+#TODO: in every instance of mul! with a TimeDependentSum H, mul! first applies static_operator(H). So if there are two muls with the same TDS H, it would be better to first derive static_operator(H) and apply both to it. This change should be applied to many places in the module.
 function dmaster_h!(drho, H, J, Jdagger, rates::AbstractVector, rho, drho_cache)
+    # TODO: use fewer muls like other improved implementations
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
     QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
     for i=1:length(J)
+        # make this more efficient as well
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
 
@@ -322,6 +352,7 @@ function dmaster_h!(drho, H, J, Jdagger, rates::AbstractVector, rho, drho_cache)
 end
 
 function dmaster_h!(drho, H, J, Jdagger, rates::AbstractMatrix, rho, drho_cache)
+    # TODO: use fewer muls like other improved implementations
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
     QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
     for j=1:length(J), i=1:length(J)
@@ -347,9 +378,10 @@ multiplications making it slightly faster than [`dmaster_h!`](@ref).
 See also: [`master`](@ref), [`dmaster_h!`](@ref), [`dmaster_h_dynamic!`](@ref),
     [`dmaster_nh_dynamic!`](@ref), [`dmaster_liouville!`](@ref)
 """
-function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::Nothing, rho, drho_cache)
+function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::Nothing, rho, drho_cache)  #TODO: Hnh_dagger is now unused. Consider removing. 
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    drho .+= drho'
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho)
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
@@ -359,7 +391,8 @@ end
 
 function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::AbstractVector, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    drho .+= drho'
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
@@ -369,7 +402,8 @@ end
 
 function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::AbstractMatrix, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
+    drho .+= drho'
     for j=1:length(J), i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i,j]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[j],true,true)
@@ -386,7 +420,7 @@ Update `drho` according to a master equation as `L*rho`, where `L` is an arbitra
 See also: [`master`](@ref), [`dmaster_h!`](@ref), [`dmaster_nh!`](@ref),
     [`dmaster_h_dynamic!`](@ref), [`dmaster_nh_dynamic!`](@ref)
 """
-function dmaster_liouville!(drho,L,rho)
+function dmaster_liouville!(drho,L,rho) # TODO: shouldn't this be inline?
     mul!(drho,L,rho)
     return drho
 end
@@ -437,7 +471,10 @@ function dmaster_nh_dynamic!(drho, f::F, rates, rho, drho_cache, t) where {F}
     dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates_, rho, drho_cache)
 end
 
-
+"""
+Returns true iff H and each component of J, Jdagger is DenseOpType or SparseOpType (they don't have to be the same option).
+Type assertions for J, Jdagger, rates
+"""
 function check_master(rho0, H, J, Jdagger, rates)
     isreducible = true # test if all operators are sparse or dense
     if !(isa(H, DenseOpType) || isa(H, SparseOpType))
