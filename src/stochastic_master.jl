@@ -257,13 +257,13 @@ end
 
 function integrate_master_stoch(tspan, df, dg,
                         rho0, fout,
-                        n;
+                        n; save_noise=true,
                         kwargs...)
     tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
     state = copy(rho0)
     dstate = copy(rho0)
     x0 = as_vector(state)
-    integrate_stoch(tspan_, df, dg, x0, state, dstate, fout, n; kwargs...)
+    integrate_stoch(tspan_, df, dg, x0, state, dstate, fout, n; save_noise=save_noise, kwargs...)
 end
 
 function check_master_stoch(rho0::Operator{B,B}, C, Cdagger) where B

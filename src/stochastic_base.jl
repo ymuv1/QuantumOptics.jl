@@ -12,7 +12,7 @@ import DiffEqCallbacks, StochasticDiffEq, OrdinaryDiffEqCore, DiffEqNoiseProcess
 Integrate using StochasticDiffEq
 """
 function integrate_stoch(tspan, df, dg, x0,
-            state, dstate, fout, n;
+            state, dstate, fout, n; save_noise=true,
             save_everystep = false, callback=nothing, saveat=tspan,
             alg=StochasticDiffEq.EM(),
             noise_rate_prototype = nothing,
@@ -20,6 +20,7 @@ function integrate_stoch(tspan, df, dg, x0,
             noise=nothing,
             ncb=nothing,
             kwargs...)
+    # TODO consider making a function that will generate the SDEProblem and Callback objects, and this will run that function's output
 
     function df_(dx, x, p, t)
         # recast!(state,x)
@@ -83,9 +84,11 @@ function integrate_stoch(tspan, df, dg, x0,
                 abstol = 1.0e-3,
                 save_everystep = false, save_start = false,
                 save_end = false,
-                callback=full_cb, kwargs...)
-
-    out.t,out.saveval
+                callback=full_cb, save_noise=save_noise, kwargs...)
+    if save_noise
+        return out.t, out.saveval, out.W
+    end
+    return out.t, out.saveval
 end
 
 """
