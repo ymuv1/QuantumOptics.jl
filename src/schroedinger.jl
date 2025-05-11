@@ -67,12 +67,14 @@ function schroedinger_dynamic(tspan, psi0::T, H::AbstractTimeDependentOperator;
     end
 end
 
+
 """
     recast!(x,y)
 
 Write the data stored in `y` into `x`, where either `x` or `y` is a quantum
 object such as a [`Ket`](@ref) or an [`Operator`](@ref), and the other one is
 a vector or a matrix with a matching size.
+# Note that using this at every step of a simulation is highly inefficient because it copies the data back and forth. Use view_recast! instead
 """
 recast!(psi::StateVector{B,D},x::D) where {B, D} = (psi.data = x);
 recast!(x::D,psi::StateVector{B,D}) where {B, D} = nothing
@@ -80,6 +82,22 @@ function recast!(proj::Operator{B1,B2,T},x::T) where {B1,B2,T}
     proj.data = x
 end
 recast!(x::T,proj::Operator{B1,B2,T}) where {B1,B2,T} = nothing
+recast!(x::SubArray,state::Operator{B,B}) where B = (x[:] = state.data) #This copies the data. Better to make a new SubArray x = @view state.data.
+
+"""
+    view_recast!(rho, x)
+Similarly to recast!, but rho's new data is a view of x and not a copy, making this far more efficient.
+"""
+function view_recast!(rho::Operator{B,B,T}, x::T) where {B,T}
+    rho.data = reshape(x, size(rho.data))
+end
+
+function view_recast!(rho::Operator{B,B,T},x::Union{Vector, SubArray}) where {B,T}
+    rho.data = reshape(x, size(rho.data))
+end
+
+as_vector(rho::Operator) = reshape(rho.data, :) # view_recast in the opposite direction
+
 
 """
     dschroedinger!(dpsi, H, psi)
