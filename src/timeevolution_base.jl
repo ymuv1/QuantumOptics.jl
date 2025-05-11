@@ -4,6 +4,7 @@ using QuantumOpticsBase: check_samebases, check_multiplicable
 import OrdinaryDiffEqCore, OrdinaryDiffEqLowOrderRK, DiffEqCallbacks, DiffEqBase, ForwardDiff
 
 function recast! end
+function view_recast! end
 
 """
     integrate(tspan, df::Function, x0::Vector{ComplexF64},
@@ -16,20 +17,23 @@ function integrate(tspan, df, x0,
             alg = OrdinaryDiffEqLowOrderRK.DP5(),
             steady_state = false, tol = 1e-3, save_everystep = false, saveat=tspan,
             callback = nothing, kwargs...)
-
+    # TODO consider making a function that will generate the SDEProblem and Callback objects, and this will run that function's output
     df_ = let df = df
         function df_(dx, x, p, t)
-            recast!(state,x)
-            recast!(dstate,dx)
+            # recast!(state,x)
+            # recast!(dstate,dx)
+            # df(t, state, dstate)
+            # recast!(dx,dstate)
+            view_recast!(state,x)
+            view_recast!(dstate,dx)
             df(t, state, dstate)
-            recast!(dx,dstate)
             return nothing
         end
     end
 
     fout_ = let fout = fout, state = state
         function fout_(x, t, integrator)
-            recast!(state,x)
+            view_recast!(state,x) #note: the input fout must not output state (it may output copies)
             fout(t, state)
         end
     end
@@ -81,17 +85,15 @@ function integrate(tspan, df, x0,
     integrate(tspan, df, x0, state, dstate, fout; kwargs...)
 end
 
-struct SteadyStateCondtion{T,T2,T3}
+struct SteadyStateCondtion{T,T2}
     rho0::T
     tol::T2
-    state::T3
 end
 function (c::SteadyStateCondtion)(rho,t,integrator)
-    timeevolution.recast!(rho,c.state)
+    drho = tracedistance(c.rho0, rho)
     dt = integrator.dt
-    drho = tracedistance(c.rho0, c.state)
-    c.rho0.data[:] = c.state.data
-    drho/dt < c.tol
+    c.rho0 = rho
+    return drho/dt < c.tol
 end
 
 function _check_const(op)

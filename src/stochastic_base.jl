@@ -1,7 +1,7 @@
 using QuantumOpticsBase
 using QuantumOpticsBase: check_samebases, check_multiplicable
 using Random: AbstractRNG, randn!
-import ..timeevolution: recast!, QO_CHECKS, pure_inference, as_vector
+import ..timeevolution: view_recast!, QO_CHECKS, pure_inference, as_vector
 
 import DiffEqCallbacks, StochasticDiffEq, OrdinaryDiffEqCore, DiffEqNoiseProcess
 
@@ -22,20 +22,27 @@ function integrate_stoch(tspan, df, dg, x0,
             kwargs...)
 
     function df_(dx, x, p, t)
-        recast!(state,x)
-        recast!(dstate,dx)
+        # recast!(state,x)
+        # recast!(dstate,dx)
+        # df(t, state, dstate)
+        # recast!(dx,dstate)
+        view_recast!(state,x)
+        view_recast!(dstate,dx)
         df(t, state, dstate)
-        recast!(dx,dstate)
+        return nothing
     end
 
     function dg_(dx, x, p, t)
-        recast!(state,x)
+        # recast!(state,x)
+        view_recast!(state,x)
         dg(dx, t, state, dstate, n)
+        return nothing
     end
 
     function fout_(x, t, integrator)
-        recast!(state,x)
-        fout(t, state)
+        # recast!(state,x)
+        view_recast!(state,x)
+        fout(t, state) 
     end
 
     nc = isa(noise_prototype_classical, Nothing) ? 0 : size(noise_prototype_classical)[2]
