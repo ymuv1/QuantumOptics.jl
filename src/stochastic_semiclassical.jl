@@ -171,7 +171,7 @@ function master_semiclassical(tspan, rho0::S,
             semiclassical.dmaster_h_dynamic!(drho, fquantum, fclassical!, rates, rho, tmp, t)
 
     dmaster_stoch(dx, t, rho, drho, n) =
-        dmaster_stoch_dynamic(dx, t, rho, fstoch_quantum, fstoch_classical, drho, n)
+        dmaster_stoch_dynamic!(dx, t, rho, fstoch_quantum, fstoch_classical, drho, n)
 
     integrate_master_stoch(tspan, dmaster_determ, dmaster_stoch, rho0, fout, n;
                 noise_prototype_classical=noise_prototype_classical,
@@ -216,7 +216,7 @@ function dschroedinger_stochastic(dx, t, state, fstoch_quantum::Function,
     fstoch_classical(dx_i, state.classical, state.quantum, t)
 end
 
-function dmaster_stoch_dynamic(dx::AbstractVector, t,
+function dmaster_stoch_dynamic!(dx::AbstractVector, t,
             state, fstoch_quantum::Function,
             fstoch_classical::Nothing, dstate, n)
     result = fstoch_quantum(t, state.quantum, state.classical)
@@ -229,7 +229,7 @@ function dmaster_stoch_dynamic(dx::AbstractVector, t,
     dstate.quantum.data .-= tr(dstate.quantum)*state.quantum.data
     recast!(dx,dstate)
 end
-function dmaster_stoch_dynamic(dx::AbstractMatrix, t,
+function dmaster_stoch_dynamic!(dx::AbstractMatrix, t,
             state, fstoch_quantum::Function,
             fstoch_classical::Nothing, dstate, n)
     result = fstoch_quantum(t, state.quantum, state.classical)
@@ -245,16 +245,16 @@ function dmaster_stoch_dynamic(dx::AbstractMatrix, t,
         recast!(dx_i,dstate)
     end
 end
-function dmaster_stoch_dynamic(dx, t,
+function dmaster_stoch_dynamic!(dx, t,
             state, fstoch_quantum::Nothing,
             fstoch_classical::Function, dstate, n)
     dclassical = @view dx[length(state.quantum)+1:end, :]
     fstoch_classical(dclassical, state.classical, state.quantum, t)
 end
-function dmaster_stoch_dynamic(dx, t,
+function dmaster_stoch_dynamic!(dx, t,
             state, fstoch_quantum::Function,
             fstoch_classical::Function, dstate, n)
-    dmaster_stoch_dynamic(dx, t, state, fstoch_quantum, nothing, dstate, n)
+    dmaster_stoch_dynamic!(dx, t, state, fstoch_quantum, nothing, dstate, n)
 
     dx_i = @view dx[length(state.quantum)+1:end, n+1:end]
     fstoch_classical(dx_i, state.classical, state.quantum, t)
