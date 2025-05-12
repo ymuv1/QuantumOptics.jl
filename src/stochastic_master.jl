@@ -33,7 +33,7 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B},
                 J, C;
                 rates=nothing,
                 Jdagger=dagger.(J), Cdagger=dagger.(C),
-                fout=nothing,
+                fout=nothing, save_noise=false,
                 kwargs...) where {B,T<:Operator{B,B}}
     _check_const(H)
     _check_const.(J)
@@ -68,7 +68,7 @@ function master(tspan, rho0::T, H::AbstractOperator{B,B},
 
         dmaster_nh_determ(t, rho, drho) =
             dmaster_nh!(drho, Hnh, Hnhdagger, J, Jdagger, rates, rho, tmp)
-        integrate_master_stoch(tspan, dmaster_nh_determ, dmaster_stoch, rho0, fout, n; kwargs...)
+        integrate_master_stoch(tspan, dmaster_nh_determ, dmaster_stoch, rho0, fout, n; save_noise=save_noise, kwargs...)
     end
 end
 master(tspan, psi0::Ket, args...; kwargs...) = master(tspan, dm(psi0), args...; kwargs...)
@@ -103,6 +103,7 @@ dynamic Hamiltonian and J.
         returned by `fstoch` and all optional functions. If unset, the number
         is calculated automatically from the function outputs. NOTE: Set this
         number if you want to avoid an initial calculation of function outputs!
+*  `save_noise`: whether to return the noise dW in the same format as in DifferentialEquations.jl
 * `kwargs...`: Further arguments are passed on to the ode solver.
 
         stochastic.master_h_dynamic(tspan, rho0, H::AbstractTimeDependentOperator, J, C; <keyword arguments>)
@@ -126,17 +127,18 @@ function master_h_dynamic(tspan, rho0::T, fdeterm, fstoch;
 
     dmaster_determ_(t, rho, drho) = dmaster_h_dynamic!(drho, fdeterm, rates, rho, tmp, t)
     dmaster_stoch_(dx, t, rho, drho, n) = dmaster_stoch_dynamic!(dx, t, rho, fstoch, drho, n)
-    integrate_master_stoch(tspan, dmaster_determ_, dmaster_stoch_, rho0, fout, n; kwargs...)
+    integrate_master_stoch(tspan, dmaster_determ_, dmaster_stoch_, rho0, fout, n; save_noise=save_noise, kwargs...)
 end
 
 function master_h_dynamic(tspan, rho0::T, H::AbstractTimeDependentOperator, J, C;
     rates=nothing,
     fout=nothing,
+    save_noise=false,
     kwargs...) where {B,T<:Operator{B,B}}
 
     fdeterm_ = master_h_dynamic_function(H, J)
     fstoch_ = master_stochastic_dynamics_function(C)
-    master_h_dynamic(tspan, rho0::T, fdeterm_, fstoch_; fout=fout, kwargs...)
+    master_h_dynamic(tspan, rho0::T, fdeterm_, fstoch_; save_noise=false, fout=fout, kwargs...)
 end
 
 """
@@ -171,6 +173,7 @@ end
 function master_nh_dynamic(tspan, rho0::T, fdeterm, fstoch;
     rates=nothing,
     fout=nothing,
+    save_noise=false,
     noise_processes::Int=0,
     kwargs...) where {B,T<:Operator{B,B}}
 
@@ -185,17 +188,18 @@ function master_nh_dynamic(tspan, rho0::T, fdeterm, fstoch;
 
     dmaster_determ_(t, rho, drho) = dmaster_nh_dynamic!(drho, fdeterm, rates, rho, tmp, t)
     dmaster_stoch(dx, t, rho, drho, n) = dmaster_stoch_dynamic!(dx, t, rho, fstoch, drho, n)
-    integrate_master_stoch(tspan, dmaster_determ_, dmaster_stoch, rho0, fout, n; kwargs...)
+    integrate_master_stoch(tspan, dmaster_determ_, dmaster_stoch, rho0, fout, n; save_noise=save_noise, kwargs...)
 end
 
 """
 Recommended: use Hnh=nh_hamiltonian(H, J)
+set `save_noise=true` to obtain a vector (matrix) dW in addition to the regular output
 """
 function master_nh_dynamic(tspan, rho0::T, Hnh::AbstractTimeDependentOperator, J, C;
-    fout = nothing, kwargs...)  where {B,T<:Operator{B,B}}
+    fout = nothing,  save_noise=false, kwargs...)  where {B,T<:Operator{B,B}}
     fdeterm = master_nh_dynamic_function(Hnh, J)
     fstoch = master_stochastic_dynamics_function(C)
-    master_nh_dynamic(tspan, rho0, fdeterm, fstoch; fout=fout, kwargs...)
+    master_nh_dynamic(tspan, rho0, fdeterm, fstoch; fout=fout, save_noise=save_noise, kwargs...)
 end
 
 
@@ -225,9 +229,9 @@ function dmaster_stochastic!(dx::AbstractMatrix, rho, C, Cdagger, drho, n)
         view_recast!(drho, dx_i)
         QuantumOpticsBase.mul!(drho,C[i],rho)
         # QuantumOpticsBase.mul!(drho,rho,Cdagger[i],true,true)
-        drho .+= drho' #might be slightly less efficient than commented line if C is sparse (both mathematically and in its type). But in the other cases this is MUCH more efficient.
+        drho.data .+= drho.data' #might be slightly less efficient than commented line if C is sparse (both mathematically and in its type). But in the other cases this is MUCH more efficient.
         # drho.data .-= tr(drho)*rho.data #allocations!
-        axpy!(-tr(drho), rho.data, drho.data) # much slower than drho.data .-= tr(drho)*rho.data  if any of the matrices is a sparse object
+        axpy!(-tr(drho.data), rho.data, drho.data) # much slower than drho.data .-= tr(drho)*rho.data  if any of the matrices is a sparse object
     end
     return nothing
 end
@@ -240,7 +244,7 @@ function dmaster_stochastic!(dx::AbstractVector, rho, C, Cdagger, drho, n)
     view_recast!(drho, dx)
     QuantumOpticsBase.mul!(drho,C[1],rho)
     # QuantumOpticsBase.mul!(drho,rho,Cdagger[1],true,true)
-    drho .+= drho'
+    drho.data .+= drho.data'
     # drho.data .-= tr(drho)*rho.data #allocations!
     axpy!(-tr(drho), rho.data, drho.data) # much slower than drho.data .-= tr(drho)*rho.data  if any of the matrices is a sparse object
     return nothing
@@ -257,7 +261,7 @@ end
 
 function integrate_master_stoch(tspan, df, dg,
                         rho0, fout,
-                        n; save_noise=true,
+                        n; save_noise=false,
                         kwargs...)
     tspan_ = convert(Vector{float(eltype(tspan))}, tspan)
     state = copy(rho0)

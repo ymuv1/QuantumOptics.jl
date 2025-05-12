@@ -12,7 +12,7 @@ import DiffEqCallbacks, StochasticDiffEq, OrdinaryDiffEqCore, DiffEqNoiseProcess
 Integrate using StochasticDiffEq
 """
 function integrate_stoch(tspan, df, dg, x0,
-            state, dstate, fout, n; save_noise=true,
+            state, dstate, fout, n; save_noise=false,
             save_everystep = false, callback=nothing, saveat=tspan,
             alg=StochasticDiffEq.EM(),
             noise_rate_prototype = nothing,

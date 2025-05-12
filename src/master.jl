@@ -137,13 +137,13 @@ function master(tspan, rho0::Operator, L::SuperOperator; fout=nothing, kwargs...
     dmaster_(t,rho,drho) = dmaster_liouville!(drho,L_,rho)
 
     # Rewrite into density matrix when saving
-    tmp = copy(rho0)
+    # TODO: Here we make fout foolproof, but in other places (e.g. dynamic_master and stochastic master functions) we don't and we simply rely on the user to input a good one. It doesn't make sense to do both... Note that if the user is careful and copies an output rho in their fout function, then fout_ copies the copy which is quite inefficient.
     if fout===nothing
         fout_ = function(t,rho)
-            tmp.data[:] = rho.data
-            return copy(tmp)
+            return deepcopy(rho)
         end
     else
+        tmp = copy(rho0)
         fout_ = function(t,rho)
             tmp.data[:] = rho.data
             return fout(t,tmp)
@@ -315,8 +315,8 @@ See also: [`master`](@ref), [`dmaster_nh!`](@ref), [`dmaster_h_dynamic!`](@ref),
 """
 function dmaster_h!(drho, H, J, Jdagger, rates::Nothing, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
-    # QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
-    drho .+= drho' # check if this is not smaller for sparse H
+    # QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho))) # replace with next line
+    drho.data .+= drho.data' # check if this is slower for sparse H
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho)
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
@@ -325,7 +325,6 @@ function dmaster_h!(drho, H, J, Jdagger, rates::Nothing, rho, drho_cache)
 
         # QuantumOpticsBase.mul!(drho_cache,rho,Jdagger[i],true,false)
         # QuantumOpticsBase.mul!(drho,drho_cache,J[i],eltype(rho)(-0.5),one(eltype(rho)))
-
         QuantumOpticsBase.mul!(drho,drho_cache',J[i],eltype(rho)(-0.5),one(eltype(rho)))
         # TODO: with a second cache we can reduce this to just 3 matrix products. In any case it is better to simply use non-Hermitian Hamiltonian
 
@@ -333,11 +332,12 @@ function dmaster_h!(drho, H, J, Jdagger, rates::Nothing, rho, drho_cache)
     return drho
 end
 
-#TODO: in every instance of mul! with a TimeDependentSum H, mul! first applies static_operator(H). So if there are two muls with the same TDS H, it would be better to first derive static_operator(H) and apply both to it. This change should be applied to many places in the module.
+#TODO (throughout the whole project): in every instance of mul! with a TimeDependentSum H, mul! first applies static_operator(H). So if there are two muls with the same TDS H, it would be better to first derive static_operator(H) and apply both to it. This change should be applied to many places in the module.
 function dmaster_h!(drho, H, J, Jdagger, rates::AbstractVector, rho, drho_cache)
     # TODO: use fewer muls like other improved implementations
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    drho.data .+= drho.data' # check if this is slower for sparse H
     for i=1:length(J)
         # make this more efficient as well
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
@@ -345,16 +345,19 @@ function dmaster_h!(drho, H, J, Jdagger, rates::AbstractVector, rho, drho_cache)
 
         QuantumOpticsBase.mul!(drho,Jdagger[i],drho_cache,eltype(rho)(-0.5),one(eltype(rho)))
 
-        QuantumOpticsBase.mul!(drho_cache,rho,Jdagger[i],eltype(rho)(rates[i]),zero(eltype(rho)))
-        QuantumOpticsBase.mul!(drho,drho_cache,J[i],eltype(rho)(-0.5),one(eltype(rho)))
+        # QuantumOpticsBase.mul!(drho_cache,rho,Jdagger[i],eltype(rho)(rates[i]),zero(eltype(rho)))
+        # QuantumOpticsBase.mul!(drho,drho_cache,J[i],eltype(rho)(-0.5),one(eltype(rho)))
+        QuantumOpticsBase.mul!(drho,drho_cache',J[i],eltype(rho)(-0.5),one(eltype(rho)))
+
     end
     return drho
 end
 
 function dmaster_h!(drho, H, J, Jdagger, rates::AbstractMatrix, rho, drho_cache)
-    # TODO: use fewer muls like other improved implementations
+    # TODO: use fewer muls like other improved implementations if possible
     QuantumOpticsBase.mul!(drho,H,rho,-eltype(rho)(im),zero(eltype(rho)))
-    QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    # QuantumOpticsBase.mul!(drho,rho,H,eltype(rho)(im),one(eltype(rho)))
+    drho.data .+= drho.data' # check if this is slower for sparse H
     for j=1:length(J), i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i,j]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[j],true,true)
@@ -381,7 +384,7 @@ See also: [`master`](@ref), [`dmaster_h!`](@ref), [`dmaster_h_dynamic!`](@ref),
 function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::Nothing, rho, drho_cache)  #TODO: Hnh_dagger is now unused. Consider removing. 
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
     # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
-    drho .+= drho'
+    drho.data .+= drho.data'
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho)
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
@@ -392,7 +395,7 @@ end
 function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::AbstractVector, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
     # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
-    drho .+= drho'
+    drho.data .+= drho.data'
     for i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[i],true,true)
@@ -403,7 +406,7 @@ end
 function dmaster_nh!(drho, Hnh, Hnh_dagger, J, Jdagger, rates::AbstractMatrix, rho, drho_cache)
     QuantumOpticsBase.mul!(drho,Hnh,rho,-eltype(rho)(im),zero(eltype(rho)))
     # QuantumOpticsBase.mul!(drho,rho,Hnh_dagger,eltype(rho)(im),one(eltype(rho)))
-    drho .+= drho'
+    drho.data .+= drho.data'
     for j=1:length(J), i=1:length(J)
         QuantumOpticsBase.mul!(drho_cache,J[i],rho,eltype(rho)(rates[i,j]),zero(eltype(rho)))
         QuantumOpticsBase.mul!(drho,drho_cache,Jdagger[j],true,true)
