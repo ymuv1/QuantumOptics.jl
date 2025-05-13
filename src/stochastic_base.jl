@@ -86,7 +86,7 @@ function integrate_stoch(tspan, df, dg, x0,
                 save_end = false,
                 callback=full_cb, save_noise=save_noise, kwargs...)
     if save_noise
-        return out.t, out.saveval, out.W
+        return out.t, out.saveval, sol.W
     end
     return out.t, out.saveval
 end

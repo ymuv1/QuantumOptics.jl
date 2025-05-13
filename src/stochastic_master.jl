@@ -103,7 +103,9 @@ dynamic Hamiltonian and J.
         returned by `fstoch` and all optional functions. If unset, the number
         is calculated automatically from the function outputs. NOTE: Set this
         number if you want to avoid an initial calculation of function outputs!
-*  `save_noise`: whether to return the noise dW in the same format as in DifferentialEquations.jl
+*  `save_noise=false`: whether to return the NoiseProcess W generated while integrating the SDE (the output will take the form (t,ρ,W) instead of (t,ρ)).
+        The times, values and increments are accessible via `W.t`, `W.W`, `W.dW`.
+        
 * `kwargs...`: Further arguments are passed on to the ode solver.
 
         stochastic.master_h_dynamic(tspan, rho0, H::AbstractTimeDependentOperator, J, C; <keyword arguments>)
